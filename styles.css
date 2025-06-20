@@ -112,6 +112,8 @@ header h2 {
 #customer-ranking .card {
     cursor: pointer;
     transition: all 0.3s ease;
+    min-height: 100px; /* 최소 높이 보장 */
+    margin-bottom: 10px; /* 모바일에서 하단 여백 */
 }
 
 #customer-ranking .card:hover {
@@ -142,6 +144,67 @@ header h2 {
 
 #customer-ranking .card {
     position: relative;
+}
+
+/* 등급 카드 개선 (한 줄 표시 최적화) */
+#customer-ranking .card-body {
+    padding: 1rem 0.5rem; /* 좌우 패딩 축소 */
+}
+
+#customer-ranking .card-title {
+    font-size: 0.9rem; /* 제목 크기 최적화 */
+    font-weight: 600;
+}
+
+#customer-ranking .card-text {
+    font-weight: 700;
+    font-size: 1.8rem; /* 숫자 크기 적절히 조정 */
+}
+
+/* 모바일 환경에서 등급 카드 조정 */
+@media (max-width: 768px) {
+    #customer-ranking .card-body {
+        padding: 0.75rem 0.25rem; /* 모바일에서 더 작은 패딩 */
+    }
+    
+    #customer-ranking .card-title {
+        font-size: 0.8rem; /* 모바일에서 제목 크기 축소 */
+    }
+    
+    #customer-ranking .card-text {
+        font-size: 1.5rem; /* 모바일에서 숫자 크기 축소 */
+    }
+    
+    #customer-ranking .card::after {
+        font-size: 0.6rem; /* 모바일에서 힌트 텍스트 축소 */
+        bottom: 3px;
+        right: 5px;
+    }
+}
+
+/* 소형 모바일에서 추가 최적화 */
+@media (max-width: 576px) {
+    #customer-ranking .row {
+        margin-left: -5px;
+        margin-right: -5px;
+    }
+    
+    #customer-ranking .col-4 {
+        padding-left: 5px;
+        padding-right: 5px;
+    }
+    
+    #customer-ranking .card-body {
+        padding: 0.6rem 0.2rem;
+    }
+    
+    #customer-ranking .card-title {
+        font-size: 0.75rem;
+    }
+    
+    #customer-ranking .card-text {
+        font-size: 1.3rem;
+    }
 }
 
 /* 모달 스타일 */

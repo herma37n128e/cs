@@ -17,20 +17,36 @@ function loadDataFromStorage() {
 }
 
 // 로컬 스토리지에 데이터 저장
-function saveDataToStorage() {
-    localStorage.setItem('customers', JSON.stringify(customers));
-    localStorage.setItem('purchases', JSON.stringify(purchases));
-    localStorage.setItem('gifts', JSON.stringify(gifts));
-    localStorage.setItem('visits', JSON.stringify(visits));
-    localStorage.setItem('lastUpdated', Date.now().toString());
-    
-    // 클라우드에 자동 동기화 (비동기)
-    if (window.CloudSync && window.CLOUD_SYNC.enabled) {
-        setTimeout(() => {
-            window.CloudSync.syncToCloud().catch(error => {
-                console.log('자동 클라우드 동기화 실패:', error);
-            });
-        }, 100); // 100ms 지연 후 동기화
+// 데이터 저장 함수 (Firebase 영구저장)
+async function saveDataToStorage() {
+    try {
+        // 로컬스토리지에 즉시 저장
+        localStorage.setItem('customers', JSON.stringify(customers));
+        localStorage.setItem('purchases', JSON.stringify(purchases));
+        localStorage.setItem('gifts', JSON.stringify(gifts));
+        localStorage.setItem('visits', JSON.stringify(visits));
+        localStorage.setItem('lastUpdated', Date.now().toString());
+        
+        // Firebase에 영구저장
+        if (window.FirebaseData && window.opener && window.opener.FirebaseData) {
+            const saveData = {
+                customers: customers || [],
+                purchases: purchases || [],
+                gifts: gifts || [],
+                visits: visits || [],
+                rankChanges: JSON.parse(localStorage.getItem('rankChanges') || '[]')
+            };
+            
+            const success = await window.opener.FirebaseData.saveToFirebase(saveData);
+            if (success) {
+                console.log('고객 상세 페이지에서 Firebase 저장 성공');
+            }
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('데이터 저장 오류:', error);
+        return false;
     }
 }
 

@@ -241,25 +241,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 네비게이션 메뉴 이벤트 리스너
+    // 네비게이션 메뉴 이벤트 리스너 (페이지 상태 저장 기능 추가)
     document.querySelectorAll('.nav-link[data-page]').forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
             const targetPage = link.getAttribute('data-page');
             
-            // 모든 페이지 숨기기
-            document.querySelectorAll('.page').forEach(page => {
-                page.classList.add('d-none');
-            });
+            // 현재 페이지를 localStorage에 저장 (새로고침 시 복원용)
+            localStorage.setItem('currentPage', targetPage);
+            console.log(`📄 현재 페이지 저장: ${targetPage}`);
             
-            // 선택된 페이지 표시
-            document.getElementById(targetPage).classList.remove('d-none');
-            
-            // 활성 메뉴 표시
-            document.querySelectorAll('.nav-link').forEach(navLink => {
-                navLink.classList.remove('active');
-            });
-            link.classList.add('active');
+            // 페이지 전환 실행
+            showPage(targetPage);
             
             // 모바일에서 메뉴 클릭 시 사이드바 닫기
             if (window.innerWidth < 992) {
@@ -268,19 +261,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // 모바일 제목 클릭 시 메인페이지로 이동
+    // 모바일 제목 클릭 시 메인페이지로 이동 (페이지 상태 저장)
     document.getElementById('mobile-title-home').addEventListener('click', () => {
-        // 고객 목록 페이지로 이동
-        document.querySelectorAll('.page').forEach(page => {
-            page.classList.add('d-none');
-        });
-        document.getElementById('customer-list').classList.remove('d-none');
+        // 현재 페이지 저장 및 고객 목록 페이지로 이동
+        localStorage.setItem('currentPage', 'customer-list');
+        console.log('📄 모바일 홈 클릭: customer-list 페이지 저장');
         
-        // 활성 메뉴 표시
-        document.querySelectorAll('.nav-link').forEach(navLink => {
-            navLink.classList.remove('active');
-        });
-        document.querySelector('.nav-link[data-page="customer-list"]').classList.add('active');
+        showPage('customer-list');
         
         // 사이드바가 열려있으면 닫기
         if (sidebar.classList.contains('show')) {
@@ -288,11 +275,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 페이지 로드 시 기본 페이지 표시 및 데이터 로드 (영구저장 시스템 초기화)
+    // 페이지 로드 시 마지막 페이지 복원 및 데이터 로드 (영구저장 시스템 초기화)
     setTimeout(async () => {
         console.log('🎯 UI 초기화 시작...');
         
         try {
+            // 저장된 페이지 복원 (새로고침 시 현재 페이지 유지)
+            const savedPage = localStorage.getItem('currentPage') || 'customer-list';
+            console.log(`🔄 저장된 페이지 복원: ${savedPage}`);
+            showPage(savedPage);
+            
             loadCustomerList();
             loadBirthdayAlerts();
             loadRankingCounts();
@@ -372,6 +364,68 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
 });
 
+// 페이지 전환 함수 (페이지 상태 관리)
+function showPage(targetPage) {
+    try {
+        // 모든 페이지 숨기기
+        document.querySelectorAll('.page').forEach(page => {
+            page.classList.add('d-none');
+        });
+        
+        // 선택된 페이지 표시
+        const targetElement = document.getElementById(targetPage);
+        if (targetElement) {
+            targetElement.classList.remove('d-none');
+            console.log(`✅ 페이지 전환 완료: ${targetPage}`);
+        } else {
+            console.warn(`⚠️ 페이지를 찾을 수 없음: ${targetPage}, 기본 페이지로 이동`);
+            document.getElementById('customer-list').classList.remove('d-none');
+            localStorage.setItem('currentPage', 'customer-list');
+        }
+        
+        // 활성 메뉴 표시
+        document.querySelectorAll('.nav-link').forEach(navLink => {
+            navLink.classList.remove('active');
+        });
+        
+        const activeLink = document.querySelector(`.nav-link[data-page="${targetPage}"]`);
+        if (activeLink) {
+            activeLink.classList.add('active');
+        }
+        
+        // 페이지별 특별한 로직 실행
+        switch(targetPage) {
+            case 'customer-list':
+                // 고객 목록 페이지 진입 시 데이터 새로고침
+                if (typeof loadCustomerList === 'function') {
+                    loadCustomerList();
+                }
+                break;
+            case 'birthday-alerts':
+                // 생일 알림 페이지 진입 시 데이터 새로고침
+                if (typeof loadBirthdayAlerts === 'function') {
+                    loadBirthdayAlerts();
+                }
+                break;
+            case 'customer-ranking':
+                // 고객 등급 페이지 진입 시 데이터 새로고침
+                if (typeof loadRankingCounts === 'function') {
+                    loadRankingCounts();
+                }
+                break;
+        }
+        
+    } catch (error) {
+        console.error('페이지 전환 오류:', error);
+        // 오류 시 기본 페이지로 이동
+        document.querySelectorAll('.page').forEach(page => {
+            page.classList.add('d-none');
+        });
+        document.getElementById('customer-list').classList.remove('d-none');
+        localStorage.setItem('currentPage', 'customer-list');
+    }
+}
+
 // 이벤트 리스너 설정
 function setupEventListeners() {
     // 고객 등록 폼 이벤트
@@ -397,19 +451,13 @@ function setupEventListeners() {
     // 템플릿 다운로드
     document.getElementById('download-template-btn').addEventListener('click', downloadExcelTemplate);
 
-    // 모바일 고객 등록 버튼
+    // 모바일 고객 등록 버튼 (페이지 상태 저장)
     document.getElementById('mobile-add-customer-btn').addEventListener('click', () => {
-        // 고객 등록 페이지로 이동
-        document.querySelectorAll('.page').forEach(page => {
-            page.classList.add('d-none');
-        });
-        document.getElementById('add-customer').classList.remove('d-none');
+        // 현재 페이지 저장 및 고객 등록 페이지로 이동
+        localStorage.setItem('currentPage', 'add-customer');
+        console.log('📄 모바일 고객등록 클릭: add-customer 페이지 저장');
         
-        // 활성 메뉴 표시
-        document.querySelectorAll('.nav-link').forEach(navLink => {
-            navLink.classList.remove('active');
-        });
-        document.querySelector('.nav-link[data-page="add-customer"]').classList.add('active');
+        showPage('add-customer');
     });
 
     // 기타 이벤트 리스너들...
@@ -2757,22 +2805,32 @@ window.testReset = function() {
     console.log('테스트 함수 호출됨 - 실제 초기화를 원하면 resetDatabase() 함수를 호출하세요');
 };
 
-// 동기화 테스트 함수
-window.testSync = function() {
-    if (window.CloudSync) {
-        console.log('동기화 테스트 시작...');
-        window.CloudSync.forceSyncToCloud().then(success => {
+// Firebase 연결 테스트 함수
+window.testFirebase = function() {
+    if (window.FirebaseData) {
+        console.log('Firebase 연결 테스트 시작...');
+        
+        // 간단한 테스트 데이터로 저장/로드 테스트
+        const testData = {
+            customers: customers || [],
+            purchases: purchases || [],
+            gifts: gifts || [],
+            visits: visits || [],
+            rankChanges: rankChanges || []
+        };
+        
+        window.FirebaseData.saveToFirebase(testData).then(success => {
             if (success) {
-                alert('동기화 테스트 성공!');
+                alert('✅ Firebase 연결 테스트 성공!\n데이터가 안전하게 저장되고 있습니다.');
             } else {
-                alert('동기화 테스트 실패 - 네트워크나 설정을 확인해주세요.');
+                alert('⚠️ Firebase 저장 실패\n인터넷 연결을 확인해주세요.');
             }
         }).catch(error => {
-            console.error('동기화 테스트 오류:', error);
-            alert('동기화 테스트 오류: ' + error.message);
+            console.error('Firebase 테스트 오류:', error);
+            alert('❌ Firebase 테스트 오류: ' + error.message);
         });
     } else {
-        alert('CloudSync 객체를 찾을 수 없습니다.');
+        alert('Firebase 시스템을 찾을 수 없습니다.');
     }
 };
 
@@ -2846,7 +2904,7 @@ window.resetDatabase = async function resetDatabase() {
         // 2. 로컬 스토리지 완전 삭제
         const keysToRemove = [
             'customers', 'purchases', 'gifts', 'visits', 
-            'rankHistory', 'rankChanges', 'lastUpdated', 'lastCloudSync'
+            'rankHistory', 'rankChanges', 'lastUpdated'
         ];
         
         keysToRemove.forEach(key => {
