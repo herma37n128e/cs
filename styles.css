@@ -1,0 +1,406 @@
+/* 기본 스타일 */
+body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background-color: #f8f9fa;
+}
+
+.container {
+    max-width: 1200px;
+    background-color: #fff;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+}
+
+header {
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 20px;
+    margin-bottom: 30px;
+}
+
+header h1 {
+    color: #333;
+    font-weight: 700;
+}
+
+header h2 {
+    color: #6c757d;
+    font-weight: 300;
+}
+
+/* 페이지 전환 */
+.page {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* 테이블 스타일 */
+.table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+}
+
+/* 버튼 스타일 */
+.btn-primary {
+    background-color: #343a40;
+    border-color: #343a40;
+}
+
+.btn-primary:hover {
+    background-color: #23272b;
+    border-color: #1d2124;
+}
+
+.btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+/* 등급 배지 스타일 */
+.badge-vvip {
+    background-color: #9c27b0;
+    color: white;
+}
+
+.badge-vip {
+    background-color: #f44336;
+    color: white;
+}
+
+.badge-regular {
+    background-color: #2196f3;
+    color: white;
+}
+
+/* 카드 호버 효과 */
+.card:hover {
+    transform: translateY(-5px);
+    transition: transform 0.3s ease;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* 모달 스타일 */
+.modal-header {
+    background-color: #f8f9fa;
+    border-radius: 5px 5px 0 0;
+}
+
+.modal-title {
+    font-weight: 600;
+}
+
+/* 탭 스타일 */
+.nav-tabs .nav-link.active {
+    font-weight: 600;
+    color: #343a40;
+}
+
+/* 생일 알림 스타일 */
+.birthday-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    background-color: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.birthday-item:hover {
+    background-color: #f8f9fa;
+}
+
+.birthday-date {
+    font-weight: 600;
+    color: #dc3545;
+}
+
+/* 선물 이력 아이템 */
+.gift-item {
+    border-left: 3px solid #28a745;
+    padding-left: 15px;
+    margin-bottom: 15px;
+}
+
+/* 방문 주기 표시 */
+.visit-due {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+.visit-upcoming {
+    color: #ffc107;
+    font-weight: 600;
+}
+
+.visit-recent {
+    color: #28a745;
+}
+
+/* 등급 변경 이력 모달 스타일 */
+#rank-history-modal .modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+/* 고객 상세 정보 헤더 스타일 */
+.customer-detail-header {
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 1rem;
+}
+
+/* 반응형 테이블 조정 */
+@media (max-width: 768px) {
+    .table-responsive {
+        overflow-x: auto;
+    }
+    
+    /* 모바일용 테이블 조정 */
+    .table {
+        font-size: 0.85rem;
+    }
+    
+    /* 모바일용 헤더 텍스트 크기 조정 */
+    header h1 {
+        font-size: 1.5rem;
+    }
+    
+    header h2 {
+        font-size: 1.1rem;
+    }
+    
+    /* 모바일에서 버튼 그룹 가로 정렬 유지하되 간격 조정 */
+    .btn-group {
+        display: flex;
+        flex-direction: row;
+        gap: 5px;
+    }
+    
+    .btn-group .btn {
+        flex: 1;
+        padding: 0.5rem 0.25rem;
+        font-size: 0.8rem;
+    }
+    
+    /* 모바일 화면에서 버튼 크기 키우기 */
+    .btn-sm {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+        min-height: 44px;
+    }
+    
+    /* 모바일에서 모달 개선 */
+    .modal-dialog {
+        margin: 10px;
+        max-width: calc(100% - 20px);
+        max-height: calc(100vh - 20px);
+    }
+    
+    .modal-content {
+        border-radius: 8px;
+        max-height: calc(100vh - 20px);
+        overflow-y: auto;
+    }
+    
+    .modal-body {
+        padding: 1rem;
+        max-height: calc(100vh - 120px);
+        overflow-y: auto;
+    }
+    
+    /* 고객 테이블에서 일부 컬럼 숨김 */
+    .mobile-hide {
+        display: none;
+    }
+    
+    /* 모바일에서 입력 필드 개선 */
+    .form-control, .form-select {
+        height: calc(2.5rem + 2px);
+        font-size: 1rem;
+        padding: 0.75rem;
+        border-radius: 8px;
+    }
+    
+    /* 모바일에서 라벨 스타일링 개선 */
+    .form-label {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-size: 0.95rem;
+        color: #495057;
+    }
+    
+    /* 모바일에서 컨테이너 패딩 조정 */
+    .container {
+        padding: 15px;
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+    
+    /* 카드 스타일 개선 */
+    .card {
+        margin-bottom: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        font-weight: 600;
+        padding: 1rem;
+        border-radius: 12px 12px 0 0;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    /* 모바일 폼 개선 */
+    .row {
+        margin-left: -8px;
+        margin-right: -8px;
+    }
+    
+    .row > * {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+    
+    /* 모바일에서 버튼 스타일 개선 */
+    .btn {
+        border-radius: 8px;
+        font-weight: 500;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* 모바일에서 하단 고정 버튼 개선 */
+    .mobile-fixed-bottom {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background-color: #fff;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.15);
+        padding: 15px;
+        z-index: 1000;
+        border-top: 1px solid #dee2e6;
+    }
+    
+    .mobile-fixed-bottom .btn {
+        width: 100%;
+        margin: 0;
+        font-size: 1.1rem;
+        padding: 0.75rem;
+    }
+    
+    /* 모바일에서 하단 버튼이 있을 때 패딩 추가 */
+    body.has-mobile-buttons {
+        padding-bottom: 80px;
+    }
+    
+    .table-responsive {
+        font-size: 0.9rem;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    /* 입력 그룹 개선 */
+    .input-group {
+        margin-bottom: 1rem;
+    }
+    
+    .input-group .form-control {
+        border-radius: 8px 0 0 8px;
+    }
+    
+    .input-group .btn {
+        border-radius: 0 8px 8px 0;
+        padding: 0.75rem 1rem;
+    }
+    
+    /* 텍스트 영역 개선 */
+    textarea.form-control {
+        min-height: 100px;
+        resize: vertical;
+    }
+}
+
+/* 모바일 환경에서 터치 영역 확대 */
+@media (max-width: 576px) {
+    .btn, a, .nav-link, .form-control, input, select, button {
+        min-height: 44px;
+        font-size: 1rem;
+    }
+    
+    /* 버튼 사이 간격 조정 */
+    .btn + .btn {
+        margin-top: 8px;
+    }
+    
+    /* 터치 영역 확대를 위한 라벨 크기 조정 */
+    label {
+        font-size: 1rem;
+        margin-bottom: 8px;
+    }
+    
+    /* 모바일 화면에서 그리드 시스템 조정 */
+    .row {
+        margin-left: -10px;
+        margin-right: -10px;
+    }
+    
+    .col, .col-1, .col-2, .col-3, .col-4, .col-5, .col-6, 
+    .col-7, .col-8, .col-9, .col-10, .col-11, .col-12, 
+    .col-sm, .col-sm-1, .col-sm-2, .col-sm-3, .col-sm-4, 
+    .col-sm-5, .col-sm-6, .col-sm-7, .col-sm-8, .col-sm-9, 
+    .col-sm-10, .col-sm-11, .col-sm-12 {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+}
+
+/* 로그인 폼 스타일 */
+#login-form {
+    background-color: #fff;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    border: none;
+    margin-top: 50px;
+}
+
+#login-form h3 {
+    color: #343a40;
+    font-weight: 600;
+}
+
+/* 검색 입력란 스타일 */
+.input-group .form-control:focus {
+    border-color: #343a40;
+    box-shadow: 0 0 0 0.2rem rgba(52, 58, 64, 0.25);
+}
+
+/* 터치 피드백 효과 */
+.btn:active, .nav-link:active, .card:active {
+    transform: scale(0.98);
+    transition: transform 0.1s;
+}
+
+/* 모바일에서 상하단 네비게이션 고정 */
+.mobile-nav-top {
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+    background-color: #fff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    padding: 10px 0;
+} 
