@@ -4,6 +4,11 @@ body {
     background-color: #f8f9fa;
 }
 
+/* 페이지 제목 크기 조정 (10% 감소) */
+.page h3 {
+    font-size: 1.62rem; /* 10% 감소: 1.8rem * 0.9 */
+}
+
 .container {
     max-width: 1200px;
     background-color: #fff;
@@ -45,6 +50,23 @@ header h2 {
     background-color: #f8f9fa;
     font-weight: 600;
     color: #495057;
+}
+
+/* 고객 목록 테이블 데이터 크기 조정 (10% 증가) */
+.table tbody td {
+    font-size: 1.1rem; /* 10% 증가: 1rem * 1.1 */
+}
+
+/* 상세보기와 삭제 버튼 크기 조정 */
+.btn-sm.view-details, 
+.btn-sm.delete-customer,
+.btn-sm.view-customer-details,
+.btn-sm.view-visit-details,
+.btn-sm.view-rank-history,
+#delete-customer-btn {
+    padding: 0.225rem 0.55rem; /* 세로 10% 감소(0.25 * 0.9), 가로 10% 증가(0.5 * 1.1) */
+    font-size: 0.775rem; /* 글자 크기도 약간 조정 */
+    min-width: 55px; /* 최소 너비 보장 */
 }
 
 /* 버튼 스타일 */
@@ -168,6 +190,11 @@ header h2 {
         font-size: 0.85rem;
     }
     
+    /* 모바일에서도 테이블 데이터 크기 유지 */
+    .table tbody td {
+        font-size: 0.935rem; /* 모바일에서 10% 증가: 0.85rem * 1.1 */
+    }
+    
     /* 모바일용 헤더 텍스트 크기 조정 */
     header h1 {
         font-size: 1.5rem;
@@ -195,6 +222,19 @@ header h2 {
         padding: 0.5rem 0.75rem;
         font-size: 0.9rem;
         min-height: 44px;
+    }
+    
+    /* 모바일에서 상세보기와 삭제 버튼 크기 조정 */
+    .btn-sm.view-details, 
+    .btn-sm.delete-customer,
+    .btn-sm.view-customer-details,
+    .btn-sm.view-visit-details,
+    .btn-sm.view-rank-history,
+    #delete-customer-btn {
+        padding: 0.45rem 0.825rem; /* 세로 10% 감소(0.5 * 0.9), 가로 10% 증가(0.75 * 1.1) */
+        font-size: 0.81rem; /* 글자 크기 조정 */
+        min-height: 39.6px; /* 최소 높이 10% 감소 */
+        min-width: 60px; /* 최소 너비 조정 */
     }
     
     /* 모바일에서 모달 개선 */
@@ -403,4 +443,175 @@ header h2 {
     background-color: #fff;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     padding: 10px 0;
+}
+
+/* 사이드바 스타일 */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 280px;
+    background: linear-gradient(135deg, #343a40 0%, #495057 100%);
+    color: white;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: 1050;
+    overflow-y: auto;
+}
+
+.sidebar.show {
+    transform: translateX(0);
+}
+
+.sidebar-header {
+    padding: 1.5rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sidebar-header h4 {
+    margin: 0;
+    font-weight: 600;
+    color: #fff;
+}
+
+.sidebar-nav {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0;
+}
+
+.sidebar-nav .nav-item {
+    margin: 0;
+}
+
+.sidebar-nav .nav-link {
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
+}
+
+.sidebar-nav .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    border-left-color: #28a745;
+}
+
+.sidebar-nav .nav-link.active {
+    background-color: rgba(40, 167, 69, 0.2);
+    color: white;
+    border-left-color: #28a745;
+}
+
+.sidebar-nav .nav-link i {
+    margin-right: 0.75rem;
+    width: 20px;
+    text-align: center;
+}
+
+.sidebar-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1040;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.sidebar-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.mobile-header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: white;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.mobile-title {
+    text-align: center;
+    line-height: 1.2;
+}
+
+.mobile-title .brand-name {
+    font-size: 1.265rem; /* 15% 증가: 1.1 * 1.15 */
+    font-weight: 700;
+    color: #343a40;
+    margin-bottom: 2px;
+}
+
+.mobile-title .system-name {
+    font-size: 0.92rem; /* 15% 증가: 0.8 * 1.15 */
+    font-weight: 500;
+    color: #6c757d;
+}
+
+/* 모바일에서 헤더 텍스트 크기 조정 */
+@media (max-width: 576px) {
+    .mobile-title .brand-name {
+        font-size: 1.15rem; /* 15% 증가: 1 * 1.15 */
+    }
+    
+    .mobile-title .system-name {
+        font-size: 0.8625rem; /* 15% 증가: 0.75 * 1.15 */
+    }
+}
+
+.main-content {
+    min-height: 100vh;
+    transition: margin-left 0.3s ease;
+}
+
+/* 데스크톱에서 사이드바 항상 표시 */
+@media (min-width: 992px) {
+    .sidebar {
+        transform: translateX(0);
+        position: fixed;
+    }
+    
+    .main-content {
+        margin-left: 280px;
+    }
+    
+    .mobile-header {
+        display: none;
+    }
+    
+    .sidebar-overlay {
+        display: none;
+    }
+}
+
+/* 모바일에서 사이드바 숨김 */
+@media (max-width: 991px) {
+    .main-content {
+        margin-left: 0;
+    }
+    
+    .sidebar-footer {
+        display: none !important;
+    }
 } 

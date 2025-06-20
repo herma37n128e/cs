@@ -52,6 +52,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // 로컬 스토리지에서 데이터 로드
     loadDataFromStorage();
     
+    // 클라우드 동기화 시작
+    if (window.CloudSync && window.CloudSync.startAutoSync) {
+        window.CloudSync.startAutoSync();
+    }
+    
     // 로그인 상태 확인
     checkLoginStatus();
     
@@ -62,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('입력된 패스워드:', password);
         
         // 패스워드 전용 로그인 체크
-        if (password === '123' || password === 'admin' || password === 'password') {
+        if (password === 'grace1') {
             // 로그인 성공 - 로그인 상태 저장
             localStorage.setItem('isLoggedIn', 'true');
             localStorage.setItem('username', 'admin');
@@ -79,6 +84,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // 비밀번호 표시/숨김 토글 기능
+    document.getElementById('password-toggle').addEventListener('click', () => {
+        const passwordInput = document.getElementById('password');
+        const passwordIcon = document.getElementById('password-icon');
+        
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            passwordIcon.classList.remove('bi-eye');
+            passwordIcon.classList.add('bi-eye-slash');
+        } else {
+            passwordInput.type = 'password';
+            passwordIcon.classList.remove('bi-eye-slash');
+            passwordIcon.classList.add('bi-eye');
+        }
+    });
+
     // 로그아웃 버튼 이벤트 리스너
     document.getElementById('logout-btn').addEventListener('click', () => {
         // 로그인 상태 제거
@@ -88,6 +109,50 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('main-content').classList.add('d-none');
         document.getElementById('login-form').classList.remove('d-none');
         document.getElementById('password').value = '';
+    });
+
+    // 모바일 로그아웃 버튼 이벤트 리스너
+    document.getElementById('mobile-logout-btn').addEventListener('click', () => {
+        // 로그인 상태 제거
+        localStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('username');
+        
+        document.getElementById('main-content').classList.add('d-none');
+        document.getElementById('login-form').classList.remove('d-none');
+        document.getElementById('password').value = '';
+    });
+
+    // 사이드바 토글 기능
+    const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const sidebarClose = document.getElementById('sidebar-close');
+
+    // 사이드바 닫기 함수를 전역으로 정의
+    window.closeSidebar = function() {
+        sidebar.classList.remove('show');
+        sidebarOverlay.classList.remove('show');
+        document.body.style.overflow = ''; // 스크롤 복원
+    };
+
+    // 사이드바 열기
+    sidebarToggle.addEventListener('click', () => {
+        sidebar.classList.add('show');
+        sidebarOverlay.classList.add('show');
+        document.body.style.overflow = 'hidden'; // 스크롤 방지
+    });
+
+    // 사이드바 닫기 버튼 클릭
+    sidebarClose.addEventListener('click', window.closeSidebar);
+
+    // 오버레이 클릭 시 사이드바 닫기
+    sidebarOverlay.addEventListener('click', window.closeSidebar);
+
+    // ESC 키로 사이드바 닫기
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && sidebar.classList.contains('show')) {
+            window.closeSidebar();
+        }
     });
 
     // 네비게이션 메뉴 이벤트 리스너
@@ -109,6 +174,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 navLink.classList.remove('active');
             });
             link.classList.add('active');
+            
+            // 모바일에서 메뉴 클릭 시 사이드바 닫기
+            if (window.innerWidth < 992) {
+                window.closeSidebar();
+            }
         });
     });
 
@@ -501,6 +571,43 @@ document.addEventListener('DOMContentLoaded', () => {
     // 데이터 동기화 버튼 이벤트 리스너
     document.getElementById('backup-data-btn').addEventListener('click', exportAllData);
     document.getElementById('import-data-btn').addEventListener('click', importAllData);
+    
+    // 등급 관리 검색 및 필터 이벤트 리스너
+    document.getElementById('ranking-search-btn').addEventListener('click', searchRankingList);
+    document.getElementById('ranking-search').addEventListener('input', searchRankingList);
+    document.getElementById('ranking-grade-filter').addEventListener('change', searchRankingList);
+    document.getElementById('ranking-sort-filter').addEventListener('change', searchRankingList);
+    
+    // 동기화 상태 버튼 이벤트 리스너
+    document.getElementById('sync-status-btn').addEventListener('click', () => {
+        if (window.CloudSync) {
+            const lastSync = localStorage.getItem('lastCloudSync');
+            const deviceName = localStorage.getItem('deviceName') || '현재 기기';
+            const isOnline = window.CLOUD_SYNC.isOnline;
+            
+            let message = `기기명: ${deviceName}\n`;
+            message += `네트워크 상태: ${isOnline ? '연결됨' : '연결 안됨'}\n`;
+            
+            if (lastSync) {
+                const lastSyncDate = new Date(parseInt(lastSync));
+                message += `마지막 동기화: ${lastSyncDate.toLocaleString()}\n`;
+            } else {
+                message += '마지막 동기화: 없음\n';
+            }
+            
+            message += '\n지금 동기화하시겠습니까?';
+            
+            if (confirm(message)) {
+                window.CloudSync.forceSyncToCloud();
+            }
+        }
+    });
+    
+    // DB 초기화 버튼 이벤트 리스너
+    document.getElementById('reset-database').addEventListener('click', (e) => {
+        e.preventDefault();
+        resetDatabase();
+    });
 
     // 데이터 백업 함수
     function exportAllData() {
@@ -853,21 +960,65 @@ function loadRankingCounts() {
     document.getElementById('vip-count').textContent = vipCount;
     document.getElementById('regular-count').textContent = regularCount;
     
-    // 고객 등급 목록 렌더링 (등급순 정렬)
+    // 등급 목록 렌더링
+    renderRankingList(customers);
+}
+
+// 등급 목록 렌더링 함수 (검색 및 필터 적용)
+function renderRankingList(customerList, searchTerm = '', gradeFilter = '', sortOption = 'totalAmount-desc') {
+    let filteredCustomers = [...customerList];
+    
+    // 검색 필터 적용
+    if (searchTerm) {
+        filteredCustomers = filteredCustomers.filter(customer => 
+            customer.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }
+    
+    // 등급 필터 적용
+    if (gradeFilter) {
+        const gradeMap = {
+            'VVIP': 'vvip',
+            'VIP': 'vip',
+            '일반': 'regular'
+        };
+        filteredCustomers = filteredCustomers.filter(customer => 
+            customer.rank === gradeMap[gradeFilter]
+        );
+    }
+    
+    // 정렬 적용
+    filteredCustomers.sort((a, b) => {
+        switch (sortOption) {
+            case 'totalAmount-desc':
+                return (b.totalPurchase || 0) - (a.totalPurchase || 0);
+            case 'totalAmount-asc':
+                return (a.totalPurchase || 0) - (b.totalPurchase || 0);
+            case 'purchaseCount-desc':
+                return (b.purchaseCount || 0) - (a.purchaseCount || 0);
+            case 'purchaseCount-asc':
+                return (a.purchaseCount || 0) - (b.purchaseCount || 0);
+            case 'name-asc':
+                return a.name.localeCompare(b.name, 'ko');
+            default:
+                // 기본: 등급순 -> 구매액순
+                const rankOrder = { 'vvip': 3, 'vip': 2, 'regular': 1 };
+                if (rankOrder[a.rank] !== rankOrder[b.rank]) {
+                    return rankOrder[b.rank] - rankOrder[a.rank];
+                }
+                return (b.totalPurchase || 0) - (a.totalPurchase || 0);
+        }
+    });
+    
     const tbody = document.getElementById('ranking-list-body');
     tbody.innerHTML = '';
     
-    // 등급 순서로 정렬 (VVIP > VIP > 일반)
-    const sortedCustomers = [...customers].sort((a, b) => {
-        const rankOrder = { 'vvip': 3, 'vip': 2, 'regular': 1 };
-        if (rankOrder[a.rank] !== rankOrder[b.rank]) {
-            return rankOrder[b.rank] - rankOrder[a.rank];
-        }
-        // 같은 등급 내에서는 총 구매액 순으로 정렬
-        return (b.totalPurchase || 0) - (a.totalPurchase || 0);
-    });
+    if (filteredCustomers.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center">검색 결과가 없습니다.</td></tr>';
+        return;
+    }
     
-    sortedCustomers.forEach((customer, index) => {
+    filteredCustomers.forEach((customer, index) => {
         const tr = document.createElement('tr');
         
         // 등급에 따른 배지 클래스 설정
@@ -901,6 +1052,15 @@ function loadRankingCounts() {
             viewRankChangeHistory(customerId);
         });
     });
+}
+
+// 등급 관리 검색 함수
+function searchRankingList() {
+    const searchTerm = document.getElementById('ranking-search').value;
+    const gradeFilter = document.getElementById('ranking-grade-filter').value;
+    const sortOption = document.getElementById('ranking-sort-filter').value;
+    
+    renderRankingList(customers, searchTerm, gradeFilter, sortOption);
 }
 
 // 선물 이력 렌더링 함수
@@ -3086,4 +3246,140 @@ function downloadExcelTemplate() {
     
     // 파일 다운로드
     XLSX.writeFile(workbook, '고객관리_통합템플릿.xlsx');
+}
+
+// DB 초기화 함수
+async function resetDatabase() {
+    // 현재 데이터 현황 확인
+    const customerCount = customers.length;
+    const purchaseCount = purchases.length;
+    const giftCount = gifts.length;
+    const visitCount = visits.length;
+    
+    // 확인 메시지
+    const confirmMessage = `⚠️ 데이터베이스 초기화 ⚠️
+
+현재 저장된 데이터:
+• 고객 정보: ${customerCount}명
+• 구매 이력: ${purchaseCount}건  
+• 선물 이력: ${giftCount}건
+• 방문 이력: ${visitCount}건
+
+모든 데이터가 영구적으로 삭제됩니다.
+이 작업은 되돌릴 수 없습니다.
+
+정말로 초기화하시겠습니까?`;
+
+    // 첫 번째 확인
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+    
+    // 두 번째 확인 (안전장치)
+    const secondConfirm = prompt(`초기화를 진행하려면 '초기화'라고 입력하세요:`);
+    if (secondConfirm !== '초기화') {
+        alert('초기화가 취소되었습니다.');
+        return;
+    }
+    
+    try {
+        console.log('DB 초기화 시작...');
+        
+        // 1. 글로벌 변수 완전 초기화
+        window.customers = [];
+        window.purchases = [];
+        window.gifts = [];
+        window.visits = [];
+        
+        // 2. 로컬 스토리지 완전 삭제
+        localStorage.removeItem('customers');
+        localStorage.removeItem('purchases');
+        localStorage.removeItem('gifts');
+        localStorage.removeItem('visits');
+        localStorage.removeItem('rankHistory');
+        localStorage.removeItem('lastUpdated');
+        localStorage.removeItem('lastCloudSync');
+        
+        // 3. 빈 배열로 로컬 스토리지에 저장
+        localStorage.setItem('customers', JSON.stringify([]));
+        localStorage.setItem('purchases', JSON.stringify([]));
+        localStorage.setItem('gifts', JSON.stringify([]));
+        localStorage.setItem('visits', JSON.stringify([]));
+        localStorage.setItem('rankHistory', JSON.stringify([]));
+        localStorage.setItem('lastUpdated', Date.now().toString());
+        
+        console.log('로컬 데이터 초기화 완료');
+        
+        // 4. 클라우드에도 빈 데이터 강제 업로드
+        if (window.CloudSync && window.CLOUD_SYNC.isOnline) {
+            console.log('클라우드 데이터 초기화 중...');
+            await window.CloudSync.forceSyncToCloud();
+            console.log('클라우드 데이터 초기화 완료');
+        }
+        
+        // 5. 모든 테이블 UI 즉시 비우기
+        const customerTableBody = document.getElementById('customer-list-body');
+        if (customerTableBody) {
+            customerTableBody.innerHTML = '<tr><td colspan="8" class="text-center">등록된 고객이 없습니다.</td></tr>';
+        }
+        
+        const giftTableBody = document.getElementById('gift-history-body');
+        if (giftTableBody) {
+            giftTableBody.innerHTML = '<tr><td colspan="7" class="text-center">선물 이력이 없습니다.</td></tr>';
+        }
+        
+        const visitTableBody = document.getElementById('visit-list-body');
+        if (visitTableBody) {
+            visitTableBody.innerHTML = '<tr><td colspan="7" class="text-center">방문 이력이 없습니다.</td></tr>';
+        }
+        
+        const rankingTableBody = document.getElementById('ranking-list-body');
+        if (rankingTableBody) {
+            rankingTableBody.innerHTML = '<tr><td colspan="6" class="text-center">등록된 고객이 없습니다.</td></tr>';
+        }
+        
+        // 6. 등급 카운트 초기화
+        const vvipCount = document.getElementById('vvip-count');
+        const vipCount = document.getElementById('vip-count');
+        const regularCount = document.getElementById('regular-count');
+        
+        if (vvipCount) vvipCount.textContent = '0';
+        if (vipCount) vipCount.textContent = '0';
+        if (regularCount) regularCount.textContent = '0';
+        
+        // 7. 생일 알림 초기화
+        const thisMonthBirthdays = document.getElementById('this-month-birthdays');
+        const nextMonthBirthdays = document.getElementById('next-month-birthdays');
+        
+        if (thisMonthBirthdays) {
+            thisMonthBirthdays.innerHTML = '<li class="list-group-item text-center">이번 달 생일인 고객이 없습니다.</li>';
+        }
+        if (nextMonthBirthdays) {
+            nextMonthBirthdays.innerHTML = '<li class="list-group-item text-center">다음 달 생일인 고객이 없습니다.</li>';
+        }
+        
+        // 8. 모바일에서 사이드바 닫기
+        if (window.innerWidth < 992) {
+            window.closeSidebar();
+        }
+        
+        // 9. 고객 목록 페이지로 이동
+        document.querySelectorAll('.page').forEach(page => {
+            page.classList.add('d-none');
+        });
+        document.getElementById('customer-list').classList.remove('d-none');
+        
+        // 10. 활성 메뉴 변경
+        document.querySelectorAll('.nav-link').forEach(navLink => {
+            navLink.classList.remove('active');
+        });
+        document.querySelector('.nav-link[data-page="customer-list"]').classList.add('active');
+        
+        console.log('DB 초기화 완료');
+        alert('✅ 데이터베이스가 성공적으로 초기화되었습니다.\n모든 고객 정보가 삭제되었습니다.');
+        
+    } catch (error) {
+        console.error('DB 초기화 중 오류 발생:', error);
+        alert('❌ 초기화 중 오류가 발생했습니다. 페이지를 새로고침 후 다시 시도해주세요.');
+    }
 }

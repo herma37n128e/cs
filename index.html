@@ -14,69 +14,115 @@
 </head>
 <body>
     <div class="container">
-        <header class="my-4">
-            <h1 class="text-center">아서앤그레이스</h1>
-            <h2 class="text-center">고객관리 시스템</h2>
-        </header>
+
 
         <div id="login-form" class="card p-4 mx-auto" style="max-width: 500px;">
             <h3 class="text-center mb-4">로그인</h3>
             <form id="login">
                 <div class="mb-3">
                     <label for="password" class="form-label">비밀번호</label>
-                    <input type="password" class="form-control" id="password" required>
+                    <div class="input-group">
+                        <input type="password" class="form-control" id="password" required placeholder="비밀번호를 입력하세요">
+                        <button class="btn btn-outline-secondary" type="button" id="password-toggle">
+                            <i class="bi bi-eye" id="password-icon"></i>
+                        </button>
+                    </div>
                 </div>
                 <button type="submit" class="btn btn-primary w-100">로그인</button>
             </form>
         </div>
 
         <div id="main-content" class="d-none">
-            <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
-                <div class="container-fluid">
-                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                        <span class="navbar-toggler-icon"></span>
+            <!-- 모바일 상단 헤더 -->
+            <div class="mobile-header d-lg-none">
+                <div class="d-flex justify-content-between align-items-center p-3 bg-light">
+                    <button class="btn btn-outline-dark" id="sidebar-toggle">
+                        <i class="bi bi-list"></i>
                     </button>
-                    <div class="collapse navbar-collapse" id="navbarNav">
-                        <ul class="navbar-nav">
-                            <li class="nav-item">
-                                <a class="nav-link active" href="#" data-page="customer-list">고객 목록</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="#" data-page="add-customer">고객 등록</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="#" data-page="birthday-alerts">생일 알림</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="#" data-page="gift-history">선물 이력</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="#" data-page="customer-ranking">고객 등급</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="#" data-page="visit-tracking">방문 주기</a>
-                            </li>
-                        </ul>
-                        <ul class="navbar-nav ms-auto">
-                            <li class="nav-item">
-                                <a class="nav-link" href="#" id="logout-btn">로그아웃</a>
-                            </li>
-                        </ul>
+                    <div class="mobile-title">
+                        <div class="brand-name">아서앤그레이스</div>
+                        <div class="system-name">고객관리시스템</div>
                     </div>
+                    <button class="btn btn-outline-info btn-sm me-1" id="sync-status-btn" title="동기화 상태">
+                        <i class="bi bi-cloud-check"></i>
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" id="mobile-logout-btn">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </button>
                 </div>
-            </nav>
+            </div>
+
+            <!-- 사이드바 -->
+            <div class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <h4>메뉴</h4>
+                    <button class="btn btn-sm btn-outline-light d-lg-none" id="sidebar-close">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+                <ul class="sidebar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" data-page="customer-list">
+                            <i class="bi bi-people"></i> 고객 목록
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="add-customer">
+                            <i class="bi bi-person-plus"></i> 고객 등록
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="birthday-alerts">
+                            <i class="bi bi-cake"></i> 생일 알림
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="gift-history">
+                            <i class="bi bi-gift"></i> 선물 이력
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="customer-ranking">
+                            <i class="bi bi-trophy"></i> 고객 등급
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="visit-tracking">
+                            <i class="bi bi-calendar-check"></i> 방문 주기
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-danger" href="#" id="reset-database">
+                            <i class="bi bi-trash3"></i> DB 초기화
+                        </a>
+                    </li>
+                </ul>
+                <div class="sidebar-footer d-none d-lg-block">
+                    <button class="btn btn-outline-light w-100" id="logout-btn">
+                        <i class="bi bi-box-arrow-right"></i> 로그아웃
+                    </button>
+                </div>
+            </div>
+
+            <!-- 사이드바 오버레이 (모바일용) -->
+            <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+            <!-- 메인 콘텐츠 영역 -->
+            <div class="main-content" id="main-content-area">
 
             <!-- 고객 목록 페이지 -->
             <div id="customer-list" class="page">
                 <h3 class="mb-3">고객 목록</h3>
                 <div class="row mb-3">
-                    <div class="col">
+                    <div class="col-12">
                         <div class="input-group">
                             <input type="text" class="form-control" id="search-input" placeholder="이름, 전화번호, 매장, 등급, 메모로 검색">
                             <button class="btn btn-primary" id="search-btn">검색</button>
                         </div>
                     </div>
-                    <div class="col-auto">
+                </div>
+                <div class="row mb-3">
+                    <div class="col-12 text-end">
                         <button class="btn btn-success" id="export-excel-btn">
                             <i class="bi bi-download"></i> 엑셀 다운로드
                         </button>
@@ -133,31 +179,9 @@
                     </div>
                 </div>
 
-                <!-- 데이터 동기화 섹션 -->
+                <!-- 엑셀 파일 업로드 안내 -->
                 <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">데이터 동기화</h5>
-                    </div>
                     <div class="card-body">
-                        <p class="text-muted mb-3">
-                            PC와 모바일, GitHub Pages 간 데이터를 동기화할 수 있습니다.<br>
-                            <strong>백업:</strong> 현재 데이터를 파일로 저장<br>
-                            <strong>가져오기:</strong> 다른 기기에서 백업한 파일을 불러오기
-                        </p>
-                        <button type="button" class="btn btn-warning" id="backup-data-btn">
-                            <i class="bi bi-cloud-download"></i> 데이터 백업
-                        </button>
-                        <button type="button" class="btn btn-primary ms-2" id="import-data-btn">
-                            <i class="bi bi-cloud-upload"></i> 데이터 가져오기
-                        </button>
-                        <div class="mt-3">
-                            <small class="text-muted">
-                                <strong>사용법:</strong><br>
-                                1. PC에서 "데이터 백업" 클릭하여 JSON 파일 다운로드<br>
-                                2. 모바일이나 다른 기기에서 "데이터 가져오기"로 파일 업로드<br>
-                                3. 모든 기기에서 동일한 고객 데이터 사용 가능
-                            </small>
-                        </div>
                         <div class="mt-3">
                             <small class="text-muted">
                                 <strong>엑셀 파일 형식:</strong><br>
@@ -293,6 +317,38 @@
             <!-- 고객 등급 페이지 -->
             <div id="customer-ranking" class="page d-none">
                 <h3 class="mb-3">고객 등급 관리</h3>
+                
+                <!-- 검색 및 필터 섹션 -->
+                <div class="row mb-4">
+                    <div class="col-12 col-md-6">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="ranking-search" placeholder="고객 이름으로 검색">
+                            <button class="btn btn-primary" id="ranking-search-btn">검색</button>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 mt-2 mt-md-0">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <select class="form-select" id="ranking-grade-filter">
+                                    <option value="">모든 등급</option>
+                                    <option value="VVIP">VVIP</option>
+                                    <option value="VIP">VIP</option>
+                                    <option value="일반">일반</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <select class="form-select" id="ranking-sort-filter">
+                                    <option value="totalAmount-desc">구매액 높은순</option>
+                                    <option value="totalAmount-asc">구매액 낮은순</option>
+                                    <option value="purchaseCount-desc">구매횟수 많은순</option>
+                                    <option value="purchaseCount-asc">구매횟수 적은순</option>
+                                    <option value="name-asc">이름 가나다순</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="row row-cols-1 row-cols-md-3 mb-4 g-4">
                     <div class="col">
                         <div class="card h-100 text-white bg-danger">
@@ -618,28 +674,43 @@
                     </div>
                 </div>
             </div>
+            </div> <!-- main-content-area 닫기 -->
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
-    <!-- 클라우드 동기화 스크립트 -->
+    <!-- 개선된 클라우드 동기화 스크립트 -->
     <script>
         // 클라우드 동기화 설정
         window.CLOUD_SYNC = {
             enabled: true,
-            apiUrl: 'https://api.jsonbin.io/v3/b/6855411b8a456b7966b1f04d',
-            apiKey: '$2a$10$aXe4NjIJeIjuC1INFQ3t5OmVlMRmnXviDO7jWWi7R9bgiXjOXNX5S',
-            syncInterval: 30000, // 30초마다 동기화
-            lastSyncTime: 0
+            apiUrl: 'https://api.jsonbin.io/v3/b/67685b98ad19ca34f8d27c0a', // 새로운 bin ID
+            apiKey: '$2a$10$Yj/wJ8WRLu.P0zG5dkjK4.vKwPKDqw8Y1JOKqU8F4zq5XiKvYmLdO', // 새로운 API Key
+            syncInterval: 60000, // 1분마다 동기화
+            lastSyncTime: 0,
+            isOnline: navigator.onLine,
+            syncInProgress: false
         };
         
-        // 클라우드 동기화 함수들
+        // 네트워크 상태 모니터링
+        window.addEventListener('online', () => {
+            window.CLOUD_SYNC.isOnline = true;
+            console.log('네트워크 연결됨 - 동기화 재시작');
+            window.CloudSync.forceSyncToCloud();
+        });
+        
+        window.addEventListener('offline', () => {
+            window.CLOUD_SYNC.isOnline = false;
+            console.log('네트워크 연결 끊김 - 로컬에서만 작업');
+        });
+        
+        // 개선된 클라우드 동기화 함수들
         window.CloudSync = {
             // 클라우드에서 데이터 가져오기
             async fetchFromCloud() {
-                if (!window.CLOUD_SYNC.enabled) return null;
+                if (!window.CLOUD_SYNC.enabled || !window.CLOUD_SYNC.isOnline) return null;
                 
                 try {
                     const response = await fetch(window.CLOUD_SYNC.apiUrl, {
@@ -653,22 +724,32 @@
                     if (response.ok) {
                         const data = await response.json();
                         return data.record;
+                    } else {
+                        console.log('클라우드 데이터 가져오기 HTTP 오류:', response.status);
                     }
                 } catch (error) {
-                    console.log('클라우드 데이터 가져오기 실패:', error);
+                    console.log('클라우드 데이터 가져오기 네트워크 오류:', error);
                 }
                 return null;
             },
             
             // 클라우드에 데이터 저장하기
             async saveToCloud(data) {
-                if (!window.CLOUD_SYNC.enabled) return false;
+                if (!window.CLOUD_SYNC.enabled || !window.CLOUD_SYNC.isOnline || window.CLOUD_SYNC.syncInProgress) return false;
+                
+                window.CLOUD_SYNC.syncInProgress = true;
                 
                 try {
                     const payload = {
-                        ...data,
+                        customers: data.customers || [],
+                        purchases: data.purchases || [],
+                        gifts: data.gifts || [],
+                        visits: data.visits || [],
+                        rankHistory: data.rankHistory || [],
                         lastUpdated: Date.now(),
-                        deviceId: this.getDeviceId()
+                        deviceId: this.getDeviceId(),
+                        deviceName: this.getDeviceName(),
+                        syncVersion: '2.0'
                     };
                     
                     const response = await fetch(window.CLOUD_SYNC.apiUrl, {
@@ -682,10 +763,18 @@
                     
                     if (response.ok) {
                         window.CLOUD_SYNC.lastSyncTime = Date.now();
+                        localStorage.setItem('lastCloudSync', window.CLOUD_SYNC.lastSyncTime.toString());
+                        this.showSyncStatus('업로드 완료', 'success');
                         return true;
+                    } else {
+                        console.log('클라우드 데이터 저장 HTTP 오류:', response.status);
+                        this.showSyncStatus('업로드 실패', 'error');
                     }
                 } catch (error) {
-                    console.log('클라우드 데이터 저장 실패:', error);
+                    console.log('클라우드 데이터 저장 네트워크 오류:', error);
+                    this.showSyncStatus('네트워크 오류', 'error');
+                } finally {
+                    window.CLOUD_SYNC.syncInProgress = false;
                 }
                 return false;
             },
@@ -700,26 +789,106 @@
                 return deviceId;
             },
             
+            // 기기 이름 생성
+            getDeviceName() {
+                let deviceName = localStorage.getItem('deviceName');
+                if (!deviceName) {
+                    const userAgent = navigator.userAgent;
+                    if (/Android/i.test(userAgent)) {
+                        deviceName = 'Android 기기';
+                    } else if (/iPhone|iPad|iPod/i.test(userAgent)) {
+                        deviceName = 'iOS 기기';
+                    } else if (/Windows/i.test(userAgent)) {
+                        deviceName = 'Windows PC';
+                    } else if (/Mac/i.test(userAgent)) {
+                        deviceName = 'Mac';
+                    } else {
+                        deviceName = '기타 기기';
+                    }
+                    deviceName += '_' + Date.now().toString().slice(-4);
+                    localStorage.setItem('deviceName', deviceName);
+                }
+                return deviceName;
+            },
+            
+            // 동기화 상태 표시
+            showSyncStatus(message, type = 'info') {
+                const statusDiv = document.getElementById('sync-status') || this.createSyncStatusDiv();
+                statusDiv.className = `sync-status ${type}`;
+                statusDiv.textContent = message;
+                statusDiv.style.display = 'block';
+                
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 3000);
+            },
+            
+            // 동기화 상태 div 생성
+            createSyncStatusDiv() {
+                const statusDiv = document.createElement('div');
+                statusDiv.id = 'sync-status';
+                statusDiv.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    padding: 10px 15px;
+                    border-radius: 5px;
+                    color: white;
+                    font-size: 14px;
+                    z-index: 9999;
+                    display: none;
+                `;
+                document.body.appendChild(statusDiv);
+                return statusDiv;
+            },
+            
             // 자동 동기화 시작
             startAutoSync() {
                 if (!window.CLOUD_SYNC.enabled) return;
                 
-                // 페이지 로드 시 한번 동기화
-                this.syncFromCloud();
+                console.log('자동 동기화 시작');
+                
+                // 페이지 로드 시 동기화
+                setTimeout(() => {
+                    this.syncFromCloud();
+                }, 2000);
                 
                 // 정기적으로 동기화
                 setInterval(() => {
-                    this.syncFromCloud();
+                    if (window.CLOUD_SYNC.isOnline) {
+                        this.syncFromCloud();
+                    }
                 }, window.CLOUD_SYNC.syncInterval);
+                
+                // 데이터 변경 시 자동 업로드
+                this.watchDataChanges();
                 
                 // 페이지 언로드 시 데이터 저장
                 window.addEventListener('beforeunload', () => {
-                    this.syncToCloud();
+                    if (window.CLOUD_SYNC.isOnline) {
+                        this.syncToCloud();
+                    }
                 });
+            },
+            
+            // 데이터 변경 감지
+            watchDataChanges() {
+                const originalSave = window.saveDataToStorage;
+                if (originalSave) {
+                    window.saveDataToStorage = () => {
+                        originalSave();
+                        // 5초 후 클라우드에 업로드
+                        setTimeout(() => {
+                            this.forceSyncToCloud();
+                        }, 5000);
+                    };
+                }
             },
             
             // 클라우드에서 로컬로 동기화
             async syncFromCloud() {
+                if (window.CLOUD_SYNC.syncInProgress) return;
+                
                 const cloudData = await this.fetchFromCloud();
                 if (!cloudData) return;
                 
@@ -728,7 +897,9 @@
                 const cloudLastUpdated = cloudData.lastUpdated || 0;
                 
                 if (cloudLastUpdated > localLastUpdated && cloudData.deviceId !== this.getDeviceId()) {
-                    // 클라우드 데이터가 더 최신이고 다른 기기에서 업데이트된 경우
+                    console.log(`데이터 업데이트 발견: ${cloudData.deviceName || '다른 기기'}에서 ${new Date(cloudLastUpdated).toLocaleString()}`);
+                    
+                    // 데이터 업데이트
                     if (cloudData.customers) {
                         localStorage.setItem('customers', JSON.stringify(cloudData.customers));
                         window.customers = cloudData.customers;
@@ -756,12 +927,12 @@
                     if (typeof loadBirthdayAlerts === 'function') loadBirthdayAlerts();
                     if (typeof loadRankingCounts === 'function') loadRankingCounts();
                     
-                    console.log('클라우드에서 데이터 동기화 완료');
+                    this.showSyncStatus('데이터 동기화 완료', 'success');
                 }
             },
             
-            // 로컬에서 클라우드로 동기화
-            async syncToCloud() {
+            // 강제로 클라우드에 업로드
+            async forceSyncToCloud() {
                 const data = {
                     customers: window.customers || [],
                     purchases: window.purchases || [],
@@ -772,11 +943,35 @@
                 
                 const success = await this.saveToCloud(data);
                 if (success) {
-                    console.log('클라우드에 데이터 동기화 완료');
+                    console.log('강제 클라우드 동기화 완료');
+                    localStorage.setItem('lastUpdated', Date.now().toString());
                 }
                 return success;
+            },
+            
+            // 로컬에서 클라우드로 동기화 (호환성)
+            async syncToCloud() {
+                return this.forceSyncToCloud();
             }
         };
+        
+        // CSS 스타일 추가
+        const style = document.createElement('style');
+        style.textContent = `
+            .sync-status {
+                transition: all 0.3s ease;
+            }
+            .sync-status.success {
+                background-color: #28a745;
+            }
+            .sync-status.error {
+                background-color: #dc3545;
+            }
+            .sync-status.info {
+                background-color: #17a2b8;
+            }
+        `;
+        document.head.appendChild(style);
     </script>
     
     <script src="app.js"></script>
