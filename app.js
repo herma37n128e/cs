@@ -1505,65 +1505,15 @@ function openCustomerDetails(customerId) {
     openCustomerDetailsWindow(customerId);
 }
 
-// 고객상세페이지 창 열기 (실제 실행 함수 - 강화된 버전)
+// 고객상세페이지 창 열기 (기존 방식으로 복원)
 function openCustomerDetailsWindow(customerId) {
-    console.log(`👤 고객상세페이지 열기 요청: ${customerId} (총 고객 ${customers.length}명)`);
+    console.log(`👤 고객상세페이지 열기: ${customerId} (총 고객 ${customers.length}명)`);
     
-    // 비동기 처리를 위한 내부 함수
-    const processAndOpenWindow = async () => {
-        try {
-            // 1단계: 대상 고객이 현재 데이터에 있는지 확인
-            let targetCustomer = customers.find(c => c.id === customerId);
-            
-            if (!targetCustomer) {
-                console.warn(`⚠️ 고객 ID ${customerId}를 찾을 수 없음 - 서버에서 데이터 로드 시도`);
-                
-                // Firebase에서 데이터 강제 로드
-                if (FirebaseData && FirebaseData.isInitialized) {
-                    console.log('🔥 Firebase에서 최신 데이터 로드 중...');
-                    
-                    try {
-                        await FirebaseData.forceSyncWithFirebase(false); // 메시지 없이 로드
-                        
-                        // 다시 고객 확인
-                        targetCustomer = customers.find(c => c.id === customerId);
-                        
-                        if (targetCustomer) {
-                            console.log(`✅ 서버에서 고객 데이터 로드 성공: ${targetCustomer.name}`);
-                        } else {
-                            console.error(`❌ 서버에서도 고객 ID ${customerId}를 찾을 수 없음`);
-                            alert(`고객 정보를 찾을 수 없습니다. (ID: ${customerId})\n\n고객이 삭제되었거나 데이터 동기화 문제일 수 있습니다.`);
-                            return;
-                        }
-                    } catch (error) {
-                        console.error('❌ 서버 데이터 로드 실패:', error);
-                        alert('서버에서 데이터를 불러오는 중 오류가 발생했습니다.\n\n인터넷 연결을 확인하고 다시 시도해주세요.');
-                        return;
-                    }
-                } else {
-                    console.error('❌ Firebase 연결되지 않음');
-                    alert('서버 연결이 되지 않습니다.\n\n페이지를 새로고침하고 다시 시도해주세요.');
-                    return;
-                }
-            } else {
-                console.log(`✅ 대상 고객 확인됨: ${targetCustomer.name} (ID: ${customerId})`);
-            }
-            
-            // 2단계: 고객상세페이지와 로그인 상태 공유를 위해 localStorage 업데이트
-            localStorage.setItem('mainWindowLoggedIn', 'true');
-            
-            // 3단계: 새 창으로 고객 상세 페이지 열기
-            console.log(`🚀 고객상세페이지 창 열기: ${targetCustomer.name} (ID: ${customerId})`);
-            window.open(`customer-details.html?id=${customerId}`, `customer_${customerId}`, 'width=1200,height=900,scrollbars=yes,resizable=yes');
-            
-        } catch (error) {
-            console.error('❌ 고객상세페이지 열기 중 오류:', error);
-            alert('고객 상세 페이지를 여는 중 오류가 발생했습니다.\n\n다시 시도해주세요.');
-        }
-    };
+    // 고객상세페이지와 로그인 상태 공유를 위해 localStorage 업데이트
+    localStorage.setItem('mainWindowLoggedIn', 'true');
     
-    // 비동기 처리 실행 (결과를 기다리지 않음)
-    processAndOpenWindow();
+    // 새 창으로 고객 상세 페이지 열기
+    window.open(`customer-details.html?id=${customerId}`, `customer_${customerId}`, 'width=1200,height=900,scrollbars=yes,resizable=yes');
     
     return; // 모달 코드는 실행하지 않음
     const customer = customers.find(c => c.id === customerId);
