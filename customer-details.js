@@ -33,17 +33,29 @@ function formatPhoneNumber(phone) {
     }
 }
 
-// 서버 전용 모드: 메인 창에서 데이터 가져오기
+// 서버 전용 모드: 메인 창에서 데이터 가져오기 (강화된 버전)
 function loadDataFromStorage() {
     console.log('🔥 고객상세페이지: 서버 전용 모드 - 메인 창에서 데이터 동기화');
     
     try {
         // 메인 창(opener)에서 데이터 가져오기
         if (window.opener && !window.opener.closed) {
-            customers = window.opener.customers || [];
-            purchases = window.opener.purchases || [];
-            gifts = window.opener.gifts || [];
-            visits = window.opener.visits || [];
+            // 메인 창의 데이터 상태 확인
+            const openerCustomers = window.opener.customers || [];
+            const openerPurchases = window.opener.purchases || [];
+            const openerGifts = window.opener.gifts || [];
+            const openerVisits = window.opener.visits || [];
+            
+            // 데이터 복사 (참조가 아닌 복사본 생성)
+            customers.length = 0;
+            purchases.length = 0;
+            gifts.length = 0;
+            visits.length = 0;
+            
+            customers.push(...openerCustomers);
+            purchases.push(...openerPurchases);
+            gifts.push(...openerGifts);
+            visits.push(...openerVisits);
             
             console.log('✅ 메인 창에서 데이터 동기화 완료:', {
                 customers: customers.length,
@@ -51,20 +63,30 @@ function loadDataFromStorage() {
                 gifts: gifts.length,
                 visits: visits.length
             });
+            
+            // 메인 창의 Firebase 초기화 상태도 확인
+            if (window.opener.FirebaseData && window.opener.FirebaseData.isInitialized) {
+                console.log('🔥 메인 창 Firebase 연결 상태: 정상');
+            } else {
+                console.warn('⚠️ 메인 창 Firebase 초기화 대기 중...');
+            }
+            
         } else {
             console.warn('⚠️ 메인 창을 찾을 수 없음 - 빈 데이터로 시작');
-            customers = [];
-            purchases = [];
-            gifts = [];
-            visits = [];
+            customers.length = 0;
+            purchases.length = 0;
+            gifts.length = 0;
+            visits.length = 0;
         }
     } catch (error) {
         console.error('❌ 메인 창 데이터 동기화 실패:', error);
-        customers = [];
-        purchases = [];
-        gifts = [];
-        visits = [];
+        customers.length = 0;
+        purchases.length = 0;
+        gifts.length = 0;
+        visits.length = 0;
     }
+    
+    return customers.length > 0; // 데이터 로드 성공 여부 반환
 }
 
 // 로컬 스토리지에 데이터 저장
@@ -174,9 +196,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // 메인 창의 로그인 상태 확인 및 자동 로그인 처리
     checkMainWindowLoginStatus();
     
-    // 로컬 스토리지에서 데이터 로드
-    loadDataFromStorage();
-    
     // URL에서 고객 ID 가져오기
     const customerId = getCustomerIdFromUrl();
     
@@ -186,8 +205,85 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
     
-    // 고객 정보 로드
-    loadCustomerDetails(customerId);
+    // 데이터 로드 후 고객 정보 표시
+    function initializeCustomerDetails() {
+        console.log('🔄 고객상세페이지 데이터 초기화 시작...');
+        
+        // 서버 전용 모드: 메인 창에서 데이터 동기화
+        loadDataFromStorage();
+        
+        // 데이터 로드 확인 및 재시도
+        let retryCount = 0;
+        const maxRetries = 10;
+        
+        const checkDataAndLoad = () => {
+            retryCount++;
+            console.log(`📊 데이터 로드 확인 시도 ${retryCount}/${maxRetries}`);
+            
+            // 데이터 로드 시도
+            const dataLoaded = loadDataFromStorage();
+            
+            if (dataLoaded && customers.length > 0) {
+                // 데이터가 있으면 고객 정보 로드
+                console.log(`✅ 데이터 로드 완료 - 고객 ${customers.length}명 발견`);
+                
+                // 요청한 고객이 존재하는지 확인
+                const targetCustomer = customers.find(c => c.id === customerId);
+                if (targetCustomer) {
+                    console.log(`👤 대상 고객 발견: ${targetCustomer.name} (ID: ${customerId})`);
+                    loadCustomerDetails(customerId);
+                } else {
+                    console.warn(`⚠️ 고객 ID ${customerId}를 찾을 수 없음`);
+                    alert(`고객 정보를 찾을 수 없습니다. (ID: ${customerId})\n\n고객 목록으로 이동합니다.`);
+                    
+                    if (window.opener && !window.opener.closed) {
+                        window.close();
+                    } else {
+                        window.location.href = 'index.html';
+                    }
+                }
+            } else if (retryCount < maxRetries) {
+                // 데이터가 없으면 재시도
+                console.log(`⏳ 데이터 로드 대기 중... (${retryCount}/${maxRetries})`);
+                
+                // 메인 창의 상태 확인
+                if (window.opener && !window.opener.closed) {
+                    try {
+                        const openerDataCount = (window.opener.customers || []).length;
+                        console.log(`📊 메인 창 데이터 상태: 고객 ${openerDataCount}명`);
+                        
+                        // 메인 창에 데이터가 있는데 로드가 안되는 경우
+                        if (openerDataCount > 0) {
+                            console.log('🔄 메인 창에 데이터 존재 - 즉시 재시도');
+                            setTimeout(checkDataAndLoad, 100);
+                            return;
+                        }
+                    } catch (error) {
+                        console.warn('메인 창 상태 확인 실패:', error);
+                    }
+                }
+                
+                setTimeout(checkDataAndLoad, 500);
+            } else {
+                // 최대 재시도 횟수 초과
+                console.error('❌ 데이터 로드 최종 실패');
+                alert('⚠️ 고객 데이터를 불러올 수 없습니다.\n\n메인 페이지에서 데이터가 로드된 후 다시 시도해주세요.');
+                
+                // 메인 페이지로 이동
+                if (window.opener && !window.opener.closed) {
+                    window.close();
+                } else {
+                    window.location.href = 'index.html';
+                }
+            }
+        };
+        
+        // 즉시 확인 시작
+        checkDataAndLoad();
+    }
+    
+    // 초기화 시작
+    initializeCustomerDetails();
     
     // 돌아가기 버튼 이벤트 리스너
     document.getElementById('back-btn').addEventListener('click', () => {
