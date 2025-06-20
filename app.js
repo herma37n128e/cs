@@ -210,6 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 창을 닫을 때 로그인 상태 완전 초기화
         sessionStorage.removeItem('isLoggedIn');
         localStorage.removeItem('isLoggedIn'); // 혹시 모를 localStorage도 정리
+        localStorage.removeItem('mainWindowLoggedIn'); // 고객상세페이지 공유용도 정리
     });
     
     // 페이지 숨김 이벤트 (모바일 대응)
@@ -226,6 +227,7 @@ function checkLoginStatus() {
     // 페이지 로드 시 이전 로그인 상태 완전 초기화 (보장)
     sessionStorage.removeItem('isLoggedIn');
     localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('mainWindowLoggedIn');
     
     console.log('🔐 새로운 세션 시작 - 로그인이 필요합니다');
     
@@ -314,8 +316,9 @@ function handleLogin(e) {
     
     // 로그인 인증 (admin / grace1)
     if (loginId === 'admin' && loginPassword === 'grace1') {
-        // 로그인 성공
+        // 로그인 성공 (세션과 로컬 스토리지 둘 다 저장)
         sessionStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('mainWindowLoggedIn', 'true'); // 고객상세페이지와 공유용
         errorDiv.classList.add('d-none');
         
         // 로그인 모달 닫기
@@ -745,7 +748,9 @@ function renderCustomerList(customerList) {
         
         tr.addEventListener('click', () => {
             // 단순한 터치 피드백 후 페이지 이동
-            window.open(`customer-details.html?id=${customer.id}`, `customer_${customer.id}`, 'width=1000,height=800');
+            // 로그인 상태 공유 후 고객 상세 페이지 열기
+            localStorage.setItem('mainWindowLoggedIn', 'true');
+            window.open(`customer-details.html?id=${customer.id}`, `customer_${customer.id}`, 'width=1200,height=900,scrollbars=yes,resizable=yes');
         });
         
         tbody.appendChild(tr);
@@ -1110,7 +1115,9 @@ function renderGiftHistory(giftList) {
         button.addEventListener('click', () => {
             const customerId = parseInt(button.getAttribute('data-customer-id'));
             // 새 창에서 고객 상세 정보 페이지 열기 (선물 탭 활성화)
-            window.open(`customer-details.html?id=${customerId}#gift-tab`, `customer_${customerId}`, 'width=1000,height=800');
+            // 로그인 상태 공유 후 고객 상세 페이지 열기
+        localStorage.setItem('mainWindowLoggedIn', 'true');
+        window.open(`customer-details.html?id=${customerId}#gift-tab`, `customer_${customerId}`, 'width=1200,height=900,scrollbars=yes,resizable=yes');
         });
     });
 }
@@ -1208,13 +1215,27 @@ function renderVisitTracking(summaryList) {
         button.addEventListener('click', () => {
             const customerId = parseInt(button.getAttribute('data-customer-id'));
             // 새 창에서 고객 상세 정보 페이지 열기 (방문 탭 활성화)
-            window.open(`customer-details.html?id=${customerId}#visit-tab`, `customer_${customerId}`, 'width=1000,height=800');
+            // 로그인 상태 공유 후 고객 상세 페이지 열기
+        localStorage.setItem('mainWindowLoggedIn', 'true');
+        window.open(`customer-details.html?id=${customerId}#visit-tab`, `customer_${customerId}`, 'width=1200,height=900,scrollbars=yes,resizable=yes');
         });
     });
 }
 
-// 고객 상세 정보 모달 열기
+// 고객 상세 정보 새 창으로 열기
 function openCustomerDetails(customerId) {
+    // 로그인 상태 확인
+    if (sessionStorage.getItem('isLoggedIn') !== 'true') {
+        alert('로그인이 필요합니다.');
+        return;
+    }
+    
+    // 고객상세페이지와 로그인 상태 공유를 위해 localStorage 업데이트
+    localStorage.setItem('mainWindowLoggedIn', 'true');
+    
+    // 새 창으로 고객 상세 페이지 열기
+    window.open(`customer-details.html?id=${customerId}`, `customer_${customerId}`, 'width=1200,height=900,scrollbars=yes,resizable=yes');
+    return; // 모달 코드는 실행하지 않음
     const customer = customers.find(c => c.id === customerId);
     if (!customer) return;
     
@@ -1431,99 +1452,11 @@ function loadCustomerPurchases(customerId) {
 
 
 
-// 구매 이력 PDF 생성 함수
+// 구매 이력 PDF 생성 함수 (고객 상세 페이지에서 사용)
 function generatePurchasePDF(customerId) {
-    const customer = customers.find(c => c.id === customerId);
-    const customerPurchases = purchases.filter(p => p.customerId === customerId);
-    
-    if (!customer || customerPurchases.length === 0) {
-        alert('PDF로 변환할 구매 이력이 없습니다.');
-        return;
-    }
-    
-    // PDF 생성
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    // 제목
-    doc.setFontSize(18);
-    doc.text('아서앤그레이스 고객 구매 이력', 14, 20);
-    
-    // 고객 정보
-    doc.setFontSize(12);
-    doc.text(`고객명: ${customer.name}`, 14, 30);
-    doc.text(`연락처: ${customer.phone}`, 14, 37);
-    doc.text(`등급: ${customer.rank.toUpperCase()}`, 14, 44);
-    doc.text(`총 구매액: ${formatCurrency(customer.totalPurchase)}`, 14, 51);
-    
-    // 구매 이력 테이블
-    doc.setFontSize(14);
-    doc.text('구매 이력', 14, 65);
-    
-    let yPosition = 75;
-    const pageWidth = doc.internal.pageSize.getWidth();
-    
-    customerPurchases.forEach((purchase, index) => {
-        // 페이지 확인 및 새 페이지 추가
-        if (yPosition > 250) {
-            doc.addPage();
-            yPosition = 20;
-        }
-        
-        // 구매 정보
-        doc.setFontSize(12);
-        doc.text(`${index + 1}. 구매일: ${formatDate(purchase.date)}`, 14, yPosition);
-        yPosition += 7;
-        doc.text(`   결제 금액: ${formatCurrency(purchase.totalAmount)}`, 14, yPosition);
-        yPosition += 7;
-        doc.text(`   결제 방법: ${purchase.paymentMethod}`, 14, yPosition);
-        yPosition += 7;
-        
-        // 주문장번호 추가
-        if (purchase.orderNumber) {
-            doc.text(`   주문장번호: ${purchase.orderNumber}`, 14, yPosition);
-            yPosition += 7;
-        }
-        
-        // 구매매장 정보 추가
-        if (purchase.store) {
-            doc.text(`   구매매장: ${purchase.store}`, 14, yPosition);
-            yPosition += 7;
-        }
-        
-        // 담당셀러 정보 추가
-        if (purchase.staff) {
-            doc.text(`   담당셀러: ${purchase.staff}`, 14, yPosition);
-            yPosition += 7;
-        }
-        
-        // 메모 정보 추가
-        if (purchase.memo) {
-            doc.text(`   메모: ${purchase.memo}`, 14, yPosition);
-            yPosition += 7;
-        }
-        
-        // 구매 항목
-        doc.text('   구매 제품:', 14, yPosition);
-        yPosition += 7;
-        
-        purchase.items.forEach(item => {
-            doc.text(`   - ${item.name}: ${formatCurrency(item.price)}`, 20, yPosition);
-            yPosition += 7;
-        });
-        
-        // 구분선
-        doc.setDrawColor(200, 200, 200);
-        doc.line(14, yPosition, pageWidth - 14, yPosition);
-        yPosition += 10;
-    });
-    
-    // 날짜 형식의 파일명 생성
-    const today = new Date();
-    const fileName = `${customer.name}_구매이력_${today.getFullYear()}${(today.getMonth() + 1).toString().padStart(2, '0')}${today.getDate().toString().padStart(2, '0')}.pdf`;
-    
-    // PDF 저장
-    doc.save(fileName);
+    // 고객 상세 페이지로 이동하여 PDF 다운로드
+    alert('PDF 다운로드는 고객 상세 페이지에서 이용 가능합니다.\n고객 상세 페이지로 이동합니다.');
+    openCustomerDetails(customerId);
 }
 
 // 고객 정보 편집 함수

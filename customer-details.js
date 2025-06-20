@@ -56,8 +56,47 @@ function getCustomerIdFromUrl() {
     return parseInt(urlParams.get('id'));
 }
 
+// 메인 창의 로그인 상태 확인 및 자동 로그인 처리
+function checkMainWindowLoginStatus() {
+    // 1. 메인 창이 열려있고 로그인되어 있는지 확인
+    const mainWindowLoggedIn = localStorage.getItem('mainWindowLoggedIn');
+    
+    // 2. opener 창(메인 창)이 있고 로그인되어 있는지 확인
+    let openerLoggedIn = false;
+    try {
+        if (window.opener && !window.opener.closed) {
+            openerLoggedIn = window.opener.sessionStorage.getItem('isLoggedIn') === 'true';
+        }
+    } catch (error) {
+        console.log('opener 창 접근 불가 (보안 정책)');
+    }
+    
+    // 3. 로그인 상태가 확인되면 자동 로그인 처리
+    if (mainWindowLoggedIn === 'true' || openerLoggedIn) {
+        console.log('🔓 메인 창 로그인 상태 확인됨 - 자동 로그인 처리');
+        sessionStorage.setItem('isLoggedIn', 'true');
+        return true;
+    }
+    
+    // 4. 로그인되지 않은 상태면 메인 창으로 리다이렉트
+    console.log('🔐 메인 창 로그인 필요 - 메인 페이지로 이동');
+    alert('로그인이 필요합니다. 메인 페이지로 이동합니다.');
+    
+    // 현재 창이 팝업이면 닫고, 아니면 메인 페이지로 이동
+    if (window.opener && !window.opener.closed) {
+        window.close();
+    } else {
+        window.location.href = 'index.html';
+    }
+    
+    return false;
+}
+
 // DOM이 로드된 후 실행
 document.addEventListener('DOMContentLoaded', () => {
+    // 메인 창의 로그인 상태 확인 및 자동 로그인 처리
+    checkMainWindowLoginStatus();
+    
     // 로컬 스토리지에서 데이터 로드
     loadDataFromStorage();
     
@@ -252,7 +291,34 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('download-purchase-pdf').addEventListener('click', () => {
         generatePurchasePDF(customerId);
     });
+    
+    // 메인 창 로그인 상태 주기적 확인 (30초마다)
+    setInterval(() => {
+        checkMainWindowStatus();
+    }, 30000);
 });
+
+// 메인 창 상태 확인 (주기적 체크용)
+function checkMainWindowStatus() {
+    const mainWindowLoggedIn = localStorage.getItem('mainWindowLoggedIn');
+    
+    // 메인 창이 로그아웃되었거나 닫혔으면 현재 창도 닫기
+    if (mainWindowLoggedIn !== 'true') {
+        console.log('🔐 메인 창 로그아웃 감지 - 고객상세페이지 닫기');
+        alert('메인 창이 로그아웃되었습니다. 페이지를 닫습니다.');
+        window.close();
+    }
+    
+    // opener 창이 닫혔는지 확인
+    try {
+        if (window.opener && window.opener.closed) {
+            console.log('🔐 메인 창 닫힘 감지 - 고객상세페이지 닫기');
+            window.close();
+        }
+    } catch (error) {
+        // 보안 정책으로 접근 불가한 경우는 무시
+    }
+}
 
 // 고객 정보 로드 함수
 function loadCustomerDetails(customerId) {
@@ -502,8 +568,8 @@ function editCustomerInfo(customerId) {
     });
 }
 
-// 구매 이력 PDF 생성 함수
-function generatePurchasePDF(customerId) {
+// 구매 이력 PDF 생성 함수 (한글 지원 개선)
+async function generatePurchasePDF(customerId) {
     const customer = customers.find(c => c.id === customerId);
     const customerPurchases = purchases.filter(p => p.customerId === customerId);
     
@@ -512,89 +578,138 @@ function generatePurchasePDF(customerId) {
         return;
     }
     
-    // PDF 생성
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    // 로딩 표시
+    const loadingAlert = document.createElement('div');
+    loadingAlert.className = 'alert alert-info position-fixed top-50 start-50 translate-middle';
+    loadingAlert.style.zIndex = '9999';
+    loadingAlert.innerHTML = '<i class="bi bi-hourglass-split"></i> PDF 생성 중...';
+    document.body.appendChild(loadingAlert);
     
-    // 제목
-    doc.setFontSize(18);
-    doc.text('아서앤그레이스 고객 구매 이력', 14, 20);
-    
-    // 고객 정보
-    doc.setFontSize(12);
-    doc.text(`고객명: ${customer.name}`, 14, 30);
-    doc.text(`연락처: ${customer.phone}`, 14, 37);
-    doc.text(`등급: ${customer.rank.toUpperCase()}`, 14, 44);
-    doc.text(`총 구매액: ${formatCurrency(customer.totalPurchase)}`, 14, 51);
-    
-    // 구매 이력 테이블
-    doc.setFontSize(14);
-    doc.text('구매 이력', 14, 65);
-    
-    let yPosition = 75;
-    const pageWidth = doc.internal.pageSize.getWidth();
-    
-    customerPurchases.forEach((purchase, index) => {
-        // 페이지 확인 및 새 페이지 추가
-        if (yPosition > 250) {
-            doc.addPage();
-            yPosition = 20;
-        }
+    try {
+        // 한글 등급 변환
+        let rankText = '';
+        if (customer.rank === 'vvip') rankText = 'VVIP';
+        else if (customer.rank === 'vip') rankText = 'VIP';
+        else rankText = '일반';
         
-        // 구매 정보
-        doc.setFontSize(12);
-        doc.text(`${index + 1}. 구매일: ${formatDate(purchase.date)}`, 14, yPosition);
-        yPosition += 7;
-        doc.text(`   결제 금액: ${formatCurrency(purchase.totalAmount)}`, 14, yPosition);
-        yPosition += 7;
-        doc.text(`   결제 방법: ${purchase.paymentMethod}`, 14, yPosition);
-        yPosition += 7;
+        // PDF용 HTML 컨테이너 생성
+        const pdfContainer = document.createElement('div');
+        pdfContainer.style.position = 'absolute';
+        pdfContainer.style.left = '-9999px';
+        pdfContainer.style.width = '800px';
+        pdfContainer.style.backgroundColor = 'white';
+        pdfContainer.style.padding = '40px';
+        pdfContainer.style.fontFamily = 'Arial, sans-serif';
+        pdfContainer.style.fontSize = '14px';
+        pdfContainer.style.lineHeight = '1.6';
         
-        // 주문장번호 추가
-        if (purchase.orderNumber) {
-            doc.text(`   주문장번호: ${purchase.orderNumber}`, 14, yPosition);
-            yPosition += 7;
-        }
+        // PDF 내용 생성
+        let htmlContent = `
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h1 style="color: #333; margin-bottom: 10px; font-size: 24px;">아서앤그레이스</h1>
+                <h2 style="color: #666; margin: 0; font-size: 18px;">고객 구매 이력</h2>
+            </div>
+            
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+                <h3 style="color: #333; margin-bottom: 15px; font-size: 16px;">고객 정보</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div><strong>고객명:</strong> ${customer.name}</div>
+                    <div><strong>연락처:</strong> ${customer.phone}</div>
+                    <div><strong>등급:</strong> ${rankText}</div>
+                    <div><strong>총 구매액:</strong> ${formatCurrency(customer.totalPurchase)}</div>
+                </div>
+            </div>
+            
+            <div>
+                <h3 style="color: #333; margin-bottom: 20px; font-size: 16px;">구매 이력 (${customerPurchases.length}건)</h3>
+        `;
         
-        // 구매매장 정보 추가
-        if (purchase.store) {
-            doc.text(`   구매매장: ${purchase.store}`, 14, yPosition);
-            yPosition += 7;
-        }
-        
-        // 담당셀러 정보 추가
-        if (purchase.staff) {
-            doc.text(`   담당셀러: ${purchase.staff}`, 14, yPosition);
-            yPosition += 7;
-        }
-        
-        // 메모 정보 추가
-        if (purchase.memo) {
-            doc.text(`   메모: ${purchase.memo}`, 14, yPosition);
-            yPosition += 7;
-        }
-        
-        // 구매 항목
-        doc.text('   구매 제품:', 14, yPosition);
-        yPosition += 7;
-        
-        purchase.items.forEach(item => {
-            doc.text(`   - ${item.name}: ${formatCurrency(item.price)}`, 20, yPosition);
-            yPosition += 7;
+        customerPurchases.forEach((purchase, index) => {
+            htmlContent += `
+                <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 20px; background: white;">
+                    <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 15px;">
+                        <h4 style="color: #333; margin: 0; font-size: 16px;">${index + 1}. ${formatDate(purchase.date)}</h4>
+                        <div style="font-weight: bold; color: #007bff; font-size: 16px;">${formatCurrency(purchase.totalAmount)}</div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                        <div><strong>결제방법:</strong> ${purchase.paymentMethod}</div>
+                        ${purchase.orderNumber ? `<div><strong>주문장번호:</strong> ${purchase.orderNumber}</div>` : '<div></div>'}
+                        ${purchase.store ? `<div><strong>구매매장:</strong> ${purchase.store}</div>` : '<div></div>'}
+                        ${purchase.staff ? `<div><strong>담당셀러:</strong> ${purchase.staff}</div>` : '<div></div>'}
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <strong>구매 제품:</strong>
+                        <ul style="margin: 5px 0; padding-left: 20px;">
+                            ${purchase.items.map(item => `<li>${item.name} - ${formatCurrency(item.price)}</li>`).join('')}
+                        </ul>
+                    </div>
+                    
+                    ${purchase.memo ? `<div style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-style: italic;"><strong>메모:</strong> ${purchase.memo}</div>` : ''}
+                </div>
+            `;
         });
         
-        // 구분선
-        doc.setDrawColor(200, 200, 200);
-        doc.line(14, yPosition, pageWidth - 14, yPosition);
-        yPosition += 10;
-    });
-    
-    // 날짜 형식의 파일명 생성
-    const today = new Date();
-    const fileName = `${customer.name}_구매이력_${today.getFullYear()}${(today.getMonth() + 1).toString().padStart(2, '0')}${today.getDate().toString().padStart(2, '0')}.pdf`;
-    
-    // PDF 저장
-    doc.save(fileName);
+        htmlContent += `
+            </div>
+            <div style="text-align: center; margin-top: 40px; color: #666; font-size: 12px;">
+                생성일: ${new Date().toLocaleDateString('ko-KR')} | 아서앤그레이스 고객관리시스템
+            </div>
+        `;
+        
+        pdfContainer.innerHTML = htmlContent;
+        document.body.appendChild(pdfContainer);
+        
+        // html2canvas로 이미지 생성
+        const canvas = await html2canvas(pdfContainer, {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff'
+        });
+        
+        // PDF 생성
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        
+        const imgWidth = 210; // A4 width in mm
+        const pageHeight = 297; // A4 height in mm
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        let heightLeft = imgHeight;
+        let position = 0;
+        
+        // 첫 페이지 추가
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+        
+        // 여러 페이지 처리
+        while (heightLeft >= 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+        }
+        
+        // 파일명 생성
+        const today = new Date();
+        const fileName = `${customer.name}_구매이력_${today.getFullYear()}${(today.getMonth() + 1).toString().padStart(2, '0')}${today.getDate().toString().padStart(2, '0')}.pdf`;
+        
+        // PDF 저장
+        pdf.save(fileName);
+        
+        // 임시 컨테이너 제거
+        document.body.removeChild(pdfContainer);
+        
+    } catch (error) {
+        console.error('PDF 생성 오류:', error);
+        alert('PDF 생성 중 오류가 발생했습니다.');
+    } finally {
+        // 로딩 표시 제거
+        if (loadingAlert.parentNode) {
+            loadingAlert.parentNode.removeChild(loadingAlert);
+        }
+    }
 }
 
 // 고객 등급 자동 업데이트 함수
