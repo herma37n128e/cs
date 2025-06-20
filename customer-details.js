@@ -863,23 +863,18 @@ function deleteCustomer(customerId) {
             // 데이터 저장
             saveDataToStorage();
             
-            // 메인 창에도 새로고침 신호 전송
+            // 메인 창 새로고침 신호 전송
             if (window.opener && !window.opener.closed) {
                 try {
-                    // 메인 창의 고객 목록 새로고침
-                    if (typeof window.opener.loadCustomerList === 'function') {
-                        window.opener.loadCustomerList();
-                    }
-                    if (typeof window.opener.loadRankingCounts === 'function') {
-                        window.opener.loadRankingCounts();
-                    }
-                    console.log('✅ 메인 창 데이터 새로고침 완료');
+                    // 메인 창 페이지 새로고침
+                    window.opener.location.reload();
+                    console.log('✅ 메인 창 새로고침 완료');
                 } catch (error) {
                     console.warn('메인 창 새로고침 실패:', error);
                 }
             }
             
-            // 알림 표시 후 창 닫기 (로그인창 없이)
+            // 알림 표시 후 창 닫기
             alert('고객 정보가 삭제되었습니다.');
             window.close();
         }
