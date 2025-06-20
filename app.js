@@ -289,28 +289,39 @@ function checkLoginStatus() {
         // 로그인 상태가 있으면 바로 메인 시스템 초기화
         initializeMainSystem();
         
-        // 새로고침 시 서버에서 최신 데이터 강제 로드 (Firebase 초기화 대기)
+        // 모바일/데스크톱 환경에서 서버 최신 데이터 강제 로드 (Firebase 초기화 대기)
         setTimeout(() => {
-            console.log('🔄 새로고침 감지 - 서버에서 최신 데이터 로드 중...');
+            console.log('📱 모바일/로그인 후 - 서버에서 최신 데이터 로드 중...');
             if (window.FirebaseData && window.FirebaseData.isInitialized) {
-                window.FirebaseData.forceSyncWithFirebase();
+                // 서버 데이터 강제 로드 (메시지 표시)
+                window.FirebaseData.forceSyncWithFirebase(true);
             } else {
-                // Firebase 초기화 대기 후 재시도
+                // Firebase 초기화 대기 후 재시도 (모바일 환경 고려하여 더 적극적으로)
+                let retryCount = 0;
+                const maxRetries = 20; // 10초 대기
+                
                 const waitForFirebase = setInterval(() => {
+                    retryCount++;
+                    console.log(`🔥 Firebase 초기화 대기 중... (${retryCount}/${maxRetries})`);
+                    
                     if (window.FirebaseData && window.FirebaseData.isInitialized) {
                         clearInterval(waitForFirebase);
-                        console.log('🔥 Firebase 초기화 완료 - 데이터 로드 시작');
-                        window.FirebaseData.forceSyncWithFirebase();
+                        console.log('🔥 Firebase 초기화 완료 - 서버 데이터 로드 시작');
+                        // 서버 데이터 강제 로드 (메시지 표시)
+                        window.FirebaseData.forceSyncWithFirebase(true);
+                    } else if (retryCount >= maxRetries) {
+                        clearInterval(waitForFirebase);
+                        console.log('⚠️ Firebase 초기화 시간 초과 - 로컬 데이터 사용');
+                        // 로컬 데이터라도 UI 새로고침
+                        setTimeout(() => {
+                            loadCustomerList();
+                            loadBirthdayAlerts();
+                            loadRankingCounts();
+                        }, 500);
                     }
                 }, 500);
-                
-                // 최대 10초 대기 후 포기
-                setTimeout(() => {
-                    clearInterval(waitForFirebase);
-                    console.log('⚠️ Firebase 초기화 시간 초과 - 로컬 데이터 사용');
-                }, 10000);
             }
-        }, 1000);
+        }, 800);
         
     } else {
         console.log('🔐 새로운 세션 시작 - 로그인이 필요합니다');
@@ -527,7 +538,7 @@ function initializeMainSystem() {
         }
     });
 
-    // 페이지 로드 시 마지막 페이지 복원 및 데이터 로드 (영구저장 시스템 초기화)
+    // 페이지 로드 시 마지막 페이지 복원 및 데이터 로드 (모바일 환경 최적화)
     setTimeout(async () => {
         console.log('🎯 UI 초기화 시작...');
         
@@ -537,30 +548,49 @@ function initializeMainSystem() {
             console.log(`🔄 저장된 페이지 복원: ${savedPage}`);
             showPage(savedPage);
             
-        loadCustomerList();
+            // 모바일 환경에서 더 빠른 UI 로드를 위해 로컬 데이터 먼저 표시
+            loadCustomerList();
             loadBirthdayAlerts();
             loadRankingCounts();
             
-            console.log('✅ UI 초기화 완료');
+            console.log('✅ UI 초기화 완료 (로컬 데이터)');
             
-            // 영구저장 시스템 상태 확인 및 자동화 설정
+            // 모바일/데스크톱 환경에서 서버 데이터 추가 로드
             setTimeout(() => {
                 if (window.FirebaseData && window.FirebaseData.isInitialized) {
                     console.log('🔥 Firebase 영구저장 시스템 활성화됨');
+                    console.log('📱 모바일 환경 - 서버 데이터 추가 로드 시작');
                     
-                    // 변경사항이 있을 때만 저장하는 모드로 설정
-                    console.log('🔄 변경사항 감지 시에만 저장하는 모드 활성화됨');
+                    // 서버에서 최신 데이터 로드 (모바일에서도 메시지 표시)
+                    window.FirebaseData.forceSyncWithFirebase(true);
                     
                 } else {
-                    console.warn('⚠ Firebase 초기화 실패, 로컬 저장소만 사용');
-                    // 로그인 시에는 상태 메시지 표시하지 않음
-    }
-            }, 1500);
+                    console.warn('⚠ Firebase 초기화 대기 중 - 로컬 데이터만 사용');
+                    
+                    // Firebase 초기화 재시도 (모바일 환경 고려)
+                    let mobileRetryCount = 0;
+                    const mobileMaxRetries = 15;
+                    
+                    const mobileFirebaseWait = setInterval(() => {
+                        mobileRetryCount++;
+                        console.log(`📱 모바일 Firebase 초기화 재시도 (${mobileRetryCount}/${mobileMaxRetries})`);
+                        
+                        if (window.FirebaseData && window.FirebaseData.isInitialized) {
+                            clearInterval(mobileFirebaseWait);
+                            console.log('🔥 모바일 Firebase 초기화 완료 - 서버 데이터 로드');
+                            window.FirebaseData.forceSyncWithFirebase(true);
+                        } else if (mobileRetryCount >= mobileMaxRetries) {
+                            clearInterval(mobileFirebaseWait);
+                            console.log('📱 모바일 Firebase 초기화 최종 실패 - 로컬 데이터만 사용');
+                        }
+                    }, 1000);
+                }
+            }, 1000);
             
         } catch (error) {
             console.error('❌ UI 초기화 중 오류:', error);
         }
-    }, 500);
+    }, 300);
 
     // 나머지 이벤트 리스너들...
     setupEventListeners();
