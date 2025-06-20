@@ -1,7 +1,6 @@
 // 관리자 계정 정보 (실제 환경에서는 서버에서 관리해야 함)
 const ADMIN_USERS = [
-    { username: 'a', password: '123' },
-    { username: 'manager', password: 'manager456' }
+    { username: 'admin', password: 'grace1' }
 ];
 
 // 보안 강화된 로컬 동기화 설정 (기본: 로컬 전용)

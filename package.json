@@ -1,0 +1,25 @@
+{
+  "name": "arthur-grace-customer-management",
+  "version": "1.0.0",
+  "description": "아서앤그레이스 고객관리 시스템",
+  "main": "index.html",
+  "scripts": {
+    "start": "serve -s . -l 3000",
+    "build": "echo 'No build step required for static site'",
+    "dev": "serve -s . -l 3000",
+    "preview": "serve -s . -l 4173"
+  },
+  "keywords": [
+    "customer-management",
+    "crm",
+    "arthur-grace"
+  ],
+  "author": "Arthur & Grace",
+  "license": "MIT",
+  "devDependencies": {
+    "serve": "^14.2.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+} 
