@@ -777,7 +777,7 @@ async function addCustomer() {
     loadCustomerList();
     loadRankingCounts();
     
-    alert(`✅ 고객 "${name}"님이 성공적으로 등록되었습니다.\n영구저장이 완료되었습니다.`);
+    alert(`✅ 고객 "${name}"님이 성공적으로 등록되었습니다.`);
     
     // 알림 확인 후 메인페이지(고객목록)로 이동
     showPage('customer-list');
