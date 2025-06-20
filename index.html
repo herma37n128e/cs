@@ -192,9 +192,12 @@
             },
             
             // 데이터 새로고침 (데이터 무결성 보장)
-            async forceSyncWithFirebase() {
+            async forceSyncWithFirebase(showMessage = false) {
                 try {
-                    this.showSaveStatus('🔄 데이터 새로고침 중...', 'info');
+                    // 메시지 표시 여부를 매개변수로 제어
+                    if (showMessage) {
+                        this.showSaveStatus('🔄 데이터 새로고침 중...', 'info');
+                    }
                     
                     // Firebase에서 최신 데이터 가져오기
                     const firebaseData = await this.loadFromFirebase();
@@ -226,7 +229,10 @@
                         if (typeof loadBirthdayAlerts === 'function') loadBirthdayAlerts();
                         if (typeof loadRankingCounts === 'function') loadRankingCounts();
                         
-                        this.showSaveStatus('✅ 데이터 새로고침 완료', 'success');
+                        // 메시지를 표시하는 경우에만 완료 메시지도 표시
+                        if (showMessage) {
+                            this.showSaveStatus('✅ 데이터 새로고침 완료', 'success');
+                        }
                         console.log('Firebase 데이터 새로고침 완료');
                     }
                 } catch (error) {
@@ -301,18 +307,18 @@
             }
         }, 30000); // 30초마다
         
-        // 페이지 포커스 시 데이터 확인 (5분 이상 지났을 때만)
+        // 페이지 포커스 시 데이터 확인 (5분 이상 지났을 때만) - 메시지 표시 안함
         let lastFocusSync = 0;
         window.addEventListener('focus', () => {
             if (window.FirebaseData && window.FirebaseData.isInitialized && navigator.onLine) {
                 const now = Date.now();
                 const timeSinceLastSync = now - lastFocusSync;
                 
-                // 5분(300초) 이상 지났을 때만 새로고침
+                // 5분(300초) 이상 지났을 때만 새로고침 (메시지 표시 안함)
                 if (timeSinceLastSync > 300000) {
                     setTimeout(() => {
                         lastFocusSync = now;
-                        window.FirebaseData.forceSyncWithFirebase();
+                        window.FirebaseData.forceSyncWithFirebase(false); // 메시지 표시 안함
                     }, 1000);
                 }
             }
@@ -323,7 +329,7 @@
             console.log('네트워크 연결됨 - 데이터 새로고침 시작');
             if (window.FirebaseData && window.FirebaseData.isInitialized) {
                 setTimeout(() => {
-                    window.FirebaseData.forceSyncWithFirebase();
+                    window.FirebaseData.forceSyncWithFirebase(false); // 메시지 표시 안함
                     window.FirebaseData.processQueue();
                 }, 2000);
             }
