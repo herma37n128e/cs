@@ -11,6 +11,31 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- 페이지 깜빡임 방지를 위한 초기 로그인 상태 확인 -->
+    <script>
+        (function() {
+            // 로그인 상태 확인
+            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+            
+            // CSS 스타일을 동적으로 추가하여 초기 표시 상태 설정
+            const style = document.createElement('style');
+            if (isLoggedIn) {
+                // 로그인 된 상태: 로그인 폼 숨기고 메인 콘텐츠 표시
+                style.textContent = `
+                    #login-form { display: none !important; }
+                    #main-content { display: block !important; }
+                `;
+            } else {
+                // 로그인 안된 상태: 메인 콘텐츠 숨기고 로그인 폼 표시
+                style.textContent = `
+                    #login-form { display: block !important; }
+                    #main-content { display: none !important; }
+                `;
+            }
+            document.head.appendChild(style);
+        })();
+    </script>
 </head>
 <body>
     <div class="container">
@@ -39,7 +64,7 @@
                     <button class="btn btn-outline-dark" id="sidebar-toggle">
                         <i class="bi bi-list"></i>
                     </button>
-                    <div class="mobile-title">
+                    <div class="mobile-title" id="mobile-title-home" style="cursor: pointer;">
                         <div class="brand-name">아서앤그레이스</div>
                         <div class="system-name">고객관리시스템</div>
                     </div>
@@ -92,7 +117,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-danger" href="#" id="reset-database">
+                        <a class="nav-link text-danger" href="#" id="reset-database" onclick="if(window.testReset) window.testReset(); else if(window.resetDatabase) window.resetDatabase(); return false;">
                             <i class="bi bi-trash3"></i> DB 초기화
                         </a>
                     </li>
@@ -685,7 +710,7 @@
     <script>
         // 클라우드 동기화 설정
         window.CLOUD_SYNC = {
-            enabled: false, // 임시로 비활성화
+            enabled: true, // 동기화 활성화
             apiUrl: 'https://api.jsonbin.io/v3/b/67685b98ad19ca34f8d27c0a', // 새로운 bin ID
             apiKey: '$2a$10$Yj/wJ8WRLu.P0zG5dkjK4.vKwPKDqw8Y1JOKqU8F4zq5XiKvYmLdO', // 새로운 API Key
             syncInterval: 300000, // 5분마다 동기화로 변경

@@ -182,6 +182,26 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // 모바일 제목 클릭 시 메인페이지로 이동
+    document.getElementById('mobile-title-home').addEventListener('click', () => {
+        // 고객 목록 페이지로 이동
+        document.querySelectorAll('.page').forEach(page => {
+            page.classList.add('d-none');
+        });
+        document.getElementById('customer-list').classList.remove('d-none');
+        
+        // 활성 메뉴 표시
+        document.querySelectorAll('.nav-link').forEach(navLink => {
+            navLink.classList.remove('active');
+        });
+        document.querySelector('.nav-link[data-page="customer-list"]').classList.add('active');
+        
+        // 사이드바가 열려있으면 닫기
+        if (sidebar.classList.contains('show')) {
+            window.closeSidebar();
+        }
+    });
+
     // 고객 검색 기능 이벤트 리스너
     document.getElementById('search-btn').addEventListener('click', searchCustomers);
     
@@ -530,12 +550,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const username = localStorage.getItem('username');
         
         if (isLoggedIn && username) {
-            // 로그인 상태로 화면 표시
-            document.getElementById('login-form').classList.add('d-none');
-            document.getElementById('main-content').classList.remove('d-none');
+            // 인라인 스크립트에서 이미 화면 상태를 설정했으므로
+            // 데이터만 로드하면 됨
             loadCustomerList();
             loadBirthdayAlerts();
             loadRankingCounts();
+        } else {
+            // 로그인되지 않은 경우 확실히 로그인 폼 표시
+            document.getElementById('login-form').classList.remove('d-none');
+            document.getElementById('main-content').classList.add('d-none');
         }
     }
 
@@ -638,11 +661,61 @@ document.addEventListener('DOMContentLoaded', () => {
     // 페이지 로드 시 동기화 버튼 상태 설정
     setTimeout(updateSyncButton, 1000);
     
-    // DB 초기화 버튼 이벤트 리스너
-    document.getElementById('reset-database').addEventListener('click', (e) => {
-        e.preventDefault();
-        resetDatabase();
+    // 추가적인 DB 초기화 버튼 설정 (백업)
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(() => {
+            const resetBtn = document.getElementById('reset-database');
+            if (resetBtn) {
+                console.log('DOMContentLoaded에서 DB 초기화 버튼 재설정');
+                resetBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('DOMContentLoaded 이벤트로 DB 초기화 클릭됨');
+                    if (window.resetDatabase) {
+                        window.resetDatabase();
+                    } else {
+                        alert('DB 초기화 함수를 찾을 수 없습니다.');
+                    }
+                });
+            }
+        }, 1000);
     });
+    
+    // DB 초기화 버튼 이벤트 리스너 (지연 설정)
+    setTimeout(() => {
+        const resetBtn = document.getElementById('reset-database');
+        if (resetBtn) {
+            console.log('DB 초기화 버튼 찾음, 이벤트 리스너 연결 중...');
+            
+            // 기존 이벤트 리스너 제거 후 새로 추가
+            resetBtn.onclick = null;
+            resetBtn.removeEventListener('click', window.resetDatabaseHandler);
+            
+            // 새로운 핸들러 함수 생성
+            window.resetDatabaseHandler = async function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('DB 초기화 버튼 클릭됨');
+                
+                try {
+                    // 직접 함수 호출
+                    await window.resetDatabase();
+                } catch (error) {
+                    console.error('DB 초기화 오류:', error);
+                    alert('DB 초기화 중 오류가 발생했습니다: ' + error.message);
+                }
+            };
+            
+            // 이벤트 리스너 추가
+            resetBtn.addEventListener('click', window.resetDatabaseHandler);
+            
+            // onclick 속성도 설정 (백업)
+            resetBtn.onclick = window.resetDatabaseHandler;
+            
+            console.log('DB 초기화 버튼 이벤트 리스너 연결 완료');
+        } else {
+            console.error('DB 초기화 버튼을 찾을 수 없습니다!');
+        }
+    }, 2000); // 2초 지연
 
     // 데이터 백업 함수
     function exportAllData() {
@@ -3283,8 +3356,14 @@ function downloadExcelTemplate() {
     XLSX.writeFile(workbook, '고객관리_통합템플릿.xlsx');
 }
 
+// 간단한 테스트 함수
+window.testReset = function() {
+    alert('DB 초기화 버튼이 정상적으로 클릭되었습니다!');
+    console.log('테스트 함수 호출됨');
+};
+
 // DB 초기화 함수
-async function resetDatabase() {
+window.resetDatabase = async function resetDatabase() {
     // 현재 데이터 현황 확인
     const customerCount = customers.length;
     const purchaseCount = purchases.length;
@@ -3417,4 +3496,4 @@ async function resetDatabase() {
         console.error('DB 초기화 중 오류 발생:', error);
         alert('❌ 초기화 중 오류가 발생했습니다. 페이지를 새로고침 후 다시 시도해주세요.');
     }
-}
+};
