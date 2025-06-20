@@ -14,7 +14,7 @@ window.FIREBASE_SYNC = {
     isSyncing: false,
     database: null, // Firebase 데이터베이스 참조
     autoSync: true, // 자동 동기화 활성화
-    userPath: '' // 사용자별 데이터 경로
+    userPath: 'arthur_grace_customer_system' // 고정된 데이터 경로 (데이터 영구 보존)
 };
 
 // 기기 고유 ID 생성
@@ -73,7 +73,7 @@ async function checkFirebaseUpdates() {
     window.FIREBASE_SYNC.isSyncing = true;
     
     try {
-        const userPath = window.FIREBASE_SYNC.userPath || 'default';
+        const userPath = window.FIREBASE_SYNC.userPath;
         const response = await fetch(`${window.FIREBASE_SYNC.databaseUrl}/${userPath}/customerData.json?auth=${window.FIREBASE_SYNC.apiKey}`, {
             method: 'GET',
             headers: {
@@ -246,20 +246,10 @@ async function initializeFirebaseConnection() {
     console.log('Firebase 직접 연동 시스템 초기화...');
     
     try {
-        // 사용자별 고유 경로 생성 (기존 경로가 있으면 사용)
-        let userPath = window.FIREBASE_SYNC.userPath;
-        if (!userPath) {
-            const config = localStorage.getItem('firebaseSyncConfig');
-            if (config) {
-                const parsedConfig = JSON.parse(config);
-                userPath = parsedConfig.userPath || generateUserPath();
-            } else {
-                userPath = generateUserPath();
-            }
-            window.FIREBASE_SYNC.userPath = userPath;
-        }
+        // 고정된 데이터 경로 사용 (데이터 영구 보존)
+        const userPath = window.FIREBASE_SYNC.userPath;
         
-        console.log('Firebase 직접 연동 시작 - 사용자 경로:', userPath);
+        console.log('Firebase 직접 연동 시작 - 데이터 경로:', userPath);
         updateSyncStatus('syncing', 'Firebase 연결 중...');
         
         // Firebase에서 데이터 로드
@@ -267,6 +257,8 @@ async function initializeFirebaseConnection() {
         
         // 정기적으로 업데이트 확인
         startUpdateChecker();
+        
+        console.log('Firebase 연결 완료 - 데이터 영구 보존 모드');
         
     } catch (error) {
         console.error('Firebase 연동 초기화 오류:', error);
@@ -280,27 +272,20 @@ async function initializeFirebaseConnection() {
     }
 }
 
-// 사용자별 고유 경로 생성 (데이터 격리)
-function generateUserPath() {
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(2, 15);
-    const userPath = `users/${timestamp}_${random}`;
-    
-    // Firebase 설정을 자동으로 저장
+// Firebase 설정 저장 (데이터 영구 보존)
+function saveFirebaseConfig() {
     try {
         const config = {
             enabled: true,
             databaseUrl: window.FIREBASE_SYNC.databaseUrl,
             apiKey: window.FIREBASE_SYNC.apiKey,
-            userPath: userPath
+            userPath: window.FIREBASE_SYNC.userPath
         };
         localStorage.setItem('firebaseSyncConfig', JSON.stringify(config));
-        console.log('Firebase 설정 자동 저장 완료:', userPath);
+        console.log('Firebase 설정 저장 완료 - 데이터 영구 보존');
     } catch (error) {
         console.error('Firebase 설정 저장 오류:', error);
     }
-    
-    return userPath;
 }
 
 // 등급 변경 이력 배열 추가
@@ -321,7 +306,7 @@ async function loadDataFromFirebase() {
     }
     
     try {
-        const userPath = window.FIREBASE_SYNC.userPath || 'default';
+        const userPath = window.FIREBASE_SYNC.userPath;
         const response = await fetch(`${window.FIREBASE_SYNC.databaseUrl}/${userPath}/customerData.json?auth=${window.FIREBASE_SYNC.apiKey}`, {
             method: 'GET',
             headers: {
@@ -395,7 +380,7 @@ async function saveDataToFirebase() {
             version: '1.0.0'
         };
         
-        const userPath = window.FIREBASE_SYNC.userPath || 'default';
+        const userPath = window.FIREBASE_SYNC.userPath;
         const response = await fetch(`${window.FIREBASE_SYNC.databaseUrl}/${userPath}/customerData.json?auth=${window.FIREBASE_SYNC.apiKey}`, {
             method: 'PUT',
             headers: {
