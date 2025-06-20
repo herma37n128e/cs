@@ -156,11 +156,44 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
-    <!-- Firebase 데이터 연동 스크립트 (기존 시스템 사용) -->
+    <!-- Firebase SDK (비상용) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    
+    <!-- Firebase 데이터 연동 스크립트 (하이브리드 방식) -->
     <script>
-        // Firebase 데이터 관리 (부모 창 연동 - 기존 방식 유지)
+        // Firebase 설정 (비상용)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBEMfBi1JfZNqfgbMKGvsIQIfjCR5hW_oU",
+            authDomain: "cs-service-d955e.firebaseapp.com",
+            databaseURL: "https://cs-service-d955e-default-rtdb.asia-southeast1.firebasedatabase.app/",
+            projectId: "cs-service-d955e",
+            storageBucket: "cs-service-d955e.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef"
+        };
+
+        // 비상용 Firebase 초기화
+        let emergencyFirebase = null;
+        let emergencyDatabase = null;
+
+        async function initEmergencyFirebase() {
+            try {
+                if (!emergencyFirebase) {
+                    emergencyFirebase = firebase.initializeApp(firebaseConfig, 'emergency');
+                    emergencyDatabase = emergencyFirebase.database();
+                    console.log('🚑 비상용 Firebase 초기화 성공');
+                }
+                return true;
+            } catch (error) {
+                console.error('❌ 비상용 Firebase 초기화 실패:', error);
+                return false;
+            }
+        }
+
+        // Firebase 데이터 관리 (하이브리드 방식)
         window.FirebaseData = {
-            // 부모 창의 Firebase 시스템 사용
+            // 부모 창의 Firebase 시스템 우선 사용
             async saveToFirebase(data) {
                 try {
                     if (window.opener && window.opener.FirebaseData) {
@@ -173,12 +206,40 @@
                 }
             },
             
-            // 부모 창에서 데이터 로드
+            // 부모 창에서 데이터 로드 (실패 시 직접 로드)
             async loadFromFirebase() {
                 try {
+                    // 1순위: 부모 창에서 로드
                     if (window.opener && window.opener.FirebaseData) {
-                        return await window.opener.FirebaseData.loadFromFirebase();
+                        const data = await window.opener.FirebaseData.loadFromFirebase();
+                        if (data && (data.customers || []).length > 0) {
+                            console.log('✅ 부모 창에서 데이터 로드 성공');
+                            return data;
+                        }
                     }
+                    
+                    // 2순위: 직접 Firebase에서 로드 (비상용)
+                    console.log('🚑 비상용 Firebase 직접 로드 시도...');
+                    const initSuccess = await initEmergencyFirebase();
+                    if (initSuccess) {
+                        const snapshot = await emergencyDatabase.ref('customerData').once('value');
+                        const data = snapshot.val();
+                        
+                        if (data) {
+                            console.log('✅ 비상용 Firebase 로드 성공:', {
+                                customers: (data.customers || []).length,
+                                purchases: (data.purchases || []).length
+                            });
+                            return {
+                                customers: data.customers || [],
+                                purchases: data.purchases || [],
+                                gifts: data.gifts || [],
+                                visits: data.visits || [],
+                                rankChanges: data.rankChanges || []
+                            };
+                        }
+                    }
+                    
                     return null;
                 } catch (error) {
                     console.error('Firebase 로드 오류:', error);
@@ -209,7 +270,7 @@
         
         window.CLOUD_SYNC = { enabled: false }; // 기존 시스템 비활성화
         
-        console.log('🔥 고객 상세 페이지 Firebase 시스템 초기화 완료 (기존 방식)');
+        console.log('🔥 고객 상세 페이지 하이브리드 Firebase 시스템 초기화 완료');
     </script>
     
     <script src="customer-details.js"></script>
