@@ -570,8 +570,31 @@ function renderCustomerList(customerList) {
         // 행 클릭 이벤트 추가
         tr.style.cursor = 'pointer';
         tr.setAttribute('data-customer-id', customer.id);
+        
+        // 터치 피드백을 위한 이벤트 리스너들
+        tr.addEventListener('touchstart', (e) => {
+            tr.classList.add('touch-active');
+        });
+        
+        tr.addEventListener('touchend', (e) => {
+            setTimeout(() => {
+                tr.classList.remove('touch-active');
+            }, 150);
+        });
+        
+        tr.addEventListener('touchcancel', (e) => {
+            tr.classList.remove('touch-active');
+        });
+        
         tr.addEventListener('click', () => {
-            window.open(`customer-details.html?id=${customer.id}`, `customer_${customer.id}`, 'width=1000,height=800');
+            // 터치 피드백 애니메이션 후 페이지 이동
+            tr.style.transform = 'scale(0.95)';
+            tr.style.transition = 'transform 0.1s ease';
+            
+            setTimeout(() => {
+                window.open(`customer-details.html?id=${customer.id}`, `customer_${customer.id}`, 'width=1000,height=800');
+                tr.style.transform = '';
+            }, 100);
         });
         
         tbody.appendChild(tr);
