@@ -89,11 +89,8 @@ async function loadDataFromStorage() {
                     }
                 } else {
                     console.log('Firebase 데이터 없음, 로컬 데이터 사용');
-                    // Firebase에 로컬 데이터 백업
-                    if (customers.length > 0 || purchases.length > 0 || gifts.length > 0) {
-                        console.log('로컬 데이터를 Firebase에 백업 중...');
-                        await saveDataToStorage();
-                    }
+                    // 로그인 직후에는 저장하지 않고 불러오기만 수행
+                    console.log('로그인 직후이므로 데이터 불러오기만 실행');
                 }
             } catch (firebaseError) {
                 console.warn('Firebase 로드 실패, 로컬 데이터 사용:', firebaseError);
@@ -205,21 +202,14 @@ let visits = [];
 
 // DOM이 로드된 후 실행
 document.addEventListener('DOMContentLoaded', () => {
-    // 로그인 상태 확인
-    checkLoginStatus();
+    // 로그인 과정 제거 - 바로 메인 시스템 초기화
+    initializeMainSystem();
 });
 
-// 로그인 상태 확인 함수
+// 로그인 상태 확인 함수 (사용 안함 - 로그인 과정 제거됨)
 function checkLoginStatus() {
-    const isLoggedIn = sessionStorage.getItem('isLoggedIn');
-    
-    if (isLoggedIn === 'true') {
-        // 로그인된 상태면 메인 시스템 초기화
-        initializeMainSystem();
-    } else {
-        // 로그인되지 않은 상태면 로그인 모달 표시
-        showLoginModal();
-    }
+    // 로그인 과정이 제거되어 바로 메인 시스템 초기화
+    initializeMainSystem();
 }
 
 // 로그인 모달 표시
@@ -315,7 +305,7 @@ function handleLogin(e) {
             overlay.remove();
         }
         
-        // 메인 시스템 초기화
+        // 메인 시스템 초기화 (로그인 직후에는 데이터 불러오기만 수행)
         initializeMainSystem();
         
         // 로그인 성공 후 고객목록 페이지로 이동
@@ -426,54 +416,8 @@ function initializeMainSystem() {
                 if (window.FirebaseData && window.FirebaseData.isInitialized) {
                     console.log('🔥 Firebase 영구저장 시스템 활성화됨');
                     
-                    // 5분마다 자동 백업 실행
-                    setInterval(async () => {
-                        if (navigator.onLine && window.FirebaseData) {
-                            console.log('⚡ 자동 백업 실행...');
-                            const backupSuccess = await saveDataToStorage();
-                            if (backupSuccess) {
-                                console.log('✅ 자동 백업 완료');
-                            } else {
-                                console.warn('⚠ 자동 백업 실패');
-                            }
-                        }
-                    }, 5 * 60 * 1000); // 5분마다
-                    
-                    // 데이터 무결성 검증 (UI 로드 후 2초 뒤)
-                    setTimeout(async () => {
-                        try {
-                            console.log('🔍 데이터 무결성 검증 시작...');
-                            
-                            const currentData = {
-                                customers: customers || [],
-                                purchases: purchases || [],
-                                gifts: gifts || [],
-                                visits: visits || [],
-                                rankChanges: rankChanges || []
-                            };
-                            
-                            const firebaseData = await window.FirebaseData.loadFromFirebase();
-                            
-                            if (firebaseData) {
-                                const localCount = currentData.customers.length + currentData.purchases.length;
-                                const firebaseCount = (firebaseData.customers?.length || 0) + (firebaseData.purchases?.length || 0);
-                                
-                                if (Math.abs(localCount - firebaseCount) > 5) { // 5개 이상 차이 시
-                                    console.log('🔄 데이터 불일치 감지, 강제 갱신 실행...');
-                                    await window.FirebaseData.forceSyncWithFirebase();
-                                    
-                                    // UI 새로고침
-            loadCustomerList();
-            loadBirthdayAlerts();
-            loadRankingCounts();
-        } else {
-                                    console.log('✅ 데이터 무결성 확인 완료');
-                                }
-                            }
-                        } catch (error) {
-                            console.warn('데이터 무결성 검증 중 오류:', error);
-                        }
-                    }, 2000);
+                    // 변경사항이 있을 때만 저장하는 모드로 설정
+                    console.log('🔄 변경사항 감지 시에만 저장하는 모드 활성화됨');
                     
                 } else {
                     console.warn('⚠ Firebase 초기화 실패, 로컬 저장소만 사용');
@@ -2389,7 +2333,7 @@ function handleExcelUpload() {
     }
     
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = async function(e) {
         try {
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
@@ -2435,7 +2379,7 @@ function handleExcelUpload() {
             console.log('고객정보 행 수:', customerData.length);
             console.log('구매이력 행 수:', purchaseData.length);
             
-            processExcelDataWithPurchases(customerData, purchaseData);
+            await processExcelDataWithPurchases(customerData, purchaseData);
         } catch (error) {
             alert('엑셀 파일 읽기 중 오류가 발생했습니다: ' + error.message);
         }
@@ -2444,7 +2388,7 @@ function handleExcelUpload() {
 }
 
 // 고객정보와 구매이력을 함께 처리하는 함수
-function processExcelDataWithPurchases(customerData, purchaseData) {
+async function processExcelDataWithPurchases(customerData, purchaseData) {
     let customerSuccessCount = 0;
     let customerErrorCount = 0;
     let purchaseSuccessCount = 0;
@@ -2662,6 +2606,15 @@ function processExcelDataWithPurchases(customerData, purchaseData) {
         loadCustomerList();
     }
     
+    // 데이터 변경사항이 있을 때만 저장
+    if (customerSuccessCount > 0 || purchaseSuccessCount > 0) {
+        console.log('💾 엑셀 업로드 데이터 저장 중...');
+        await saveDataToStorage();
+        loadCustomerList();
+        loadRankingCounts();
+        console.log('✅ 엑셀 업로드 데이터 저장 완료');
+    }
+    
     let message = `업로드 완료!\n`;
     message += `고객정보 - 성공: ${customerSuccessCount}명, 실패: ${customerErrorCount}명\n`;
     message += `구매이력 - 성공: ${purchaseSuccessCount}건, 실패: ${purchaseErrorCount}건`;
@@ -2697,7 +2650,7 @@ function processExcelDataWithPurchases(customerData, purchaseData) {
 }
 
 // 기존 엑셀 데이터 처리 함수 (단일 시트 호환용)
-function processExcelData(data) {
+async function processExcelData(data) {
     if (data.length < 2) {
         alert('엑셀 파일에 데이터가 없습니다.');
         return;
@@ -2759,7 +2712,7 @@ function processExcelData(data) {
     
     // 결과 저장 및 알림
     if (successCount > 0) {
-        saveDataToStorage();
+        await saveDataToStorage();
         loadCustomerList();
     }
     
