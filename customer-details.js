@@ -107,8 +107,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 모바일 기기에서 하단 패딩 추가
     document.body.classList.add('has-mobile-buttons');
     
-    // 모든 고객의 등급을 새로운 기준으로 업데이트
-    updateAllCustomerRanks();
+    // 고객 상세 페이지 진입 시에는 등급 업데이트만 수행 (저장 안함)
+    // updateAllCustomerRanks(); // 불필요한 저장 시도 방지를 위해 비활성화
     
     // 모바일 구매 추가 버튼 이벤트 리스너
     document.getElementById('mobile-add-purchase-btn').addEventListener('click', () => {

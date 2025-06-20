@@ -7,8 +7,8 @@ const ADMIN_USERS = [
 // 등급 변경 이력 배열 추가
 let rankChanges = []; // 등급 변경 이력
 
-// Firebase에서 데이터 로드
-async function loadDataFromStorage() {
+// Firebase에서 데이터 로드 (로그인 시에는 불러오기만 수행)
+async function loadDataFromStorage(isLoginLoad = false) {
     try {
         console.log('데이터 로드 시작...');
         
@@ -72,7 +72,7 @@ async function loadDataFromStorage() {
                         localStorage.setItem('rankChanges', JSON.stringify(rankChanges));
                         localStorage.setItem('lastUpdated', firebaseLastUpdated.toString());
                         
-                        if (window.FirebaseData) {
+                        if (window.FirebaseData && !isLoginLoad) {
                             window.FirebaseData.showSaveStatus('🔄 최신 데이터로 갱신됨', 'success');
                         }
                         
@@ -83,7 +83,7 @@ async function loadDataFromStorage() {
                         });
                     } else {
                         console.log('로컬 데이터가 최신 상태입니다.');
-                        if (window.FirebaseData) {
+                        if (window.FirebaseData && !isLoginLoad) {
                             window.FirebaseData.showSaveStatus('✓ 데이터 최신 상태', 'success', 2000);
                         }
                     }
@@ -94,7 +94,7 @@ async function loadDataFromStorage() {
                 }
             } catch (firebaseError) {
                 console.warn('Firebase 로드 실패, 로컬 데이터 사용:', firebaseError);
-                if (window.FirebaseData) {
+                if (window.FirebaseData && !isLoginLoad) {
                     window.FirebaseData.showSaveStatus('⚠ 오프라인 모드', 'info', 3000);
                 }
             }
@@ -117,7 +117,7 @@ async function loadDataFromStorage() {
         visits.push([]);
         rankChanges.push([]);
         
-        if (window.FirebaseData) {
+        if (window.FirebaseData && !isLoginLoad) {
             window.FirebaseData.showSaveStatus('❌ 데이터 로드 실패', 'error');
         }
         
@@ -370,8 +370,8 @@ function handleLogin(e) {
 
 // 메인 시스템 초기화
 function initializeMainSystem() {
-    // 데이터 로드
-    loadDataFromStorage();
+    // 로그인 시 데이터 로드 (불러오기만 수행, 상태 메시지 표시 안함)
+    loadDataFromStorage(true);
 
     // 사이드바 토글 기능
     const sidebar = document.getElementById('sidebar');
@@ -466,11 +466,7 @@ function initializeMainSystem() {
                     
                 } else {
                     console.warn('⚠ Firebase 초기화 실패, 로컬 저장소만 사용');
-        setTimeout(() => {
-                        if (window.FirebaseData) {
-                            window.FirebaseData.showSaveStatus('📱 로컬 모드', 'info', 3000);
-                        }
-        }, 1000);
+                    // 로그인 시에는 상태 메시지 표시하지 않음
     }
             }, 1500);
             
@@ -858,7 +854,7 @@ function loadBirthdayAlerts() {
 }
 
 // 고객별 구매 정보 재계산 함수
-function recalculateCustomerPurchaseInfo() {
+function recalculateCustomerPurchaseInfo(shouldSave = false) {
     customers.forEach(customer => {
         // 해당 고객의 모든 구매 기록 찾기
         const customerPurchases = purchases.filter(p => p.customerId === customer.id);
@@ -879,14 +875,16 @@ function recalculateCustomerPurchaseInfo() {
         updateCustomerRank(customer);
     });
     
-    // 데이터 저장
-    saveDataToStorage();
+    // 변경사항이 있을 때만 저장
+    if (shouldSave) {
+        saveDataToStorage();
+    }
 }
 
 // 고객 등급별 카운트 로드 함수
 function loadRankingCounts() {
-    // 구매 정보 재계산
-    recalculateCustomerPurchaseInfo();
+    // 구매 정보 재계산 (저장하지 않음)
+    recalculateCustomerPurchaseInfo(false);
     
     const vvipCount = customers.filter(c => c.rank === 'vvip').length;
     const vipCount = customers.filter(c => c.rank === 'vip').length;
