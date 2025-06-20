@@ -48,9 +48,9 @@ async function loadDataFromStorage(isLoginLoad = false) {
                 if (firebaseData) {
                     const firebaseLastUpdated = firebaseData.lastUpdated || 0;
                     
-                    // Firebase 데이터가 더 최신인 경우 갱신
+                    // Firebase 데이터가 더 최신인 경우 로드
                     if (firebaseLastUpdated > localLastUpdated) {
-                        console.log('Firebase에 더 최신 데이터 발견, 갱신 중...');
+                        console.log('Firebase에 더 최신 데이터 발견, 로드 중...');
                         
                         customers.length = 0;
                         purchases.length = 0;
@@ -73,10 +73,10 @@ async function loadDataFromStorage(isLoginLoad = false) {
                         localStorage.setItem('lastUpdated', firebaseLastUpdated.toString());
                         
                         if (window.FirebaseData && !isLoginLoad) {
-                            window.FirebaseData.showSaveStatus('🔄 최신 데이터로 갱신됨', 'success');
+                            window.FirebaseData.showSaveStatus('🔄 최신 데이터로 로드됨', 'success');
                         }
                         
-                        console.log('Firebase 데이터 갱신 완료:', {
+                        console.log('Firebase 데이터 로드 완료:', {
                             customers: customers.length,
                             purchases: purchases.length,
                             lastUpdated: new Date(firebaseLastUpdated).toLocaleString()
@@ -205,34 +205,40 @@ document.addEventListener('DOMContentLoaded', () => {
     // 창을 완전히 닫고 다시 킬 때마다 로그인 필요
     checkLoginStatus();
     
-    // 창 닫기 이벤트 리스너 추가 (로그인 상태 확실히 초기화)
-    window.addEventListener('beforeunload', () => {
-        // 창을 닫을 때 로그인 상태 완전 초기화
-        sessionStorage.removeItem('isLoggedIn');
-        localStorage.removeItem('isLoggedIn'); // 혹시 모를 localStorage도 정리
-        localStorage.removeItem('mainWindowLoggedIn'); // 고객상세페이지 공유용도 정리
-    });
-    
-    // 페이지 숨김 이벤트 (모바일 대응)
-    document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-            // 페이지가 완전히 숨겨질 때 (앱 종료 등)
-            sessionStorage.removeItem('isLoggedIn');
+    // 브라우저 완전 종료 시에만 로그인 상태 초기화 (새로고침은 유지)
+    window.addEventListener('beforeunload', (e) => {
+        // 새로고침이 아닌 완전 종료인지 확인
+        // (새로고침/F5는 로그인 상태 유지, 탭 닫기/브라우저 종료만 로그아웃)
+        if (e.type === 'beforeunload' && !e.returnValue) {
+            // 완전 종료가 아닌 새로고침인 경우 로그인 상태 유지
+            console.log('🔄 새로고침 감지 - 로그인 상태 유지');
         }
     });
 });
 
-// 로그인 상태 확인 함수 (창을 완전히 닫고 다시 킬 때마다 로그인 필요)
+// 로그인 상태 확인 함수 (새로고침 시 로그인 유지)
 function checkLoginStatus() {
-    // 페이지 로드 시 이전 로그인 상태 완전 초기화 (보장)
-    sessionStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('mainWindowLoggedIn');
+    // localStorage에서 로그인 상태 확인 (새로고침 시에도 유지)
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
     
-    console.log('🔐 새로운 세션 시작 - 로그인이 필요합니다');
-    
-    // 항상 로그인 모달 표시 (창을 새로 열 때마다)
-    showLoginModal();
+    if (isLoggedIn) {
+        console.log('🔐 기존 로그인 상태 확인됨 - 메인 시스템 초기화');
+        // 로그인 상태가 있으면 바로 메인 시스템 초기화
+        initializeMainSystem();
+        
+        // 새로고침 시 서버에서 최신 데이터 강제 로드
+        setTimeout(() => {
+            console.log('🔄 새로고침 감지 - 서버에서 최신 데이터 로드 중...');
+            if (window.FirebaseData) {
+                window.FirebaseData.forceSyncWithFirebase();
+            }
+        }, 1000);
+        
+    } else {
+        console.log('🔐 새로운 세션 시작 - 로그인이 필요합니다');
+        // 로그인 상태가 없으면 로그인 모달 표시
+        showLoginModal();
+    }
 }
 
 // 로그인 모달 표시
@@ -316,8 +322,8 @@ function handleLogin(e) {
     
     // 로그인 인증 (admin / grace1)
     if (loginId === 'admin' && loginPassword === 'grace1') {
-        // 로그인 성공 (세션과 로컬 스토리지 둘 다 저장)
-        sessionStorage.setItem('isLoggedIn', 'true');
+        // 로그인 성공 (localStorage에 저장하여 새로고침 시에도 유지)
+        localStorage.setItem('isLoggedIn', 'true');
         localStorage.setItem('mainWindowLoggedIn', 'true'); // 고객상세페이지와 공유용
         errorDiv.classList.add('d-none');
         
@@ -360,6 +366,15 @@ function handleLogin(e) {
         setTimeout(() => {
             showPage('customer-list');
             localStorage.setItem('currentPage', 'customer-list');
+            
+            // 스크롤 완전 복원 (추가 보장)
+            setTimeout(() => {
+                document.body.style.overflow = '';
+                document.body.style.position = '';
+                document.documentElement.style.overflow = '';
+                document.documentElement.style.position = '';
+                console.log('✅ 스크롤 복원 완료');
+            }, 200);
         }, 100);
         
     } else {
@@ -480,6 +495,9 @@ function initializeMainSystem() {
 
     // 나머지 이벤트 리스너들...
     setupEventListeners();
+    
+    // 로그아웃 버튼 이벤트 리스너 추가
+    setupLogoutListeners();
 }
 
 // 페이지 전환 함수 (페이지 상태 관리)
@@ -1225,7 +1243,7 @@ function renderVisitTracking(summaryList) {
 // 고객 상세 정보 새 창으로 열기
 function openCustomerDetails(customerId) {
     // 로그인 상태 확인
-    if (sessionStorage.getItem('isLoggedIn') !== 'true') {
+    if (localStorage.getItem('isLoggedIn') !== 'true') {
         alert('로그인이 필요합니다.');
         return;
     }
@@ -2954,6 +2972,54 @@ window.forceResetDB = function() {
 };
 
 // DB 초기화 함수
+// 로그아웃 기능
+function logout() {
+    // 로그아웃 확인
+    if (!confirm('로그아웃 하시겠습니까?\n\n열려있는 모든 고객상세페이지가 닫힙니다.')) {
+        return;
+    }
+    
+    console.log('🔐 로그아웃 처리 시작...');
+    
+    // 1. 모든 로그인 상태 정리
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('mainWindowLoggedIn');
+    localStorage.removeItem('currentPage');
+    
+    // 2. 고객상세페이지들에게 로그아웃 신호 전송
+    localStorage.setItem('logoutSignal', Date.now().toString());
+    
+    // 3. 잠시 후 로그아웃 신호 제거
+    setTimeout(() => {
+        localStorage.removeItem('logoutSignal');
+    }, 1000);
+    
+    // 4. 페이지 새로고침으로 로그인 화면 표시
+    console.log('✅ 로그아웃 완료 - 페이지 새로고침');
+    window.location.reload();
+}
+
+// 로그아웃 버튼 이벤트 리스너 설정
+function setupLogoutListeners() {
+    // 사이드바 로그아웃 버튼
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            logout();
+        });
+    }
+    
+    // 모바일 로그아웃 버튼
+    const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+    if (mobileLogoutBtn) {
+        mobileLogoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            logout();
+        });
+    }
+}
+
 window.resetDatabase = async function resetDatabase() {
     console.log('🔥 DB 초기화 함수 시작됨!');
     
@@ -3096,7 +3162,7 @@ window.resetDatabase = async function resetDatabase() {
             nextMonthBirthdays.innerHTML = '<li class="list-group-item text-center">다음 달 생일인 고객이 없습니다.</li>';
         }
         
-        // 8. 데이터 다시 로드하여 메모리와 갱신
+        // 8. 데이터 다시 로드하여 메모리와 새로고침
         if (typeof loadDataFromStorage === 'function') {
             loadDataFromStorage();
             console.log('데이터 다시 로드 완료');

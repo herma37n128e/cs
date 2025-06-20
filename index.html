@@ -97,7 +97,7 @@
                 }
             },
             
-            // Firebase에 데이터 저장 (영구저장 보장)
+            // Firebase에 데이터 저장 (성공 시 재시도 방지)
             async saveToFirebase(data, retryCount = 0) {
                 await this.waitForInit();
                 
@@ -128,40 +128,32 @@
                     }
                     
                     console.log('Firebase에 데이터 저장 및 검증 완료');
-                    this.showSaveStatus('✓ 영구저장 완료', 'success');
+                    this.showSaveStatus('✓ 저장 완료', 'success', 2000);
                     this.retryCount = 0; // 성공 시 재시도 카운트 리셋
                     
-                    // 저장 대기열에서 제거
+                    // 저장 대기열에서 제거 (성공한 항목만)
                     this.saveQueue = this.saveQueue.filter(item => item.timestamp !== saveData.lastUpdated);
                     
+                    // 성공 시 즉시 반환하여 추가 재시도 방지
                     return true;
                 } catch (error) {
                     console.error('Firebase 데이터 저장 오류:', error);
                     
-                    // 재시도 로직
+                    // 재시도 로직 (실패한 경우에만)
                     if (retryCount < this.maxRetries) {
                         console.log(`Firebase 저장 재시도 (${retryCount + 1}/${this.maxRetries})`);
                         this.showSaveStatus(`🔄 저장 재시도 중 (${retryCount + 1}/${this.maxRetries})`, 'info');
                         
-                        // 대기열에 추가
-                        this.saveQueue.push({
-                            data: data,
-                            timestamp: Date.now(),
-                            retryCount: retryCount + 1
-                        });
+                        // 재시도 전 대기 시간
+                        await new Promise(resolve => setTimeout(resolve, 2000 * (retryCount + 1)));
                         
-                        await new Promise(resolve => setTimeout(resolve, 3000 * (retryCount + 1)));
+                        // 재귀 호출로 재시도 (대기열 추가하지 않음)
                         return this.saveToFirebase(data, retryCount + 1);
                     }
                     
                     // 최대 재시도 횟수 초과 시
-                    this.showSaveStatus('❌ 저장 실패 - 관리자 문의', 'error', 10000);
+                    this.showSaveStatus('❌ 저장 실패', 'error', 5000);
                     console.error('Firebase 저장 최종 실패:', error);
-                    
-                    // 사용자에게 알림
-                    setTimeout(() => {
-                        alert(`⚠️ 데이터 저장에 실패했습니다.\n\n오류: ${error.message}\n\n인터넷 연결을 확인하고 페이지를 새로고침해주세요.\n데이터가 손실될 수 있습니다.`);
-                    }, 1000);
                     
                     return false;
                 }
@@ -192,27 +184,17 @@
                 }
             },
             
-            // 대기열 처리 (실패한 저장 재시도)
+            // 대기열 처리 (더 이상 사용하지 않음 - 직접 재시도 방식으로 변경)
             async processQueue() {
-                if (this.saveQueue.length === 0) return;
-                
-                console.log(`저장 대기열 처리: ${this.saveQueue.length}개 항목`);
-                
-                const queueCopy = [...this.saveQueue];
-                this.saveQueue = [];
-                
-                for (const item of queueCopy) {
-                    if (item.retryCount < this.maxRetries) {
-                        console.log('대기열에서 저장 재시도:', item.retryCount);
-                        await this.saveToFirebase(item.data, item.retryCount);
-                    }
-                }
+                // 저장 성공 시 재시도하지 않도록 대기열 시스템 비활성화
+                console.log('대기열 시스템 비활성화됨 - 직접 재시도 방식 사용');
+                this.saveQueue = []; // 대기열 초기화
             },
             
-            // 데이터 갱신 (데이터 무결성 보장)
+            // 데이터 새로고침 (데이터 무결성 보장)
             async forceSyncWithFirebase() {
                 try {
-                    this.showSaveStatus('🔄 데이터 갱신 중...', 'info');
+                    this.showSaveStatus('🔄 데이터 새로고침 중...', 'info');
                     
                     // Firebase에서 최신 데이터 가져오기
                     const firebaseData = await this.loadFromFirebase();
@@ -244,11 +226,11 @@
                         if (typeof loadBirthdayAlerts === 'function') loadBirthdayAlerts();
                         if (typeof loadRankingCounts === 'function') loadRankingCounts();
                         
-                        this.showSaveStatus('✅ 데이터 갱신 완료', 'success');
-                        console.log('Firebase 데이터 갱신 완료');
+                        this.showSaveStatus('✅ 데이터 새로고침 완료', 'success');
+                        console.log('Firebase 데이터 새로고침 완료');
                     }
                 } catch (error) {
-                    console.error('데이터 갱신 오류:', error);
+                    console.error('데이터 새로고침 오류:', error);
                     
                     // 네트워크 오류인 경우 다른 메시지 표시
                     if (!navigator.onLine) {
@@ -258,7 +240,7 @@
                         this.showSaveStatus('🌐 연결 확인 중...', 'info', 3000);
                     } else {
                         // 실제 서버 오류인 경우에만 실패 표시
-                        this.showSaveStatus('❌ 갱신 실패', 'error', 5000);
+                        this.showSaveStatus('❌ 새로고침 실패', 'error', 5000);
                     }
                 }
             },
@@ -323,7 +305,7 @@
                 const now = Date.now();
                 const timeSinceLastSync = now - lastFocusSync;
                 
-                // 5분(300초) 이상 지났을 때만 갱신
+                // 5분(300초) 이상 지났을 때만 새로고침
                 if (timeSinceLastSync > 300000) {
                     setTimeout(() => {
                         lastFocusSync = now;
@@ -335,7 +317,7 @@
         
         // 네트워크 상태 변경 감지
         window.addEventListener('online', () => {
-            console.log('네트워크 연결됨 - 데이터 갱신 시작');
+            console.log('네트워크 연결됨 - 데이터 새로고침 시작');
             if (window.FirebaseData) {
                 setTimeout(() => {
                     window.FirebaseData.forceSyncWithFirebase();
@@ -448,9 +430,11 @@
                         <div class="brand-name">아서앤그레이스</div>
                         <div class="system-name">고객관리시스템</div>
                     </div>
-                    <button class="btn btn-outline-info btn-sm me-1" id="sync-status-btn" title="저장 상태">
-                        <i class="bi bi-cloud-check"></i>
-                    </button>
+                    <div class="d-flex">
+                        <button class="btn btn-outline-info btn-sm me-1" id="sync-status-btn" title="저장 상태">
+                            <i class="bi bi-cloud-check"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -496,6 +480,11 @@
                     <li class="nav-item">
                         <a class="nav-link text-danger" href="#" id="reset-database" onclick="if(window.resetDatabase) window.resetDatabase(); return false;">
                             <i class="bi bi-trash3"></i> DB 초기화
+                        </a>
+                    </li>
+                    <li class="nav-item border-top mt-3 pt-3">
+                        <a class="nav-link text-warning" href="#" id="logout-btn">
+                            <i class="bi bi-box-arrow-right"></i> 로그아웃
                         </a>
                     </li>
                 </ul>

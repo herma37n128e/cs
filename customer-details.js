@@ -65,7 +65,7 @@ function checkMainWindowLoginStatus() {
     let openerLoggedIn = false;
     try {
         if (window.opener && !window.opener.closed) {
-            openerLoggedIn = window.opener.sessionStorage.getItem('isLoggedIn') === 'true';
+            openerLoggedIn = window.opener.localStorage.getItem('isLoggedIn') === 'true';
         }
     } catch (error) {
         console.log('opener 창 접근 불가 (보안 정책)');
@@ -74,7 +74,7 @@ function checkMainWindowLoginStatus() {
     // 3. 로그인 상태가 확인되면 자동 로그인 처리
     if (mainWindowLoggedIn === 'true' || openerLoggedIn) {
         console.log('🔓 메인 창 로그인 상태 확인됨 - 자동 로그인 처리');
-        sessionStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('isLoggedIn', 'true');
         return true;
     }
     
@@ -296,17 +296,36 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(() => {
         checkMainWindowStatus();
     }, 30000);
+    
+    // localStorage 변화 감지 (로그아웃 신호 실시간 감지)
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'logoutSignal' && e.newValue) {
+            console.log('🔐 실시간 로그아웃 신호 감지 - 고객상세페이지 즉시 닫기');
+            window.close();
+        } else if (e.key === 'mainWindowLoggedIn' && e.newValue !== 'true') {
+            console.log('🔐 실시간 메인 창 로그아웃 감지 - 고객상세페이지 즉시 닫기');
+            window.close();
+        }
+    });
 });
 
 // 메인 창 상태 확인 (주기적 체크용)
 function checkMainWindowStatus() {
     const mainWindowLoggedIn = localStorage.getItem('mainWindowLoggedIn');
+    const logoutSignal = localStorage.getItem('logoutSignal');
+    
+    // 로그아웃 신호 감지
+    if (logoutSignal) {
+        console.log('🔐 로그아웃 신호 감지 - 고객상세페이지 닫기');
+        window.close();
+        return;
+    }
     
     // 메인 창이 로그아웃되었거나 닫혔으면 현재 창도 닫기
     if (mainWindowLoggedIn !== 'true') {
         console.log('🔐 메인 창 로그아웃 감지 - 고객상세페이지 닫기');
-        alert('메인 창이 로그아웃되었습니다. 페이지를 닫습니다.');
         window.close();
+        return;
     }
     
     // opener 창이 닫혔는지 확인
@@ -555,6 +574,22 @@ function editCustomerInfo(customerId) {
             
             // 데이터 저장
             saveDataToStorage();
+            
+            // 메인 창에도 새로고침 신호 전송
+            if (window.opener && !window.opener.closed) {
+                try {
+                    // 메인 창의 고객 목록 새로고침
+                    if (typeof window.opener.loadCustomerList === 'function') {
+                        window.opener.loadCustomerList();
+                    }
+                    if (typeof window.opener.loadRankingCounts === 'function') {
+                        window.opener.loadRankingCounts();
+                    }
+                    console.log('✅ 메인 창 데이터 새로고침 완료');
+                } catch (error) {
+                    console.warn('메인 창 새로고침 실패:', error);
+                }
+            }
         }
         
         // 모달 닫기
@@ -805,9 +840,25 @@ function deleteCustomer(customerId) {
             // 데이터 저장
             saveDataToStorage();
             
-            // 메인 페이지로 이동
+            // 메인 창에도 새로고침 신호 전송
+            if (window.opener && !window.opener.closed) {
+                try {
+                    // 메인 창의 고객 목록 새로고침
+                    if (typeof window.opener.loadCustomerList === 'function') {
+                        window.opener.loadCustomerList();
+                    }
+                    if (typeof window.opener.loadRankingCounts === 'function') {
+                        window.opener.loadRankingCounts();
+                    }
+                    console.log('✅ 메인 창 데이터 새로고침 완료');
+                } catch (error) {
+                    console.warn('메인 창 새로고침 실패:', error);
+                }
+            }
+            
+            // 알림 표시 후 창 닫기 (로그인창 없이)
             alert('고객 정보가 삭제되었습니다.');
-            window.location.href = 'index.html';
+            window.close();
         }
     }
 }
@@ -999,6 +1050,22 @@ function editPurchaseRecord(purchaseId, customerId) {
             // 데이터 저장
             saveDataToStorage();
             
+            // 메인 창에도 새로고침 신호 전송
+            if (window.opener && !window.opener.closed) {
+                try {
+                    // 메인 창의 고객 목록 새로고침
+                    if (typeof window.opener.loadCustomerList === 'function') {
+                        window.opener.loadCustomerList();
+                    }
+                    if (typeof window.opener.loadRankingCounts === 'function') {
+                        window.opener.loadRankingCounts();
+                    }
+                    console.log('✅ 메인 창 데이터 새로고침 완료');
+                } catch (error) {
+                    console.warn('메인 창 새로고침 실패:', error);
+                }
+            }
+            
             // 모달 닫기
             editModal.hide();
             
@@ -1038,6 +1105,22 @@ function deletePurchaseRecord(purchaseId, customerId) {
             
             // 데이터 저장
             saveDataToStorage();
+            
+            // 메인 창에도 새로고침 신호 전송
+            if (window.opener && !window.opener.closed) {
+                try {
+                    // 메인 창의 고객 목록 새로고침
+                    if (typeof window.opener.loadCustomerList === 'function') {
+                        window.opener.loadCustomerList();
+                    }
+                    if (typeof window.opener.loadRankingCounts === 'function') {
+                        window.opener.loadRankingCounts();
+                    }
+                    console.log('✅ 메인 창 데이터 새로고침 완료');
+                } catch (error) {
+                    console.warn('메인 창 새로고침 실패:', error);
+                }
+            }
             
             // 구매 이력 다시 로드
             loadCustomerPurchases(customerId);
