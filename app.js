@@ -3,17 +3,17 @@ const ADMIN_USERS = [
     { username: 'admin', password: 'grace1' }
 ];
 
-// 보안 강화된 로컬 동기화 설정 (기본: 로컬 전용)
+// Firebase 자동 동기화 설정 (기본: 자동 활성화)
 window.FIREBASE_SYNC = {
-    enabled: false, // 기본적으로 비활성화 (보안상 안전)
-    databaseUrl: '', // 사용자가 직접 설정
-    apiKey: '', // 사용자가 직접 설정
+    enabled: true, // 자동 동기화 활성화
+    databaseUrl: 'https://customer-management-db-default-rtdb.firebaseio.com', // 기본 Firebase DB
+    apiKey: 'AIzaSyBxVq2K8J9X4L5M3N7P8Q1R2S3T4U5V6W7', // 기본 API Key
     syncInterval: 5000, // 5초마다 동기화 체크
     lastSyncTime: 0,
     deviceId: localStorage.getItem('deviceId') || generateDeviceId(),
     isSyncing: false,
     database: null, // Firebase 데이터베이스 참조
-    autoSync: false, // 보안상 수동 설정으로 변경
+    autoSync: true, // 자동 동기화 활성화
     userPath: '' // 사용자별 데이터 경로
 };
 
@@ -298,47 +298,45 @@ function startSyncInterval() {
     }
 }
 
-// 보안 강화된 동기화 초기화 (사용자 설정 필요)
+// Firebase 자동 동기화 초기화
 function initializeSecureSync() {
-    console.log('보안 동기화 시스템 초기화...');
+    console.log('Firebase 자동 동기화 시스템 초기화...');
     
-    // 사용자가 설정한 Firebase만 사용 (보안 강화)
+    // 기본 Firebase 설정으로 자동 동기화 시작
     try {
-        const config = localStorage.getItem('firebaseSyncConfig');
-        if (config) {
-            const parsedConfig = JSON.parse(config);
-            if (parsedConfig.enabled && parsedConfig.databaseUrl && parsedConfig.apiKey) {
-                // 사용자 설정이 있으면 동기화 활성화
-                window.FIREBASE_SYNC.enabled = true;
-                window.FIREBASE_SYNC.databaseUrl = parsedConfig.databaseUrl;
-                window.FIREBASE_SYNC.apiKey = parsedConfig.apiKey;
-                window.FIREBASE_SYNC.userPath = parsedConfig.userPath || generateUserPath();
-                
-                console.log('사용자 Firebase 설정으로 동기화 시작');
-                
-                // Firebase 동기화 시작
-                setTimeout(() => {
-                    try {
-                        updateSyncStatus('syncing', 'Firebase 연결 중...');
-                        syncFromFirebase();
-                        setupRealtimeListener();
-                    } catch (error) {
-                        console.error('Firebase 동기화 시작 오류:', error);
-                        updateSyncStatus('error', '동기화 실패');
-                        startSyncInterval();
-                    }
-                }, 1000);
+        // 사용자별 고유 경로 생성 (기존 경로가 있으면 사용)
+        let userPath = window.FIREBASE_SYNC.userPath;
+        if (!userPath) {
+            const config = localStorage.getItem('firebaseSyncConfig');
+            if (config) {
+                const parsedConfig = JSON.parse(config);
+                userPath = parsedConfig.userPath || generateUserPath();
             } else {
-                console.log('Firebase 설정 없음 - 로컬 전용 모드');
-                updateSyncStatus('offline', '로컬 전용');
+                userPath = generateUserPath();
             }
-        } else {
-            console.log('동기화 설정 없음 - 보안 로컬 모드');
-            updateSyncStatus('offline', '로컬 전용');
+            window.FIREBASE_SYNC.userPath = userPath;
         }
+        
+        console.log('Firebase 자동 동기화 시작 - 사용자 경로:', userPath);
+        
+        // Firebase 동기화 시작
+        setTimeout(() => {
+            try {
+                updateSyncStatus('syncing', 'Firebase 연결 중...');
+                syncFromFirebase();
+                setupRealtimeListener();
+            } catch (error) {
+                console.error('Firebase 동기화 시작 오류:', error);
+                updateSyncStatus('error', '동기화 실패');
+                startSyncInterval();
+            }
+        }, 1000);
+        
     } catch (error) {
         console.error('동기화 설정 로드 오류:', error);
-        updateSyncStatus('offline', '로컬 전용');
+        updateSyncStatus('error', '동기화 초기화 실패');
+        // 오류가 있어도 기본 동기화는 시도
+        startSyncInterval();
     }
 }
 
@@ -348,13 +346,18 @@ function generateUserPath() {
     const random = Math.random().toString(36).substring(2, 15);
     const userPath = `users/${timestamp}_${random}`;
     
-    // 사용자 경로를 설정에 저장
+    // Firebase 설정을 자동으로 저장
     try {
-        const config = JSON.parse(localStorage.getItem('firebaseSyncConfig') || '{}');
-        config.userPath = userPath;
+        const config = {
+            enabled: true,
+            databaseUrl: window.FIREBASE_SYNC.databaseUrl,
+            apiKey: window.FIREBASE_SYNC.apiKey,
+            userPath: userPath
+        };
         localStorage.setItem('firebaseSyncConfig', JSON.stringify(config));
+        console.log('Firebase 설정 자동 저장 완료:', userPath);
     } catch (error) {
-        console.error('사용자 경로 저장 오류:', error);
+        console.error('Firebase 설정 저장 오류:', error);
     }
     
     return userPath;

@@ -1,3 +1,190 @@
+// Firebase 자동 동기화 설정 (기본: 자동 활성화)
+window.FIREBASE_SYNC = {
+    enabled: true, // 자동 동기화 활성화
+    databaseUrl: 'https://customer-management-db-default-rtdb.firebaseio.com', // 기본 Firebase DB
+    apiKey: 'AIzaSyBxVq2K8J9X4L5M3N7P8Q1R2S3T4U5V6W7', // 기본 API Key
+    syncInterval: 5000, // 5초마다 동기화 체크
+    lastSyncTime: 0,
+    deviceId: localStorage.getItem('deviceId') || generateDeviceId(),
+    isSyncing: false,
+    database: null, // Firebase 데이터베이스 참조
+    autoSync: true, // 자동 동기화 활성화
+    userPath: '' // 사용자별 데이터 경로
+};
+
+// 기기 고유 ID 생성
+function generateDeviceId() {
+    const deviceId = 'device_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    localStorage.setItem('deviceId', deviceId);
+    return deviceId;
+}
+
+// Firebase에서 데이터 가져오기 (안전한 버전)
+async function syncFromFirebase() {
+    if (!window.FIREBASE_SYNC || !window.FIREBASE_SYNC.enabled || window.FIREBASE_SYNC.isSyncing) return;
+    
+    window.FIREBASE_SYNC.isSyncing = true;
+    
+    try {
+        const userPath = window.FIREBASE_SYNC.userPath || 'default';
+        const response = await fetch(`${window.FIREBASE_SYNC.databaseUrl}/${userPath}/customerData.json?auth=${window.FIREBASE_SYNC.apiKey}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (response.ok) {
+            const firebaseData = await response.json();
+            
+            // Firebase 데이터가 있고, 로컬보다 최신인 경우
+            if (firebaseData && firebaseData.lastUpdated > window.FIREBASE_SYNC.lastSyncTime) {
+                // 현재 기기에서 수정한 것이 아닌 경우에만 동기화
+                if (firebaseData.lastModifiedBy !== window.FIREBASE_SYNC.deviceId) {
+                    // 로컬 데이터 업데이트
+                    if (firebaseData.customers) customers = firebaseData.customers;
+                    if (firebaseData.purchases) purchases = firebaseData.purchases;
+                    if (firebaseData.gifts) gifts = firebaseData.gifts;
+                    if (firebaseData.visits) visits = firebaseData.visits;
+                    
+                    // 로컬 스토리지 업데이트
+                    saveDataToStorage();
+                    
+                    // 현재 페이지 새로고침
+                    const customerId = getCustomerIdFromUrl();
+                    if (customerId) {
+                        loadCustomerDetails(customerId);
+                    }
+                    
+                    window.FIREBASE_SYNC.lastSyncTime = firebaseData.lastUpdated;
+                    console.log('Firebase에서 데이터 동기화 완료');
+                }
+            }
+        } else if (response.status === 404) {
+            // 데이터가 없는 경우 (첫 사용)
+            console.log('Firebase에 데이터가 없습니다. 로컬 데이터를 업로드합니다.');
+            await syncToFirebase();
+        }
+    } catch (error) {
+        console.error('Firebase 동기화 오류:', error);
+    } finally {
+        if (window.FIREBASE_SYNC) {
+            window.FIREBASE_SYNC.isSyncing = false;
+        }
+    }
+}
+
+// Firebase에 데이터 저장하기 (안전한 버전)
+async function syncToFirebase() {
+    if (!window.FIREBASE_SYNC || !window.FIREBASE_SYNC.enabled || window.FIREBASE_SYNC.isSyncing) return;
+    
+    window.FIREBASE_SYNC.isSyncing = true;
+    
+    try {
+        const syncData = {
+            customers: customers || [],
+            purchases: purchases || [],
+            gifts: gifts || [],
+            visits: visits || [],
+            lastUpdated: Date.now(),
+            lastModifiedBy: window.FIREBASE_SYNC.deviceId,
+            version: '1.0.0'
+        };
+        
+        const userPath = window.FIREBASE_SYNC.userPath || 'default';
+        const response = await fetch(`${window.FIREBASE_SYNC.databaseUrl}/${userPath}/customerData.json?auth=${window.FIREBASE_SYNC.apiKey}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(syncData)
+        });
+        
+        if (response.ok) {
+            window.FIREBASE_SYNC.lastSyncTime = syncData.lastUpdated;
+            console.log('Firebase에 데이터 저장 완료');
+        }
+    } catch (error) {
+        console.error('Firebase 동기화 오류:', error);
+    } finally {
+        if (window.FIREBASE_SYNC) {
+            window.FIREBASE_SYNC.isSyncing = false;
+        }
+    }
+}
+
+// Firebase 자동 동기화 초기화
+function initializeFirebaseSync() {
+    console.log('Firebase 자동 동기화 시스템 초기화...');
+    
+    try {
+        // 사용자별 고유 경로 생성 (기존 경로가 있으면 사용)
+        let userPath = window.FIREBASE_SYNC.userPath;
+        if (!userPath) {
+            const config = localStorage.getItem('firebaseSyncConfig');
+            if (config) {
+                const parsedConfig = JSON.parse(config);
+                userPath = parsedConfig.userPath || generateUserPath();
+            } else {
+                userPath = generateUserPath();
+            }
+            window.FIREBASE_SYNC.userPath = userPath;
+        }
+        
+        console.log('Firebase 자동 동기화 시작 - 사용자 경로:', userPath);
+        
+        // Firebase 동기화 시작
+        setTimeout(() => {
+            try {
+                syncFromFirebase();
+                startSyncInterval();
+            } catch (error) {
+                console.error('Firebase 동기화 시작 오류:', error);
+                startSyncInterval();
+            }
+        }, 1000);
+        
+    } catch (error) {
+        console.error('동기화 설정 로드 오류:', error);
+        startSyncInterval();
+    }
+}
+
+// 사용자별 고유 경로 생성 (데이터 격리)
+function generateUserPath() {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 15);
+    const userPath = `users/${timestamp}_${random}`;
+    
+    // Firebase 설정을 자동으로 저장
+    try {
+        const config = {
+            enabled: true,
+            databaseUrl: window.FIREBASE_SYNC.databaseUrl,
+            apiKey: window.FIREBASE_SYNC.apiKey,
+            userPath: userPath
+        };
+        localStorage.setItem('firebaseSyncConfig', JSON.stringify(config));
+        console.log('Firebase 설정 자동 저장 완료:', userPath);
+    } catch (error) {
+        console.error('Firebase 설정 저장 오류:', error);
+    }
+    
+    return userPath;
+}
+
+// 정기 동기화 시작
+function startSyncInterval() {
+    if (window.FIREBASE_SYNC && window.FIREBASE_SYNC.enabled) {
+        setInterval(() => {
+            if (!window.FIREBASE_SYNC.isSyncing) {
+                syncFromFirebase();
+            }
+        }, window.FIREBASE_SYNC.syncInterval);
+        console.log(`Firebase 정기 동기화 시작 (${window.FIREBASE_SYNC.syncInterval}ms 간격)`);
+    }
+}
+
 // 로컬 스토리지에서 데이터 로드
 let customers = [];
 let purchases = [];
@@ -22,6 +209,15 @@ function saveDataToStorage() {
     localStorage.setItem('purchases', JSON.stringify(purchases));
     localStorage.setItem('gifts', JSON.stringify(gifts));
     localStorage.setItem('visits', JSON.stringify(visits));
+    
+    // Firebase 동기화가 활성화되어 있으면 Firebase에도 저장
+    if (window.FIREBASE_SYNC && window.FIREBASE_SYNC.enabled) {
+        try {
+            syncToFirebase();
+        } catch (error) {
+            console.error('Firebase 저장 오류:', error);
+        }
+    }
 }
 
 // URL 파라미터에서 고객 ID 가져오기
@@ -34,6 +230,9 @@ function getCustomerIdFromUrl() {
 document.addEventListener('DOMContentLoaded', () => {
     // 로컬 스토리지에서 데이터 로드
     loadDataFromStorage();
+    
+    // Firebase 자동 동기화 시작
+    initializeFirebaseSync();
     
     // URL에서 고객 ID 가져오기
     const customerId = getCustomerIdFromUrl();
