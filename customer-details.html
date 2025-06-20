@@ -275,6 +275,175 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- 클라우드 동기화 스크립트 -->
+    <script>
+                 // 클라우드 동기화 설정
+         window.CLOUD_SYNC = {
+             enabled: true,
+             apiUrl: 'https://api.jsonbin.io/v3/b/6855411b8a456b7966b1f04d',
+             apiKey: '$2a$10$aXe4NjIJeIjuC1INFQ3t5OmVlMRmnXviDO7jWWi7R9bgiXjOXNX5S',
+             syncInterval: 30000, // 30초마다 동기화
+             lastSyncTime: 0
+         };
+        
+        // 클라우드 동기화 함수들
+        window.CloudSync = {
+            // 클라우드에서 데이터 가져오기
+            async fetchFromCloud() {
+                if (!window.CLOUD_SYNC.enabled) return null;
+                
+                try {
+                    const response = await fetch(window.CLOUD_SYNC.apiUrl, {
+                        method: 'GET',
+                        headers: {
+                            'X-Master-Key': window.CLOUD_SYNC.apiKey,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        return data.record;
+                    }
+                } catch (error) {
+                    console.log('클라우드 데이터 가져오기 실패:', error);
+                }
+                return null;
+            },
+            
+            // 클라우드에 데이터 저장하기
+            async saveToCloud(data) {
+                if (!window.CLOUD_SYNC.enabled) return false;
+                
+                try {
+                    const payload = {
+                        ...data,
+                        lastUpdated: Date.now(),
+                        deviceId: this.getDeviceId()
+                    };
+                    
+                    const response = await fetch(window.CLOUD_SYNC.apiUrl, {
+                        method: 'PUT',
+                        headers: {
+                            'X-Master-Key': window.CLOUD_SYNC.apiKey,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    if (response.ok) {
+                        window.CLOUD_SYNC.lastSyncTime = Date.now();
+                        return true;
+                    }
+                } catch (error) {
+                    console.log('클라우드 데이터 저장 실패:', error);
+                }
+                return false;
+            },
+            
+            // 기기 고유 ID 생성
+            getDeviceId() {
+                let deviceId = localStorage.getItem('deviceId');
+                if (!deviceId) {
+                    deviceId = 'device_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+                    localStorage.setItem('deviceId', deviceId);
+                }
+                return deviceId;
+            },
+            
+            // 자동 동기화 시작
+            startAutoSync() {
+                if (!window.CLOUD_SYNC.enabled) return;
+                
+                // 페이지 로드 시 한번 동기화
+                this.syncFromCloud();
+                
+                // 정기적으로 동기화
+                setInterval(() => {
+                    this.syncFromCloud();
+                }, window.CLOUD_SYNC.syncInterval);
+                
+                // 페이지 언로드 시 데이터 저장
+                window.addEventListener('beforeunload', () => {
+                    this.syncToCloud();
+                });
+            },
+            
+            // 클라우드에서 로컬로 동기화
+            async syncFromCloud() {
+                const cloudData = await this.fetchFromCloud();
+                if (!cloudData) return;
+                
+                // 클라우드 데이터가 더 최신인지 확인
+                const localLastUpdated = parseInt(localStorage.getItem('lastUpdated') || '0');
+                const cloudLastUpdated = cloudData.lastUpdated || 0;
+                
+                if (cloudLastUpdated > localLastUpdated && cloudData.deviceId !== this.getDeviceId()) {
+                    // 클라우드 데이터가 더 최신이고 다른 기기에서 업데이트된 경우
+                    if (cloudData.customers) {
+                        localStorage.setItem('customers', JSON.stringify(cloudData.customers));
+                        window.customers = cloudData.customers;
+                    }
+                    if (cloudData.purchases) {
+                        localStorage.setItem('purchases', JSON.stringify(cloudData.purchases));
+                        window.purchases = cloudData.purchases;
+                    }
+                    if (cloudData.gifts) {
+                        localStorage.setItem('gifts', JSON.stringify(cloudData.gifts));
+                        window.gifts = cloudData.gifts;
+                    }
+                    if (cloudData.visits) {
+                        localStorage.setItem('visits', JSON.stringify(cloudData.visits));
+                        window.visits = cloudData.visits;
+                    }
+                    if (cloudData.rankHistory) {
+                        localStorage.setItem('rankHistory', JSON.stringify(cloudData.rankHistory));
+                    }
+                    
+                    localStorage.setItem('lastUpdated', cloudLastUpdated.toString());
+                    
+                    // 현재 페이지가 고객 상세 페이지라면 새로고침
+                    const customerId = getCustomerIdFromUrl();
+                    if (customerId) {
+                        loadCustomerDetails(customerId);
+                        loadCustomerPurchases(customerId);
+                        loadCustomerGifts(customerId);
+                        loadCustomerVisits(customerId);
+                    }
+                    
+                    console.log('클라우드에서 데이터 동기화 완료');
+                }
+            },
+            
+            // 로컬에서 클라우드로 동기화
+            async syncToCloud() {
+                const data = {
+                    customers: window.customers || [],
+                    purchases: window.purchases || [],
+                    gifts: window.gifts || [],
+                    visits: window.visits || [],
+                    rankHistory: JSON.parse(localStorage.getItem('rankHistory') || '[]')
+                };
+                
+                const success = await this.saveToCloud(data);
+                if (success) {
+                    console.log('클라우드에 데이터 동기화 완료');
+                }
+                return success;
+            }
+        };
+        
+        // 페이지 로드 후 동기화 시작
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                if (window.CloudSync) {
+                    window.CloudSync.startAutoSync();
+                }
+            }, 1000);
+        });
+    </script>
+    
     <script src="customer-details.js"></script>
 </body>
 </html> 

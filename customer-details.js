@@ -22,6 +22,16 @@ function saveDataToStorage() {
     localStorage.setItem('purchases', JSON.stringify(purchases));
     localStorage.setItem('gifts', JSON.stringify(gifts));
     localStorage.setItem('visits', JSON.stringify(visits));
+    localStorage.setItem('lastUpdated', Date.now().toString());
+    
+    // 클라우드에 자동 동기화 (비동기)
+    if (window.CloudSync && window.CLOUD_SYNC.enabled) {
+        setTimeout(() => {
+            window.CloudSync.syncToCloud().catch(error => {
+                console.log('자동 클라우드 동기화 실패:', error);
+            });
+        }, 100); // 100ms 지연 후 동기화
+    }
 }
 
 // URL 파라미터에서 고객 ID 가져오기

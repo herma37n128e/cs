@@ -16,13 +16,23 @@ function loadDataFromStorage() {
     rankChanges = JSON.parse(localStorage.getItem('rankChanges')) || []; // 등급 변경 이력 로드
 }
 
-// 로컬 스토리지에 데이터 저장
+// 로컬 스토리지에 데이터 저장 (클라우드 동기화 포함)
 function saveDataToStorage() {
     localStorage.setItem('customers', JSON.stringify(customers));
     localStorage.setItem('purchases', JSON.stringify(purchases));
     localStorage.setItem('gifts', JSON.stringify(gifts));
     localStorage.setItem('visits', JSON.stringify(visits));
     localStorage.setItem('rankChanges', JSON.stringify(rankChanges)); // 등급 변경 이력 저장
+    localStorage.setItem('lastUpdated', Date.now().toString());
+    
+    // 클라우드에 자동 동기화 (비동기)
+    if (window.CloudSync && window.CLOUD_SYNC.enabled) {
+        setTimeout(() => {
+            window.CloudSync.syncToCloud().catch(error => {
+                console.log('자동 클라우드 동기화 실패:', error);
+            });
+        }, 100); // 100ms 지연 후 동기화
+    }
 }
 
 // 테스트용 샘플 데이터 (초기화됨)
@@ -465,6 +475,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // 모든 고객의 등급을 새로운 기준으로 업데이트
     updateAllCustomerRanks();
     
+    // 클라우드 동기화 시작
+    if (window.CloudSync) {
+        // 페이지 로드 후 약간의 지연을 두고 동기화 시작
+        setTimeout(() => {
+            window.CloudSync.startAutoSync();
+        }, 1000);
+    }
+    
     // 모바일 고객 등록 버튼 이벤트 리스너
     document.getElementById('mobile-add-customer-btn').addEventListener('click', () => {
         // 고객 등록 페이지로 이동
@@ -479,6 +497,159 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 엑셀 다운로드 버튼 이벤트 리스너
     document.getElementById('export-excel-btn').addEventListener('click', exportCustomersToExcel);
+    
+    // 데이터 동기화 버튼 이벤트 리스너
+    document.getElementById('backup-data-btn').addEventListener('click', exportAllData);
+    document.getElementById('import-data-btn').addEventListener('click', importAllData);
+
+    // 데이터 백업 함수
+    function exportAllData() {
+        const allData = {
+            customers: customers,
+            purchases: purchases,
+            gifts: gifts,
+            visits: visits,
+            rankHistory: JSON.parse(localStorage.getItem('rankHistory') || '[]'),
+            exportDate: new Date().toISOString(),
+            version: '1.0'
+        };
+        
+        const dataStr = JSON.stringify(allData, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        
+        const today = new Date();
+        const dateStr = today.toISOString().split('T')[0];
+        const fileName = `고객관리_전체데이터_${dateStr}.json`;
+        
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(dataBlob);
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        alert(`전체 데이터가 백업되었습니다!\n파일명: ${fileName}\n\n이 파일을 다른 기기에서 가져오기하면 동일한 데이터를 사용할 수 있습니다.`);
+    }
+
+    // 데이터 복원 함수
+    function importAllData() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        
+        input.onchange = function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    // 데이터 유효성 검사
+                    if (!importedData.customers || !Array.isArray(importedData.customers)) {
+                        alert('올바른 데이터 파일이 아닙니다.');
+                        return;
+                    }
+                    
+                    // 기존 데이터 백업 확인
+                    if (customers.length > 0) {
+                        const confirmReplace = confirm(
+                            `기존 데이터가 있습니다.\n` +
+                            `현재 고객 수: ${customers.length}명\n` +
+                            `가져올 고객 수: ${importedData.customers.length}명\n\n` +
+                            `기존 데이터를 모두 교체하시겠습니까?\n` +
+                            `(기존 데이터는 복구할 수 없습니다)`
+                        );
+                        
+                        if (!confirmReplace) {
+                            return;
+                        }
+                    }
+                    
+                    // 데이터 복원
+                    customers.length = 0;
+                    purchases.length = 0;
+                    gifts.length = 0;
+                    visits.length = 0;
+                    
+                    customers.push(...importedData.customers);
+                    purchases.push(...(importedData.purchases || []));
+                    gifts.push(...(importedData.gifts || []));
+                    visits.push(...(importedData.visits || []));
+                    
+                    // 등급 변경 이력도 복원
+                    if (importedData.rankHistory) {
+                        localStorage.setItem('rankHistory', JSON.stringify(importedData.rankHistory));
+                    }
+                    
+                    // 데이터 저장
+                    saveDataToStorage();
+                    
+                    // 화면 새로고침
+                    location.reload();
+                    
+                } catch (error) {
+                    console.error('데이터 가져오기 오류:', error);
+                    alert('데이터 파일을 읽는 중 오류가 발생했습니다.\n파일이 손상되었거나 올바른 형식이 아닙니다.');
+                }
+            };
+            
+            reader.readAsText(file);
+        };
+        
+        input.click();
+    }
+
+    // QR 코드로 데이터 공유 함수 (선택사항)
+    function generateDataQR() {
+        const allData = {
+            customers: customers,
+            purchases: purchases,
+            gifts: gifts,
+            visits: visits,
+            exportDate: new Date().toISOString()
+        };
+        
+        const dataStr = JSON.stringify(allData);
+        const encodedData = btoa(encodeURIComponent(dataStr));
+        
+        // 데이터가 너무 클 경우 경고
+        if (encodedData.length > 2000) {
+            alert('데이터가 너무 커서 QR 코드로 공유할 수 없습니다.\nJSON 파일 다운로드 방식을 사용해주세요.');
+            return;
+        }
+        
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodedData}`;
+        
+        const modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.innerHTML = `
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">데이터 QR 코드</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <p>다른 기기에서 이 QR 코드를 스캔하여 데이터를 가져올 수 있습니다.</p>
+                        <img src="${qrUrl}" alt="데이터 QR 코드" class="img-fluid">
+                        <div class="mt-3">
+                            <small class="text-muted">QR 코드를 스캔 후 나타나는 텍스트를 복사하여 가져오기에서 사용하세요.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        const bootstrapModal = new bootstrap.Modal(modal);
+        bootstrapModal.show();
+        
+        modal.addEventListener('hidden.bs.modal', () => {
+            document.body.removeChild(modal);
+        });
+    }
 });
 
 // 고객 목록 렌더링 함수
