@@ -53,7 +53,7 @@
                     if (window.firebaseDB) {
                         this.isInitialized = true;
                         resolve();
-                    } else {
+            } else {
                         window.addEventListener('firebaseInitialized', () => {
                             this.isInitialized = true;
                             resolve();
@@ -388,7 +388,7 @@
                 100% { transform: rotate(360deg); }
             }
         `;
-        document.head.appendChild(style);
+            document.head.appendChild(style);
         
         // 저장 상태 버튼 업데이트
         function updateSyncButton(status) {
@@ -538,7 +538,12 @@
 
             <!-- 고객 등록 페이지 -->
             <div id="add-customer" class="page d-none">
-                <h3 class="mb-3">고객 등록</h3>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="mb-0">고객 등록</h3>
+                    <button class="btn btn-outline-info" id="toggle-excel-upload-btn">
+                        <i class="bi bi-file-earmark-excel"></i> 엑셀업로드
+                    </button>
+                </div>
                 
                 <!-- 개별 고객 등록 -->
                 <div class="card mb-4">
@@ -608,14 +613,14 @@
                                 </div>
                             </div>
                             <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-person-plus"></i> 고객 등록
-                            </button>
+                                    <i class="bi bi-person-plus"></i> 고객 등록
+                                </button>
                         </form>
                     </div>
                 </div>
-                
-                <!-- 엑셀 업로드 -->
-                <div class="card">
+
+                <!-- 엑셀 업로드 (토글) -->
+                <div class="card d-none" id="excel-upload-section">
                     <div class="card-header">
                         <h5 class="mb-0">엑셀 파일 업로드</h5>
                     </div>
@@ -626,12 +631,12 @@
                         </div>
                         <div class="d-flex gap-2">
                             <button type="button" class="btn btn-info" id="upload-excel-btn">
-                                <i class="bi bi-upload"></i> 엑셀 데이터 업로드
-                            </button>
+                            <i class="bi bi-upload"></i> 엑셀 데이터 업로드
+                        </button>
                             <button type="button" class="btn btn-outline-secondary" id="download-template-btn">
-                                <i class="bi bi-download"></i> 템플릿 다운로드
-                            </button>
-                        </div>
+                            <i class="bi bi-download"></i> 템플릿 다운로드
+                        </button>
+                    </div>
                         <div class="mt-3 text-muted">
                             <small>
                                 <strong>엑셀 파일 형식:</strong><br>
@@ -653,26 +658,26 @@
                 <div class="row">
                     <div class="col-12 col-md-6">
                         <div class="card">
-                            <div class="card-header">
+                    <div class="card-header">
                                 <h5 class="card-title mb-0">
                                     <i class="bi bi-calendar-heart text-danger"></i> 이번 달 생일
                                 </h5>
-                            </div>
-                            <div class="card-body">
+                    </div>
+                    <div class="card-body">
                                 <div id="this-month-birthdays">
                                     <!-- 이번 달 생일 목록이 여기에 표시됩니다 -->
-                                </div>
-                            </div>
+                    </div>
+                </div>
                         </div>
                     </div>
                     <div class="col-12 col-md-6">
-                        <div class="card">
-                            <div class="card-header">
+                <div class="card">
+                    <div class="card-header">
                                 <h5 class="card-title mb-0">
                                     <i class="bi bi-calendar-check text-info"></i> 다음 달 생일
                                 </h5>
-                            </div>
-                            <div class="card-body">
+                    </div>
+                    <div class="card-body">
                                 <div id="next-month-birthdays">
                                     <!-- 다음 달 생일 목록이 여기에 표시됩니다 -->
                                 </div>
@@ -693,12 +698,12 @@
                 
                 <!-- 검색창 -->
                 <div class="mb-3">
-                    <div class="input-group">
+                        <div class="input-group">
                         <input type="text" class="form-control" id="gift-search-input" placeholder="고객명으로 검색">
                         <button class="btn btn-outline-secondary" id="gift-search-btn">검색</button>
                     </div>
                 </div>
-                
+
                 <div class="table-responsive">
                     <table class="table table-striped">
                         <thead>
@@ -772,18 +777,18 @@
                     <div class="col-12 col-md-3">
                         <select class="form-select" id="grade-filter">
                             <option value="">전체 등급</option>
-                            <option value="VVIP">VVIP</option>
-                            <option value="VIP">VIP</option>
-                            <option value="일반">일반</option>
-                        </select>
-                    </div>
+                                    <option value="VVIP">VVIP</option>
+                                    <option value="VIP">VIP</option>
+                                    <option value="일반">일반</option>
+                                </select>
+                            </div>
                     <div class="col-12 col-md-3">
                         <select class="form-select" id="sort-option">
-                            <option value="totalAmount-desc">구매액 높은순</option>
-                            <option value="totalAmount-asc">구매액 낮은순</option>
-                            <option value="purchaseCount-desc">구매횟수 많은순</option>
-                            <option value="purchaseCount-asc">구매횟수 적은순</option>
-                        </select>
+                                    <option value="totalAmount-desc">구매액 높은순</option>
+                                    <option value="totalAmount-asc">구매액 낮은순</option>
+                                    <option value="purchaseCount-desc">구매횟수 많은순</option>
+                                    <option value="purchaseCount-asc">구매횟수 적은순</option>
+                                </select>
                     </div>
                 </div>
                 
@@ -795,7 +800,7 @@
                                 <th>이름</th>
                                 <th>등급</th>
                                 <th>총 구매액</th>
-                                <th class="mobile-hide">총 구매 횟수</th>
+                                <th>총 구매 횟수</th>
                                 <th>등급 변경 이력</th>
                             </tr>
                         </thead>
@@ -817,12 +822,12 @@
                 
                 <!-- 검색창 -->
                 <div class="mb-3">
-                    <div class="input-group">
+                        <div class="input-group">
                         <input type="text" class="form-control" id="visit-search-input" placeholder="고객명으로 검색">
                         <button class="btn btn-outline-secondary" id="visit-search-btn">검색</button>
                     </div>
                 </div>
-                
+
                 <div class="table-responsive">
                     <table class="table table-striped">
                         <thead>
@@ -844,38 +849,38 @@
             </div>
 
             </div>
-        </div>
-    </div>
+                </div>
+            </div>
 
-    <!-- 고객 상세 정보 모달 -->
-    <div class="modal fade" id="customer-details-modal" tabindex="-1">
+            <!-- 고객 상세 정보 모달 -->
+            <div class="modal fade" id="customer-details-modal" tabindex="-1">
         <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">고객 상세 정보</h5>
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">고객 상세 정보</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
+                        </div>
+                        <div class="modal-body">
                     <!-- 고객 상세 정보가 여기에 로드됩니다 -->
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- 구매 기록 추가 모달 -->
-    <div class="modal fade" id="add-purchase-modal" tabindex="-1">
+            <!-- 구매 기록 추가 모달 -->
+            <div class="modal fade" id="add-purchase-modal" tabindex="-1">
         <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">구매 기록 추가</h5>
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">구매 기록 추가</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
+                        </div>
+                        <div class="modal-body">
                     <!-- 구매 기록 폼이 여기에 로드됩니다 -->
-                </div>
-            </div>
-        </div>
-    </div>
+                                </div>
+                                    </div>
+                                                    </div>
+                                                    </div>
 
     <!-- 선물 기록 추가 모달 -->
     <div class="modal fade" id="add-gift-modal" tabindex="-1">
@@ -884,13 +889,13 @@
                 <div class="modal-header">
                     <h5 class="modal-title">선물 기록 추가</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
+                                                </div>
                 <div class="modal-body">
                     <!-- 선물 기록 폼이 여기에 로드됩니다 -->
-                </div>
-            </div>
-        </div>
-    </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
 
     <!-- 방문 기록 추가 모달 -->
     <div class="modal fade" id="add-visit-modal" tabindex="-1">
@@ -899,14 +904,14 @@
                 <div class="modal-header">
                     <h5 class="modal-title">방문 기록 추가</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
+                                </div>
                 <div class="modal-body">
                     <!-- 방문 기록 폼이 여기에 로드됩니다 -->
-                </div>
-            </div>
-        </div>
-    </div>
-
+                                    </div>
+                                    </div>
+                                </div>
+                                </div>
+                                
     <!-- 등급 변경 이력 모달 -->
     <div class="modal fade" id="rank-history-modal" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -914,11 +919,11 @@
                 <div class="modal-header">
                     <h5 class="modal-title">등급 변경 이력</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
+                                </div>
                 <div class="modal-body">
                     <!-- 등급 변경 이력이 여기에 로드됩니다 -->
-                </div>
-            </div>
+                        </div>
+                    </div>
         </div>
     </div>
 

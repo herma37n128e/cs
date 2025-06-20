@@ -68,28 +68,23 @@ header h2 {
 }
 
 /* 고객목록 테이블 칼럼 너비 조정 */
+#customer-list .table th:nth-child(1),
+#customer-list .table td:nth-child(1) {
+    width: 6%; /* 번호 칼럼 폭을 50% 줄임 (기본 12%에서 6%로) */
+    max-width: 60px;
+}
+
 #customer-list .table th:nth-child(2),
 #customer-list .table td:nth-child(2) {
     width: 12%; /* 이름 칼럼 폭을 20% 줄임 (기본 15%에서 12%로) */
     max-width: 120px;
 }
 
-/* 모바일에서 터치 피드백 효과 */
+/* 모바일에서 터치 피드백 효과 - 단순한 테두리 */
 @media (hover: none) and (pointer: coarse) {
     .table tbody tr[data-customer-id]:active {
-        background-color: #007bff !important;
-        color: white !important;
-        transform: scale(0.98);
-        transition: all 0.1s ease;
-    }
-    
-    .table tbody tr[data-customer-id]:active td {
-        color: white !important;
-    }
-    
-    .table tbody tr[data-customer-id]:active .badge {
-        background-color: rgba(255, 255, 255, 0.3) !important;
-        color: white !important;
+        border: 3px solid #007bff !important;
+        transition: border 0.1s ease;
     }
 }
 
@@ -415,49 +410,21 @@ header h2 {
         font-size: 0.85rem;
     }
     
-    /* 모바일에서 터치 피드백 강화 */
+    /* 모바일에서 터치 피드백 - 단순한 테두리 */
     .table tbody tr[data-customer-id] {
-        -webkit-tap-highlight-color: rgba(0, 123, 255, 0.3);
-        tap-highlight-color: rgba(0, 123, 255, 0.3);
+        -webkit-tap-highlight-color: transparent;
+        tap-highlight-color: transparent;
     }
     
     .table tbody tr[data-customer-id]:active {
-        background-color: #007bff !important;
-        color: white !important;
-        transform: scale(0.98);
-        transition: all 0.1s ease;
-        box-shadow: 0 2px 8px rgba(0, 123, 255, 0.4);
+        border: 3px solid #007bff !important;
+        transition: border 0.1s ease;
     }
     
-    .table tbody tr[data-customer-id]:active td {
-        color: white !important;
-        border-color: #007bff !important;
-    }
-    
-    .table tbody tr[data-customer-id]:active .badge {
-        background-color: rgba(255, 255, 255, 0.3) !important;
-        color: white !important;
-        border: 1px solid rgba(255, 255, 255, 0.5);
-    }
-    
-    /* 터치 피드백 클래스 */
+    /* 터치 피드백 클래스 - 단순한 테두리 */
     .table tbody tr.touch-active {
-        background-color: #007bff !important;
-        color: white !important;
-        transform: scale(0.98);
-        transition: all 0.1s ease;
-        box-shadow: 0 2px 8px rgba(0, 123, 255, 0.4);
-    }
-    
-    .table tbody tr.touch-active td {
-        color: white !important;
-        border-color: #007bff !important;
-    }
-    
-    .table tbody tr.touch-active .badge {
-        background-color: rgba(255, 255, 255, 0.3) !important;
-        color: white !important;
-        border: 1px solid rgba(255, 255, 255, 0.5);
+        border: 3px solid #007bff !important;
+        transition: border 0.1s ease;
     }
     
     /* 모바일에서도 테이블 데이터 크기 유지 */

@@ -65,10 +65,10 @@ async function loadDataFromStorage() {
                         rankChanges.push(...(firebaseData.rankChanges || []));
                         
                         // 로컬스토리지도 업데이트
-                        localStorage.setItem('customers', JSON.stringify(customers));
-                        localStorage.setItem('purchases', JSON.stringify(purchases));
-                        localStorage.setItem('gifts', JSON.stringify(gifts));
-                        localStorage.setItem('visits', JSON.stringify(visits));
+    localStorage.setItem('customers', JSON.stringify(customers));
+    localStorage.setItem('purchases', JSON.stringify(purchases));
+    localStorage.setItem('gifts', JSON.stringify(gifts));
+    localStorage.setItem('visits', JSON.stringify(visits));
                         localStorage.setItem('rankChanges', JSON.stringify(rankChanges));
                         localStorage.setItem('lastUpdated', firebaseLastUpdated.toString());
                         
@@ -207,7 +207,7 @@ let visits = [];
 document.addEventListener('DOMContentLoaded', () => {
     // 데이터 로드
     loadDataFromStorage();
-    
+
     // 사이드바 토글 기능
     const sidebar = document.getElementById('sidebar');
     const sidebarOverlay = document.getElementById('sidebar-overlay');
@@ -285,7 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log(`🔄 저장된 페이지 복원: ${savedPage}`);
             showPage(savedPage);
             
-            loadCustomerList();
+        loadCustomerList();
             loadBirthdayAlerts();
             loadRankingCounts();
             
@@ -333,10 +333,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                     await window.FirebaseData.forceSyncWithFirebase();
                                     
                                     // UI 새로고침
-                                    loadCustomerList();
-                                    loadBirthdayAlerts();
-                                    loadRankingCounts();
-                                } else {
+            loadCustomerList();
+            loadBirthdayAlerts();
+            loadRankingCounts();
+        } else {
                                     console.log('✅ 데이터 무결성 확인 완료');
                                 }
                             }
@@ -347,12 +347,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                 } else {
                     console.warn('⚠ Firebase 초기화 실패, 로컬 저장소만 사용');
-                    setTimeout(() => {
+        setTimeout(() => {
                         if (window.FirebaseData) {
                             window.FirebaseData.showSaveStatus('📱 로컬 모드', 'info', 3000);
                         }
-                    }, 1000);
-                }
+        }, 1000);
+    }
             }, 1500);
             
         } catch (error) {
@@ -430,7 +430,7 @@ function showPage(targetPage) {
 function setupEventListeners() {
     // 고객 등록 폼 이벤트
     document.getElementById('customer-form').addEventListener('submit', (e) => {
-        e.preventDefault();
+                    e.preventDefault();
         addCustomer();
     });
 
@@ -460,6 +460,40 @@ function setupEventListeners() {
         showPage('add-customer');
     });
 
+    // 엑셀업로드 토글 버튼
+    document.getElementById('toggle-excel-upload-btn').addEventListener('click', () => {
+        const excelSection = document.getElementById('excel-upload-section');
+        const toggleBtn = document.getElementById('toggle-excel-upload-btn');
+        
+        if (excelSection.classList.contains('d-none')) {
+            // 섹션 보이기
+            excelSection.classList.remove('d-none');
+            toggleBtn.innerHTML = '<i class="bi bi-file-earmark-excel"></i> 엑셀업로드 닫기';
+            toggleBtn.classList.remove('btn-outline-info');
+            toggleBtn.classList.add('btn-info');
+        } else {
+            // 섹션 숨기기
+            excelSection.classList.add('d-none');
+            toggleBtn.innerHTML = '<i class="bi bi-file-earmark-excel"></i> 엑셀업로드';
+            toggleBtn.classList.remove('btn-info');
+            toggleBtn.classList.add('btn-outline-info');
+        }
+    });
+
+    // 고객등급 페이지 검색 및 필터 이벤트 리스너
+    document.getElementById('ranking-search-btn').addEventListener('click', searchRankingList);
+    document.getElementById('ranking-search-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            searchRankingList();
+        }
+    });
+    
+    // 등급 필터 변경 시 즉시 검색
+    document.getElementById('grade-filter').addEventListener('change', searchRankingList);
+    
+    // 정렬 옵션 변경 시 즉시 검색
+    document.getElementById('sort-option').addEventListener('change', searchRankingList);
+
     // 기타 이벤트 리스너들...
 }
 
@@ -476,13 +510,13 @@ async function addCustomer() {
 
     if (!name || !phone) {
         alert('이름과 전화번호는 필수 입력 항목입니다.');
-        return;
-    }
-
+                        return;
+                    }
+                    
     // 전화번호 중복 체크
     if (customers.some(customer => customer.phone === phone)) {
         alert('이미 등록된 전화번호입니다.');
-        return;
+                            return;
     }
 
     const newCustomer = {
@@ -517,9 +551,9 @@ async function addCustomer() {
         // 저장 실패 시 고객 제거하고 사용자에게 알림
         customers.pop();
         alert('⚠️ 고객 정보 저장에 실패했습니다.\n\n인터넷 연결을 확인하고 다시 시도해주세요.\n데이터 손실 방지를 위해 등록이 취소되었습니다.');
-        return;
-    }
-    
+            return;
+        }
+        
     // 저장 성공 확인
     console.log(`고객 "${name}" 영구저장 완료 (ID: ${newCustomer.id})`);
     
@@ -587,14 +621,8 @@ function renderCustomerList(customerList) {
         });
         
         tr.addEventListener('click', () => {
-            // 터치 피드백 애니메이션 후 페이지 이동
-            tr.style.transform = 'scale(0.95)';
-            tr.style.transition = 'transform 0.1s ease';
-            
-            setTimeout(() => {
-                window.open(`customer-details.html?id=${customer.id}`, `customer_${customer.id}`, 'width=1000,height=800');
-                tr.style.transform = '';
-            }, 100);
+            // 단순한 터치 피드백 후 페이지 이동
+            window.open(`customer-details.html?id=${customer.id}`, `customer_${customer.id}`, 'width=1000,height=800');
         });
         
         tbody.appendChild(tr);
@@ -772,22 +800,32 @@ function renderRankingList(customerList, searchTerm = '', gradeFilter = '', sort
     filteredCustomers.sort((a, b) => {
         switch (sortOption) {
             case 'totalAmount-desc':
-                return (b.totalPurchase || 0) - (a.totalPurchase || 0);
+                const diffDesc = (b.totalPurchase || 0) - (a.totalPurchase || 0);
+                // 구매액이 같으면 이름으로 정렬
+                return diffDesc !== 0 ? diffDesc : a.name.localeCompare(b.name, 'ko');
+                
             case 'totalAmount-asc':
-                return (a.totalPurchase || 0) - (b.totalPurchase || 0);
+                const diffAsc = (a.totalPurchase || 0) - (b.totalPurchase || 0);
+                // 구매액이 같으면 이름으로 정렬
+                return diffAsc !== 0 ? diffAsc : a.name.localeCompare(b.name, 'ko');
+                
             case 'purchaseCount-desc':
-                return (b.purchaseCount || 0) - (a.purchaseCount || 0);
+                const countDiffDesc = (b.purchaseCount || 0) - (a.purchaseCount || 0);
+                // 구매횟수가 같으면 구매액 높은순으로 정렬
+                return countDiffDesc !== 0 ? countDiffDesc : (b.totalPurchase || 0) - (a.totalPurchase || 0);
+                
             case 'purchaseCount-asc':
-                return (a.purchaseCount || 0) - (b.purchaseCount || 0);
+                const countDiffAsc = (a.purchaseCount || 0) - (b.purchaseCount || 0);
+                // 구매횟수가 같으면 구매액 낮은순으로 정렬
+                return countDiffAsc !== 0 ? countDiffAsc : (a.totalPurchase || 0) - (b.totalPurchase || 0);
+                
             case 'name-asc':
                 return a.name.localeCompare(b.name, 'ko');
+                
             default:
-                // 기본: 등급순 -> 구매액순
-                const rankOrder = { 'vvip': 3, 'vip': 2, 'regular': 1 };
-                if (rankOrder[a.rank] !== rankOrder[b.rank]) {
-                    return rankOrder[b.rank] - rankOrder[a.rank];
-                }
-                return (b.totalPurchase || 0) - (a.totalPurchase || 0);
+                // 기본: 구매액 높은순
+                const defaultDiff = (b.totalPurchase || 0) - (a.totalPurchase || 0);
+                return defaultDiff !== 0 ? defaultDiff : a.name.localeCompare(b.name, 'ko');
         }
     });
     
@@ -840,9 +878,9 @@ function renderRankingList(customerList, searchTerm = '', gradeFilter = '', sort
 
 // 등급 관리 검색 함수 (개선됨)
 function searchRankingList() {
-    const searchTerm = document.getElementById('ranking-search').value;
-    const gradeFilter = document.getElementById('ranking-grade-filter').value;
-    const sortOption = document.getElementById('ranking-sort-filter').value;
+    const searchTerm = document.getElementById('ranking-search-input').value;
+    const gradeFilter = document.getElementById('grade-filter').value;
+    const sortOption = document.getElementById('sort-option').value;
     
     // 필터링된 결과로 테이블 렌더링
     renderRankingList(customers, searchTerm, gradeFilter, sortOption);
@@ -1674,9 +1712,9 @@ async function deleteCustomer(customerId) {
         // 삭제 성공 확인
         console.log(`고객 "${customer.name}" 및 관련 데이터 영구삭제 완료 (ID: ${customerId})`);
         console.log(`삭제된 데이터: 구매 ${backupData.purchases.length}건, 선물 ${backupData.gifts.length}건, 방문 ${backupData.visits.length}건`);
-        
-        // 고객 목록 새로고침
-        loadCustomerList();
+            
+            // 고객 목록 새로고침
+            loadCustomerList();
         loadRankingCounts();
         
         // 성공 알림
