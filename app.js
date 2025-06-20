@@ -125,8 +125,8 @@ async function loadDataFromStorage(isLoginLoad = false) {
     }
 }
 
-// Firebase에 데이터 저장
-async function saveDataToStorage() {
+// Firebase에 데이터 저장 및 UI 새로고침
+async function saveDataToStorage(shouldRefreshUI = true) {
     try {
         // 로컬스토리지에 즉시 저장 (빠른 응답)
         localStorage.setItem('customers', JSON.stringify(customers));
@@ -154,13 +154,29 @@ async function saveDataToStorage() {
             if (!success) {
                 console.warn('Firebase 저장 실패, 로컬 데이터는 유지됨');
                 // 로컬스토리지에는 저장되었으므로 데이터 손실은 없음
+                
+                // UI 새로고침 (로컬 데이터로라도)
+                if (shouldRefreshUI) {
+                    refreshAllUI();
+                }
                 return false;
             }
             
             console.log('데이터 영구저장 완료 (로컬 + Firebase)');
+            
+            // 저장 성공 시 UI 새로고침
+            if (shouldRefreshUI) {
+                refreshAllUI();
+            }
+            
             return true;
         } else {
             console.warn('Firebase 초기화 전, 로컬스토리지만 저장됨');
+            
+            // UI 새로고침 (로컬 데이터로라도)
+            if (shouldRefreshUI) {
+                refreshAllUI();
+            }
             return false;
         }
     } catch (error) {
@@ -179,12 +195,59 @@ async function saveDataToStorage() {
             localStorage.setItem('visits', JSON.stringify(visits));
             localStorage.setItem('rankChanges', JSON.stringify(rankChanges));
             console.log('로컬스토리지 백업 저장 완료');
+            
+            // UI 새로고침 (로컬 데이터로라도)
+            if (shouldRefreshUI) {
+                refreshAllUI();
+            }
         } catch (localError) {
             console.error('로컬스토리지 저장도 실패:', localError);
             alert('⚠️ 데이터 저장에 실패했습니다!\n브라우저 저장소를 확인해주세요.');
         }
         
         return false;
+    }
+}
+
+// 모든 UI 새로고침 함수
+function refreshAllUI() {
+    try {
+        console.log('🔄 UI 새로고침 시작...');
+        
+        // 현재 페이지 확인
+        const currentPage = localStorage.getItem('currentPage') || 'customer-list';
+        
+        // 공통 데이터 새로고침
+        if (typeof loadCustomerList === 'function') {
+            loadCustomerList();
+        }
+        
+        if (typeof loadBirthdayAlerts === 'function') {
+            loadBirthdayAlerts();
+        }
+        
+        if (typeof loadRankingCounts === 'function') {
+            loadRankingCounts();
+        }
+        
+        // 페이지별 특별 새로고침
+        switch(currentPage) {
+            case 'gift-history':
+                if (typeof renderGiftHistory === 'function') {
+                    renderGiftHistory(gifts || []);
+                }
+                break;
+            case 'visit-tracking':
+                if (typeof getVisitSummary === 'function' && typeof renderVisitTracking === 'function') {
+                    const visitSummary = getVisitSummary();
+                    renderVisitTracking(visitSummary);
+                }
+                break;
+        }
+        
+        console.log('✅ UI 새로고침 완료');
+    } catch (error) {
+        console.error('UI 새로고침 오류:', error);
     }
 }
 
@@ -226,11 +289,26 @@ function checkLoginStatus() {
         // 로그인 상태가 있으면 바로 메인 시스템 초기화
         initializeMainSystem();
         
-        // 새로고침 시 서버에서 최신 데이터 강제 로드
+        // 새로고침 시 서버에서 최신 데이터 강제 로드 (Firebase 초기화 대기)
         setTimeout(() => {
             console.log('🔄 새로고침 감지 - 서버에서 최신 데이터 로드 중...');
-            if (window.FirebaseData) {
+            if (window.FirebaseData && window.FirebaseData.isInitialized) {
                 window.FirebaseData.forceSyncWithFirebase();
+            } else {
+                // Firebase 초기화 대기 후 재시도
+                const waitForFirebase = setInterval(() => {
+                    if (window.FirebaseData && window.FirebaseData.isInitialized) {
+                        clearInterval(waitForFirebase);
+                        console.log('🔥 Firebase 초기화 완료 - 데이터 로드 시작');
+                        window.FirebaseData.forceSyncWithFirebase();
+                    }
+                }, 500);
+                
+                // 최대 10초 대기 후 포기
+                setTimeout(() => {
+                    clearInterval(waitForFirebase);
+                    console.log('⚠️ Firebase 초기화 시간 초과 - 로컬 데이터 사용');
+                }, 10000);
             }
         }, 1000);
         
@@ -359,23 +437,14 @@ function handleLogin(e) {
             overlay.remove();
         }
         
-        // 메인 시스템 초기화 (로그인 직후에는 데이터 불러오기만 수행)
-        initializeMainSystem();
+        // 로그인 성공 후 즉시 새로고침
+        console.log('🔄 로그인 성공 - 페이지 새로고침 실행');
         
-        // 로그인 성공 후 고객목록 페이지로 이동
-        setTimeout(() => {
-            showPage('customer-list');
-            localStorage.setItem('currentPage', 'customer-list');
-            
-            // 스크롤 완전 복원 (추가 보장)
-            setTimeout(() => {
-                document.body.style.overflow = '';
-                document.body.style.position = '';
-                document.documentElement.style.overflow = '';
-                document.documentElement.style.position = '';
-                console.log('✅ 스크롤 복원 완료');
-            }, 200);
-        }, 100);
+        // 현재 페이지를 고객목록으로 설정하고 새로고침
+        localStorage.setItem('currentPage', 'customer-list');
+        
+        // 즉시 새로고침
+        window.location.reload();
         
     } else {
         // 로그인 실패
@@ -709,6 +778,11 @@ async function addCustomer() {
     loadRankingCounts();
     
     alert(`✅ 고객 "${name}"님이 성공적으로 등록되었습니다.\n영구저장이 완료되었습니다.`);
+    
+    // 알림 확인 후 메인페이지(고객목록)로 이동
+    showPage('customer-list');
+    localStorage.setItem('currentPage', 'customer-list');
+    console.log('📄 고객 저장 완료 - 고객목록 페이지로 이동');
 }
 
 // 고객 목록 렌더링 함수 (모바일 스크롤 문제 해결)

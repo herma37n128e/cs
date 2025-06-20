@@ -238,9 +238,12 @@
                     } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
                         // 네트워크 연결 문제
                         this.showSaveStatus('🌐 연결 확인 중...', 'info', 3000);
+                    } else if (error.message && error.message.includes('Firebase')) {
+                        // Firebase 초기화 관련 오류는 조용히 처리
+                        console.warn('Firebase 초기화 중 오류 (무시됨):', error.message);
                     } else {
                         // 실제 서버 오류인 경우에만 실패 표시
-                        this.showSaveStatus('❌ 새로고침 실패', 'error', 5000);
+                        console.warn('데이터 새로고침 오류 (무시됨):', error.message);
                     }
                 }
             },
@@ -301,7 +304,7 @@
         // 페이지 포커스 시 데이터 확인 (5분 이상 지났을 때만)
         let lastFocusSync = 0;
         window.addEventListener('focus', () => {
-            if (window.FirebaseData && navigator.onLine) {
+            if (window.FirebaseData && window.FirebaseData.isInitialized && navigator.onLine) {
                 const now = Date.now();
                 const timeSinceLastSync = now - lastFocusSync;
                 
@@ -318,7 +321,7 @@
         // 네트워크 상태 변경 감지
         window.addEventListener('online', () => {
             console.log('네트워크 연결됨 - 데이터 새로고침 시작');
-            if (window.FirebaseData) {
+            if (window.FirebaseData && window.FirebaseData.isInitialized) {
                 setTimeout(() => {
                     window.FirebaseData.forceSyncWithFirebase();
                     window.FirebaseData.processQueue();

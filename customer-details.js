@@ -40,6 +40,29 @@ async function saveDataToStorage() {
             const success = await window.opener.FirebaseData.saveToFirebase(saveData);
             if (success) {
                 console.log('고객 상세 페이지에서 Firebase 저장 성공');
+                
+                // 메인 창 UI 새로고침
+                if (window.opener && !window.opener.closed) {
+                    try {
+                        if (typeof window.opener.refreshAllUI === 'function') {
+                            window.opener.refreshAllUI();
+                        } else {
+                            // 개별 새로고침 함수 호출
+                            if (typeof window.opener.loadCustomerList === 'function') {
+                                window.opener.loadCustomerList();
+                            }
+                            if (typeof window.opener.loadRankingCounts === 'function') {
+                                window.opener.loadRankingCounts();
+                            }
+                            if (typeof window.opener.loadBirthdayAlerts === 'function') {
+                                window.opener.loadBirthdayAlerts();
+                            }
+                        }
+                        console.log('✅ 메인 창 UI 새로고침 완료');
+                    } catch (error) {
+                        console.warn('메인 창 새로고침 실패:', error);
+                    }
+                }
             }
         }
         
