@@ -202,14 +202,35 @@ let visits = [];
 
 // DOM이 로드된 후 실행
 document.addEventListener('DOMContentLoaded', () => {
-    // 로그인 과정 제거 - 바로 메인 시스템 초기화
-    initializeMainSystem();
+    // 창을 완전히 닫고 다시 킬 때마다 로그인 필요
+    checkLoginStatus();
+    
+    // 창 닫기 이벤트 리스너 추가 (로그인 상태 확실히 초기화)
+    window.addEventListener('beforeunload', () => {
+        // 창을 닫을 때 로그인 상태 완전 초기화
+        sessionStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('isLoggedIn'); // 혹시 모를 localStorage도 정리
+    });
+    
+    // 페이지 숨김 이벤트 (모바일 대응)
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            // 페이지가 완전히 숨겨질 때 (앱 종료 등)
+            sessionStorage.removeItem('isLoggedIn');
+        }
+    });
 });
 
-// 로그인 상태 확인 함수 (사용 안함 - 로그인 과정 제거됨)
+// 로그인 상태 확인 함수 (창을 완전히 닫고 다시 킬 때마다 로그인 필요)
 function checkLoginStatus() {
-    // 로그인 과정이 제거되어 바로 메인 시스템 초기화
-    initializeMainSystem();
+    // 페이지 로드 시 이전 로그인 상태 완전 초기화 (보장)
+    sessionStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('isLoggedIn');
+    
+    console.log('🔐 새로운 세션 시작 - 로그인이 필요합니다');
+    
+    // 항상 로그인 모달 표시 (창을 새로 열 때마다)
+    showLoginModal();
 }
 
 // 로그인 모달 표시
@@ -219,15 +240,27 @@ function showLoginModal() {
         keyboard: false
     });
     
-    // 배경 완전 차단을 위한 추가 처리
+    // 배경 완전 차단을 위한 강화된 처리 (모든 환경/기기 대응)
     document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    document.body.style.height = '100%';
     document.body.style.backgroundColor = '#000000';
+    document.body.style.top = '0';
+    document.body.style.left = '0';
     
-    // 메인 컨테이너 숨기기
+    // 메인 컨테이너 완전 숨기기
     const mainContainer = document.querySelector('.container-fluid');
     if (mainContainer) {
         mainContainer.style.visibility = 'hidden';
+        mainContainer.style.display = 'none';
     }
+    
+    // HTML 요소도 고정
+    document.documentElement.style.overflow = 'hidden';
+    document.documentElement.style.position = 'fixed';
+    document.documentElement.style.width = '100%';
+    document.documentElement.style.height = '100%';
     
     loginModal.show();
     
@@ -289,14 +322,26 @@ function handleLogin(e) {
         const loginModal = bootstrap.Modal.getInstance(document.getElementById('login-modal'));
         loginModal.hide();
         
-        // 배경 복원
+        // 배경 완전 복원 (모든 스타일 초기화)
         document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+        document.body.style.height = '';
         document.body.style.backgroundColor = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
         
-        // 메인 컨테이너 다시 표시
+        // HTML 요소 스타일 초기화
+        document.documentElement.style.overflow = '';
+        document.documentElement.style.position = '';
+        document.documentElement.style.width = '';
+        document.documentElement.style.height = '';
+        
+        // 메인 컨테이너 완전 복원
         const mainContainer = document.querySelector('.container-fluid');
         if (mainContainer) {
             mainContainer.style.visibility = 'visible';
+            mainContainer.style.display = '';
         }
         
         // 추가 오버레이 제거
