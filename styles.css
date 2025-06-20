@@ -706,4 +706,23 @@ header h2 {
     .sidebar-footer {
         display: none !important;
     }
+}
+
+/* 고객목록 페이지 검색창 고정 스타일 */
+#customer-list .search-section {
+    position: sticky;
+    top: 0;
+    background-color: #fff;
+    z-index: 100;
+    padding: 15px 0;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #e9ecef;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* 모바일에서 검색창 고정 위치 조정 */
+@media (max-width: 991px) {
+    #customer-list .search-section {
+        top: 70px; /* 모바일 헤더 높이만큼 조정 */
+    }
 } 

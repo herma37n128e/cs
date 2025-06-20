@@ -45,56 +45,18 @@
             </div>
         </div>
 
-        <ul class="nav nav-tabs" id="customerTabs">
-            <li class="nav-item">
-                <a class="nav-link active" data-bs-toggle="tab" href="#purchase-tab">구매 이력</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" data-bs-toggle="tab" href="#gift-tab">선물 이력</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" data-bs-toggle="tab" href="#visit-tab">방문 이력</a>
-            </li>
-        </ul>
-
-        <div class="tab-content mt-3">
-            <div class="tab-pane fade show active" id="purchase-tab">
-                <div id="purchase-history-content">
-                    <!-- 구매 이력이 여기에 삽입됩니다 -->
-                </div>
-                <div class="mt-3 d-md-block d-none">
-                    <button id="add-purchase-btn" class="btn btn-success">+ 구매 기록 추가</button>
-                    <button id="download-purchase-pdf" class="btn btn-info">PDF 다운로드</button>
-                </div>
-            </div>
-            <div class="tab-pane fade" id="gift-tab">
-                <div id="gift-history-content">
-                    <!-- 선물 이력이 여기에 삽입됩니다 -->
-                </div>
-                <div class="mt-3 d-md-block d-none">
-                    <button id="add-customer-gift-btn" class="btn btn-success">+ 선물 기록 추가</button>
-                </div>
-            </div>
-            <div class="tab-pane fade" id="visit-tab">
-                <div id="visit-history-content">
-                    <!-- 방문 이력이 여기에 삽입됩니다 -->
-                </div>
-                <div class="mt-3 d-md-block d-none">
-                    <button id="add-customer-visit-btn" class="btn btn-success">+ 방문 기록 추가</button>
-                </div>
-            </div>
+        <div id="purchase-history-content">
+            <!-- 구매 이력이 여기에 삽입됩니다 -->
+        </div>
+        <div class="mt-3 d-md-block d-none">
+            <button id="add-purchase-btn" class="btn btn-success">+ 구매 기록 추가</button>
+            <button id="download-purchase-pdf" class="btn btn-info">PDF 다운로드</button>
         </div>
         
         <!-- 모바일 전용 하단 액션 버튼 -->
         <div class="mobile-fixed-bottom d-md-none">
             <button id="mobile-add-purchase-btn" class="btn btn-success">
-                <i class="bi bi-cart-plus"></i> 구매
-            </button>
-            <button id="mobile-add-gift-btn" class="btn btn-primary">
-                <i class="bi bi-gift"></i> 선물
-            </button>
-            <button id="mobile-add-visit-btn" class="btn btn-info">
-                <i class="bi bi-calendar-check"></i> 방문
+                <i class="bi bi-cart-plus"></i> 구매 기록 추가
             </button>
         </div>
     </div>
@@ -186,92 +148,7 @@
         </div>
     </div>
 
-    <!-- 선물 기록 추가 모달 -->
-    <div class="modal fade" id="add-gift-modal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">선물 기록 추가</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="add-gift-form">
-                        <input type="hidden" id="gift-customer-id">
-                        
-                        <div class="mb-3">
-                            <label for="gift-type" class="form-label">선물 종류 *</label>
-                            <select class="form-select" id="gift-type" required>
-                                <option value="">선물 종류를 선택하세요</option>
-                                <option value="생일선물">생일선물</option>
-                                <option value="연말선물">연말선물</option>
-                                <option value="감사선물">감사선물</option>
-                                <option value="기타">기타</option>
-                            </select>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="gift-description" class="form-label">선물 내용 *</label>
-                            <input type="text" class="form-control" id="gift-description" required placeholder="제공한 선물의 구체적인 내용을 입력하세요">
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="gift-date" class="form-label">제공일 *</label>
-                            <input type="date" class="form-control" id="gift-date" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="gift-reason" class="form-label">제공 이유 *</label>
-                            <input type="text" class="form-control" id="gift-reason" required placeholder="선물을 제공한 이유나 계기를 입력하세요">
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
-                    <button type="submit" form="add-gift-form" class="btn btn-primary">
-                        <i class="bi bi-gift"></i> 저장
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- 방문 기록 추가 모달 -->
-    <div class="modal fade" id="add-visit-modal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">방문 기록 추가</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="add-visit-form">
-                        <input type="hidden" id="visit-customer-id">
-                        
-                        <div class="mb-3">
-                            <label for="visit-date" class="form-label">방문일 *</label>
-                            <input type="date" class="form-control" id="visit-date" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="visit-purpose" class="form-label">방문 목적 *</label>
-                            <input type="text" class="form-control" id="visit-purpose" required placeholder="방문 목적을 입력하세요 (예: 상담, 구매, 문의 등)">
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="visit-note" class="form-label">메모</label>
-                            <textarea class="form-control" id="visit-note" rows="3" placeholder="방문 관련 추가 메모사항 (선택사항)"></textarea>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
-                    <button type="submit" form="add-visit-form" class="btn btn-primary">
-                        <i class="bi bi-calendar-check"></i> 저장
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
