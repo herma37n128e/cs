@@ -209,10 +209,10 @@
                 }
             },
             
-            // 강제 동기화 (데이터 무결성 보장)
+            // 데이터 갱신 (데이터 무결성 보장)
             async forceSyncWithFirebase() {
                 try {
-                    this.showSaveStatus('🔄 데이터 동기화 중...', 'info');
+                    this.showSaveStatus('🔄 데이터 갱신 중...', 'info');
                     
                     // Firebase에서 최신 데이터 가져오기
                     const firebaseData = await this.loadFromFirebase();
@@ -244,12 +244,12 @@
                         if (typeof loadBirthdayAlerts === 'function') loadBirthdayAlerts();
                         if (typeof loadRankingCounts === 'function') loadRankingCounts();
                         
-                        this.showSaveStatus('✅ 동기화 완료', 'success');
-                        console.log('Firebase 동기화 완료');
+                        this.showSaveStatus('✅ 데이터 갱신 완료', 'success');
+                        console.log('Firebase 데이터 갱신 완료');
                     }
                 } catch (error) {
-                    console.error('동기화 오류:', error);
-                    this.showSaveStatus('❌ 동기화 실패', 'error');
+                    console.error('데이터 갱신 오류:', error);
+                    this.showSaveStatus('❌ 갱신 실패', 'error');
                 }
             },
             
@@ -306,7 +306,7 @@
             }
         }, 30000); // 30초마다
         
-        // 페이지 포커스 시 동기화 확인
+        // 페이지 포커스 시 데이터 확인
         window.addEventListener('focus', () => {
             if (window.FirebaseData && navigator.onLine) {
                 setTimeout(() => {
@@ -317,7 +317,7 @@
         
         // 네트워크 상태 변경 감지
         window.addEventListener('online', () => {
-            console.log('네트워크 연결됨 - 동기화 시작');
+            console.log('네트워크 연결됨 - 데이터 갱신 시작');
             if (window.FirebaseData) {
                 setTimeout(() => {
                     window.FirebaseData.forceSyncWithFirebase();
@@ -520,7 +520,6 @@
                                 <th class="mobile-hide">주방문매장</th>
                                 <th>등급</th>
                                 <th class="mobile-hide">최근 방문일</th>
-                                <th>상세</th>
                             </tr>
                         </thead>
                         <tbody id="customer-list-body">

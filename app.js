@@ -40,7 +40,7 @@ async function loadDataFromStorage() {
             visits: visits.length
         });
         
-        // 2단계: Firebase에서 최신 데이터 확인 및 동기화
+        // 2단계: Firebase에서 최신 데이터 확인 및 갱신
         if (window.FirebaseData) {
             try {
                 const firebaseData = await window.FirebaseData.loadFromFirebase();
@@ -48,9 +48,9 @@ async function loadDataFromStorage() {
                 if (firebaseData) {
                     const firebaseLastUpdated = firebaseData.lastUpdated || 0;
                     
-                    // Firebase 데이터가 더 최신인 경우 동기화
+                    // Firebase 데이터가 더 최신인 경우 갱신
                     if (firebaseLastUpdated > localLastUpdated) {
-                        console.log('Firebase에 더 최신 데이터 발견, 동기화 중...');
+                        console.log('Firebase에 더 최신 데이터 발견, 갱신 중...');
                         
                         customers.length = 0;
                         purchases.length = 0;
@@ -73,10 +73,10 @@ async function loadDataFromStorage() {
                         localStorage.setItem('lastUpdated', firebaseLastUpdated.toString());
                         
                         if (window.FirebaseData) {
-                            window.FirebaseData.showSaveStatus('🔄 최신 데이터로 동기화됨', 'success');
+                            window.FirebaseData.showSaveStatus('🔄 최신 데이터로 갱신됨', 'success');
                         }
                         
-                        console.log('Firebase 동기화 완료:', {
+                        console.log('Firebase 데이터 갱신 완료:', {
                             customers: customers.length,
                             purchases: purchases.length,
                             lastUpdated: new Date(firebaseLastUpdated).toLocaleString()
@@ -329,7 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 const firebaseCount = (firebaseData.customers?.length || 0) + (firebaseData.purchases?.length || 0);
                                 
                                 if (Math.abs(localCount - firebaseCount) > 5) { // 5개 이상 차이 시
-                                    console.log('🔄 데이터 불일치 감지, 강제 동기화 실행...');
+                                    console.log('🔄 데이터 불일치 감지, 강제 갱신 실행...');
                                     await window.FirebaseData.forceSyncWithFirebase();
                                     
                                     // UI 새로고침
@@ -565,36 +565,16 @@ function renderCustomerList(customerList) {
             <td class="mobile-hide ${lastItemClass}">${customer.preferredStore || '-'}</td>
             <td class="${lastItemClass}"><span class="badge ${rankBadgeClass}">${rankText}</span></td>
             <td class="mobile-hide ${lastItemClass}">${formatDate(customer.lastVisit)}</td>
-            <td class="${lastItemClass}">
-                <div class="btn-group">
-                    <button class="btn btn-sm btn-outline-primary view-details" data-customer-id="${customer.id}" title="상세보기">
-                        <i class="bi bi-eye"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger delete-customer" data-customer-id="${customer.id}" title="삭제">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </div>
-            </td>
         `;
         
+        // 행 클릭 이벤트 추가
+        tr.style.cursor = 'pointer';
+        tr.setAttribute('data-customer-id', customer.id);
+        tr.addEventListener('click', () => {
+            window.open(`customer-details.html?id=${customer.id}`, `customer_${customer.id}`, 'width=1000,height=800');
+        });
+        
         tbody.appendChild(tr);
-    });
-    
-    // 상세보기 버튼 이벤트 리스너 추가
-    document.querySelectorAll('.view-details').forEach(button => {
-        button.addEventListener('click', () => {
-            const customerId = parseInt(button.getAttribute('data-customer-id'));
-            // 새 창에서 고객 상세 정보 페이지 열기
-            window.open(`customer-details.html?id=${customerId}`, `customer_${customerId}`, 'width=1000,height=800');
-        });
-    });
-    
-    // 삭제 버튼 이벤트 리스너 추가
-    document.querySelectorAll('.delete-customer').forEach(button => {
-        button.addEventListener('click', () => {
-            const customerId = parseInt(button.getAttribute('data-customer-id'));
-            deleteCustomer(customerId);
-        });
     });
 }
 
@@ -2988,7 +2968,7 @@ window.resetDatabase = async function resetDatabase() {
             nextMonthBirthdays.innerHTML = '<li class="list-group-item text-center">다음 달 생일인 고객이 없습니다.</li>';
         }
         
-        // 8. 데이터 다시 로드하여 메모리와 동기화
+        // 8. 데이터 다시 로드하여 메모리와 갱신
         if (typeof loadDataFromStorage === 'function') {
             loadDataFromStorage();
             console.log('데이터 다시 로드 완료');

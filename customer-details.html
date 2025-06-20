@@ -184,7 +184,7 @@
             }
         };
         
-        // 기존 CloudSync 호환성 유지 (동기화 실패 방지)
+                            // 기존 CloudSync 호환성 유지 (오류 방지)
         window.CloudSync = {
             startAutoSync: () => console.log('Firebase 시스템으로 전환됨'),
             syncToCloud: () => Promise.resolve(true),
