@@ -1234,9 +1234,18 @@ function setupMobileAutoRefresh() {
         try {
             console.log('🔄 고객상세 - 모바일 자동 새로고침 실행 중...');
             
+            // 이미 새로고침이 진행 중이면 중단
+            if (refreshMobileDetailData.inProgress) {
+                console.log('📱 고객상세 - 모바일 새로고침 이미 진행 중 - 건너뜀');
+                return;
+            }
+            
+            refreshMobileDetailData.inProgress = true;
+            
             const customerId = getCustomerIdFromUrl();
             if (!customerId) {
                 console.warn('고객 ID를 찾을 수 없어 새로고침 중단');
+                refreshMobileDetailData.inProgress = false;
                 return;
             }
             
@@ -1245,19 +1254,26 @@ function setupMobileAutoRefresh() {
             
             // 고객 정보 다시 로드
             setTimeout(() => {
-                loadCustomerDetails(customerId);
-                
-                // 현재 활성 탭 확인하여 구매 이력도 새로고침
-                const purchaseTab = document.querySelector('#customerTabs .nav-link[href="#purchase-tab"]');
-                if (purchaseTab && purchaseTab.classList.contains('active')) {
-                    loadCustomerPurchases(customerId);
+                try {
+                    loadCustomerDetails(customerId);
+                    
+                    // 현재 활성 탭 확인하여 구매 이력도 새로고침
+                    const purchaseTab = document.querySelector('#customerTabs .nav-link[href="#purchase-tab"]');
+                    if (purchaseTab && purchaseTab.classList.contains('active')) {
+                        loadCustomerPurchases(customerId);
+                    }
+                    
+                    console.log('✅ 고객상세 - 모바일 자동 새로고침 완료');
+                } catch (error) {
+                    console.error('고객상세 - 모바일 자동 새로고침 처리 오류:', error);
+                } finally {
+                    refreshMobileDetailData.inProgress = false;
                 }
-                
-                console.log('✅ 고객상세 - 모바일 자동 새로고침 완료');
             }, 200);
             
         } catch (error) {
             console.error('고객상세 - 모바일 자동 새로고침 오류:', error);
+            refreshMobileDetailData.inProgress = false;
         }
     }
     

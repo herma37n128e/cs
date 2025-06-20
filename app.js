@@ -416,46 +416,94 @@ function handleLogin(e) {
         localStorage.setItem('mainWindowLoggedIn', 'true'); // 고객상세페이지와 공유용
         errorDiv.classList.add('d-none');
         
-        // 로그인 모달 닫기
+        // 로그인 모달 즉시 닫기
         const loginModal = bootstrap.Modal.getInstance(document.getElementById('login-modal'));
-        loginModal.hide();
-        
-        // 배경 완전 복원 (모든 스타일 초기화)
-        document.body.style.overflow = '';
-        document.body.style.position = '';
-        document.body.style.width = '';
-        document.body.style.height = '';
-        document.body.style.backgroundColor = '';
-        document.body.style.top = '';
-        document.body.style.left = '';
-        
-        // HTML 요소 스타일 초기화
-        document.documentElement.style.overflow = '';
-        document.documentElement.style.position = '';
-        document.documentElement.style.width = '';
-        document.documentElement.style.height = '';
-        
-        // 메인 컨테이너 완전 복원
-        const mainContainer = document.querySelector('.container-fluid');
-        if (mainContainer) {
-            mainContainer.style.visibility = 'visible';
-            mainContainer.style.display = '';
+        if (loginModal) {
+            loginModal.hide();
         }
         
-        // 추가 오버레이 제거
-        const overlay = document.getElementById('login-overlay');
-        if (overlay) {
-            overlay.remove();
-        }
+        // 배경 즉시 복원
+        setTimeout(() => {
+            document.body.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.width = '';
+            document.body.style.height = '';
+            document.body.style.backgroundColor = '';
+            document.body.style.top = '';
+            document.body.style.left = '';
+            
+            // HTML 요소 스타일 초기화
+            document.documentElement.style.overflow = '';
+            document.documentElement.style.position = '';
+            document.documentElement.style.width = '';
+            document.documentElement.style.height = '';
+            
+            // 메인 컨테이너 즉시 표시
+            const mainContainer = document.querySelector('.container-fluid');
+            if (mainContainer) {
+                mainContainer.style.visibility = 'visible';
+                mainContainer.style.display = '';
+            }
+            
+            // 추가 오버레이 제거
+            const overlay = document.getElementById('login-overlay');
+            if (overlay) {
+                overlay.remove();
+            }
+        }, 100); // 0.1초 후 배경 정리
         
-        // 로그인 성공 후 즉시 새로고침
-        console.log('🔄 로그인 성공 - 페이지 새로고침 실행');
+        // 로그인 성공 후 즉시 데이터 로드 (새로고침 대신)
+        console.log('🔄 로그인 성공 - 서버 데이터 자동 로드 시작');
         
-        // 현재 페이지를 고객목록으로 설정하고 새로고침
+        // 현재 페이지를 고객목록으로 설정
         localStorage.setItem('currentPage', 'customer-list');
         
-        // 즉시 새로고침
-        window.location.reload();
+        // 메인 시스템 초기화 (새로고침 없이)
+        initializeMainSystem();
+        
+        // 모바일 환경에서는 즉시 서버 데이터 강제 로드
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                         window.innerWidth <= 768;
+        
+        if (isMobile) {
+            console.log('📱 모바일 환경 - 로그인 후 서버 데이터 즉시 로드');
+            
+            // Firebase 초기화 대기 후 서버 데이터 로드
+            let loginDataLoadAttempts = 0;
+            const maxLoginDataLoadAttempts = 10;
+            
+            const loadServerDataAfterLogin = setInterval(() => {
+                loginDataLoadAttempts++;
+                
+                if (window.FirebaseData && window.FirebaseData.isInitialized) {
+                    clearInterval(loadServerDataAfterLogin);
+                    console.log('🔥 로그인 후 Firebase 연결 완료 - 서버 데이터 로드');
+                    
+                    // 서버 데이터 강제 로드 (상태 메시지 없이)
+                    window.FirebaseData.forceSyncWithFirebase(false)
+                        .then(() => {
+                            console.log('✅ 로그인 후 서버 데이터 로드 완료');
+                            // UI 새로고침
+                            refreshAllUI();
+                        })
+                        .catch(error => {
+                            console.warn('로그인 후 서버 데이터 로드 실패:', error);
+                            // 실패해도 로컬 데이터로 UI 표시
+                            refreshAllUI();
+                        });
+                        
+                } else if (loginDataLoadAttempts >= maxLoginDataLoadAttempts) {
+                    clearInterval(loadServerDataAfterLogin);
+                    console.log('📱 로그인 후 Firebase 초기화 실패 - 로컬 데이터 사용');
+                    // 로컬 데이터로라도 UI 표시
+                    refreshAllUI();
+                }
+            }, 500); // 0.5초마다 확인
+            
+        } else {
+            // 데스크톱에서는 기존 방식대로 새로고침
+            window.location.reload();
+        }
         
     } else {
         // 로그인 실패
@@ -565,8 +613,8 @@ function initializeMainSystem() {
                     console.log('🔥 Firebase 영구저장 시스템 활성화됨');
                     console.log(`📱 ${isMobile ? '모바일' : '데스크톱'} 환경 - 서버 데이터 자동 로드 시작`);
                     
-                    // 서버에서 최신 데이터 로드 (모바일에서는 강제 새로고침)
-                    window.FirebaseData.forceSyncWithFirebase(true)
+                    // 서버에서 최신 데이터 로드 (자동 동기화 - 메시지 없이)
+                    window.FirebaseData.forceSyncWithFirebase(false)
                         .then(() => {
                             console.log(`✅ ${isMobile ? '모바일' : '데스크톱'} 서버 데이터 로드 완료`);
                             // 모바일에서는 UI 추가 새로고침
@@ -589,16 +637,24 @@ function initializeMainSystem() {
                     const mobileMaxRetries = isMobile ? 20 : 15; // 모바일에서는 더 오래 재시도
                     const mobileRetryInterval = isMobile ? 800 : 1000; // 모바일에서는 더 자주 재시도
                     
+                    let firebaseRetrySucceeded = false;
                     const mobileFirebaseWait = setInterval(() => {
+                        // 이미 성공했으면 재시도 중단
+                        if (firebaseRetrySucceeded) {
+                            clearInterval(mobileFirebaseWait);
+                            return;
+                        }
+                        
                         mobileRetryCount++;
                         console.log(`📱 ${isMobile ? '모바일' : '데스크톱'} Firebase 초기화 재시도 (${mobileRetryCount}/${mobileMaxRetries})`);
                         
                         if (window.FirebaseData && window.FirebaseData.isInitialized) {
+                            firebaseRetrySucceeded = true; // 성공 플래그 설정
                             clearInterval(mobileFirebaseWait);
                             console.log(`🔥 ${isMobile ? '모바일' : '데스크톱'} Firebase 초기화 완료 - 서버 데이터 로드`);
                             
-                            // 서버 데이터 로드 및 UI 새로고침
-                            window.FirebaseData.forceSyncWithFirebase(true)
+                            // 서버 데이터 로드 및 UI 새로고침 (한번만 실행, 메시지 없이)
+                            window.FirebaseData.forceSyncWithFirebase(false)
                                 .then(() => {
                                     console.log(`✅ ${isMobile ? '모바일' : '데스크톱'} 재시도 후 서버 데이터 로드 완료`);
                                     // 모바일에서는 UI 추가 새로고침
@@ -3433,9 +3489,17 @@ function setupMobileAutoRefresh() {
         try {
             console.log('🔄 모바일 자동 새로고침 실행 중...');
             
-            // Firebase에서 최신 데이터 강제 로드
+            // 이미 새로고침이 진행 중이면 중단
+            if (refreshMobileData.inProgress) {
+                console.log('📱 모바일 새로고침 이미 진행 중 - 건너뜀');
+                return;
+            }
+            
+            refreshMobileData.inProgress = true;
+            
+            // Firebase에서 최신 데이터 강제 로드 (자동 새로고침 - 메시지 없이)
             if (window.FirebaseData && window.FirebaseData.isInitialized) {
-                window.FirebaseData.forceSyncWithFirebase(true)
+                window.FirebaseData.forceSyncWithFirebase(false)
                     .then(() => {
                         // UI 새로고침
                         refreshAllUI();
@@ -3445,6 +3509,9 @@ function setupMobileAutoRefresh() {
                         console.warn('모바일 자동 새로고침 실패:', error);
                         // 실패해도 로컬 데이터로 UI 새로고침
                         refreshAllUI();
+                    })
+                    .finally(() => {
+                        refreshMobileData.inProgress = false;
                     });
             } else {
                 // Firebase가 초기화되지 않았으면 로컬 데이터로 새로고침
@@ -3456,10 +3523,14 @@ function setupMobileAutoRefresh() {
                     })
                     .catch(error => {
                         console.warn('모바일 로컬 새로고침 실패:', error);
+                    })
+                    .finally(() => {
+                        refreshMobileData.inProgress = false;
                     });
             }
         } catch (error) {
             console.error('모바일 자동 새로고침 오류:', error);
+            refreshMobileData.inProgress = false;
         }
     }
     

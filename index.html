@@ -104,6 +104,25 @@
             async saveToFirebase(data, retryCount = 0) {
                 await this.waitForInit();
                 
+                // 이미 같은 데이터가 저장 중이면 중단
+                if (this.currentSavePromise) {
+                    console.log('Firebase 저장 이미 진행 중 - 기존 저장 대기');
+                    return await this.currentSavePromise;
+                }
+                
+                // 현재 저장 작업을 추적
+                this.currentSavePromise = this._performSave(data, retryCount);
+                
+                try {
+                    const result = await this.currentSavePromise;
+                    return result;
+                } finally {
+                    this.currentSavePromise = null;
+                }
+            },
+            
+            // 실제 저장 로직
+            async _performSave(data, retryCount = 0) {
                 try {
                     const saveData = {
                         customers: data.customers || [],
@@ -150,8 +169,8 @@
                         // 재시도 전 대기 시간
                         await new Promise(resolve => setTimeout(resolve, 2000 * (retryCount + 1)));
                         
-                        // 재귀 호출로 재시도 (대기열 추가하지 않음)
-                        return this.saveToFirebase(data, retryCount + 1);
+                        // 재귀 호출로 재시도 (중복 방지를 위해 _performSave 직접 호출)
+                        return this._performSave(data, retryCount + 1);
                     }
                     
                     // 최대 재시도 횟수 초과 시
@@ -196,6 +215,14 @@
             
             // 데이터 새로고침 (데이터 무결성 보장)
             async forceSyncWithFirebase(showMessage = false) {
+                // 이미 동기화가 진행 중이면 중단
+                if (this.syncInProgress) {
+                    console.log('Firebase 동기화 이미 진행 중 - 건너뜀');
+                    return;
+                }
+                
+                this.syncInProgress = true;
+                
                 try {
                     // 메시지 표시 여부를 매개변수로 제어
                     if (showMessage) {
@@ -234,7 +261,7 @@
                         
                         // 메시지를 표시하는 경우에만 완료 메시지도 표시
                         if (showMessage) {
-                            this.showSaveStatus('✅ 데이터 새로고침 완료', 'success');
+                            this.showSaveStatus('✅ 데이터 새로고침 완료', 'success', 2000);
                         }
                         console.log('Firebase 데이터 새로고침 완료');
                     }
@@ -254,6 +281,8 @@
                         // 실제 서버 오류인 경우에만 실패 표시
                         console.warn('데이터 새로고침 오류 (무시됨):', error.message);
                     }
+                } finally {
+                    this.syncInProgress = false;
                 }
             },
             
