@@ -584,9 +584,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const lastSync = localStorage.getItem('lastCloudSync');
             const deviceName = localStorage.getItem('deviceName') || '현재 기기';
             const isOnline = window.CLOUD_SYNC.isOnline;
+            const isEnabled = window.CLOUD_SYNC.enabled;
             
             let message = `기기명: ${deviceName}\n`;
             message += `네트워크 상태: ${isOnline ? '연결됨' : '연결 안됨'}\n`;
+            message += `동기화 상태: ${isEnabled ? '활성화' : '비활성화'}\n`;
             
             if (lastSync) {
                 const lastSyncDate = new Date(parseInt(lastSync));
@@ -595,13 +597,46 @@ document.addEventListener('DOMContentLoaded', () => {
                 message += '마지막 동기화: 없음\n';
             }
             
-            message += '\n지금 동기화하시겠습니까?';
-            
-            if (confirm(message)) {
-                window.CloudSync.forceSyncToCloud();
+            if (isEnabled) {
+                message += '\n동기화를 비활성화하시겠습니까?';
+                if (confirm(message)) {
+                    window.CLOUD_SYNC.enabled = false;
+                    alert('클라우드 동기화가 비활성화되었습니다.\n업로드 실패 알림이 더 이상 표시되지 않습니다.');
+                    updateSyncButton();
+                }
+            } else {
+                message += '\n동기화를 활성화하시겠습니까?';
+                if (confirm(message)) {
+                    window.CLOUD_SYNC.enabled = true;
+                    alert('클라우드 동기화가 활성화되었습니다.');
+                    updateSyncButton();
+                    // 즉시 동기화 시도
+                    setTimeout(() => {
+                        window.CloudSync.forceSyncToCloud();
+                    }, 1000);
+                }
             }
         }
     });
+    
+    // 동기화 버튼 상태 업데이트 함수
+    function updateSyncButton() {
+        const syncBtn = document.getElementById('sync-status-btn');
+        const icon = syncBtn.querySelector('i');
+        
+        if (window.CLOUD_SYNC.enabled) {
+            syncBtn.className = 'btn btn-outline-info btn-sm me-1';
+            syncBtn.title = '동기화 활성화됨 - 클릭하여 설정';
+            icon.className = 'bi bi-cloud-check';
+        } else {
+            syncBtn.className = 'btn btn-outline-secondary btn-sm me-1';
+            syncBtn.title = '동기화 비활성화됨 - 클릭하여 활성화';
+            icon.className = 'bi bi-cloud-slash';
+        }
+    }
+    
+    // 페이지 로드 시 동기화 버튼 상태 설정
+    setTimeout(updateSyncButton, 1000);
     
     // DB 초기화 버튼 이벤트 리스너
     document.getElementById('reset-database').addEventListener('click', (e) => {
