@@ -249,7 +249,17 @@
                     }
                 } catch (error) {
                     console.error('데이터 갱신 오류:', error);
-                    this.showSaveStatus('❌ 갱신 실패', 'error');
+                    
+                    // 네트워크 오류인 경우 다른 메시지 표시
+                    if (!navigator.onLine) {
+                        this.showSaveStatus('📱 오프라인 모드', 'info', 3000);
+                    } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                        // 네트워크 연결 문제
+                        this.showSaveStatus('🌐 연결 확인 중...', 'info', 3000);
+                    } else {
+                        // 실제 서버 오류인 경우에만 실패 표시
+                        this.showSaveStatus('❌ 갱신 실패', 'error', 5000);
+                    }
                 }
             },
             
@@ -306,12 +316,20 @@
             }
         }, 30000); // 30초마다
         
-        // 페이지 포커스 시 데이터 확인
+        // 페이지 포커스 시 데이터 확인 (5분 이상 지났을 때만)
+        let lastFocusSync = 0;
         window.addEventListener('focus', () => {
             if (window.FirebaseData && navigator.onLine) {
-                setTimeout(() => {
-                    window.FirebaseData.forceSyncWithFirebase();
-                }, 1000);
+                const now = Date.now();
+                const timeSinceLastSync = now - lastFocusSync;
+                
+                // 5분(300초) 이상 지났을 때만 갱신
+                if (timeSinceLastSync > 300000) {
+                    setTimeout(() => {
+                        lastFocusSync = now;
+                        window.FirebaseData.forceSyncWithFirebase();
+                    }, 1000);
+                }
             }
         });
         
@@ -440,7 +458,7 @@
             <div class="sidebar" id="sidebar">
                 <div class="sidebar-header">
                     <h4>메뉴</h4>
-                    <button class="btn btn-sm btn-outline-light d-lg-none" id="sidebar-close">
+                    <button class="btn btn-sm btn-outline-light d-none" id="sidebar-close">
                         <i class="bi bi-x"></i>
                     </button>
                 </div>
