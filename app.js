@@ -1,35 +1,35 @@
-// 관리자 계정 정보 (실제 환경에서는 서버에서 관리해야 함)
+// 관리자 계정 ?�보 (?�제 ?�경?�서???�버?�서 관리해????
 const ADMIN_USERS = [
     { username: 'admin', password: 'grace1' }
 ];
 
-// Firebase 자동 동기화 설정 (기본: 자동 활성화)
+// Firebase ?�동 ?�기???�정 (기본: ?�동 ?�성??
 window.FIREBASE_SYNC = {
-    enabled: true, // 자동 동기화 활성화
+    enabled: true, // ?�동 ?�기???�성??
     databaseUrl: 'https://customer-management-db-default-rtdb.firebaseio.com', // 기본 Firebase DB
     apiKey: 'AIzaSyBxVq2K8J9X4L5M3N7P8Q1R2S3T4U5V6W7', // 기본 API Key
-    syncInterval: 5000, // 5초마다 동기화 체크
+    syncInterval: 5000, // 5초마???�기??체크
     lastSyncTime: 0,
     deviceId: localStorage.getItem('deviceId') || generateDeviceId(),
     isSyncing: false,
-    database: null, // Firebase 데이터베이스 참조
-    autoSync: true, // 자동 동기화 활성화
-    userPath: 'arthur_grace_customer_system' // 고정된 데이터 경로 (데이터 영구 보존)
+    database: null, // Firebase ?�이?�베?�스 참조
+    autoSync: true, // ?�동 ?�기???�성??
+    userPath: 'arthur_grace_customer_system' // 고정???�이??경로 (?�이???�구 보존)
 };
 
-// 기기 고유 ID 생성
+// 기기 고유 ID ?�성
 function generateDeviceId() {
     const deviceId = 'device_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     localStorage.setItem('deviceId', deviceId);
     return deviceId;
 }
 
-// Firebase 동기화 상태 표시 (안전한 버전)
+// Firebase ?�기???�태 ?�시 (?�전??버전)
 function updateSyncStatus(status, message = '') {
     const statusElement = document.getElementById('sync-status');
     if (!statusElement) {
-        // 동기화 상태 요소가 없으면 단순히 콘솔에 로그만 출력
-        console.log(`Firebase 동기화 상태: ${status}`, message);
+        // ?�기???�태 ?�소가 ?�으�??�순??콘솔??로그�?출력
+        console.log(`Firebase ?�기???�태: ${status}`, message);
         return;
     }
     
@@ -39,34 +39,34 @@ function updateSyncStatus(status, message = '') {
     
     switch (status) {
         case 'syncing':
-            statusText = '🔄 Firebase 동기화 중...';
+            statusText = '?�� Firebase ?�기??�?..';
             statusClass = 'text-warning';
             break;
         case 'success':
-            statusText = `✅ Firebase 동기화 완료 (${now})`;
+            statusText = `??Firebase ?�기???�료 (${now})`;
             statusClass = 'text-success';
             break;
         case 'error':
-            statusText = `❌ Firebase 동기화 실패: ${message}`;
+            statusText = `??Firebase ?�기???�패: ${message}`;
             statusClass = 'text-danger';
             break;
         case 'offline':
-            statusText = '📶 오프라인 모드';
+            statusText = '?�� ?�프?�인 모드';
             statusClass = 'text-secondary';
             break;
         case 'realtime':
-            statusText = `🔥 Firebase 실시간 연결됨 (${now})`;
+            statusText = `?�� Firebase ?�시�??�결??(${now})`;
             statusClass = 'text-info';
             break;
         default:
-            statusText = '⚪ Firebase 대기 중';
+            statusText = '??Firebase ?��?�?;
             statusClass = 'text-muted';
     }
     
     statusElement.innerHTML = `<small class="${statusClass}">${statusText}</small>`;
 }
 
-// Firebase에서 최신 데이터 확인 및 동기화
+// Firebase?�서 최신 ?�이???�인 �??�기??
 async function checkFirebaseUpdates() {
     if (!window.FIREBASE_SYNC || !window.FIREBASE_SYNC.enabled || window.FIREBASE_SYNC.isSyncing) return;
     
@@ -84,18 +84,18 @@ async function checkFirebaseUpdates() {
         if (response.ok) {
             const firebaseData = await response.json();
             
-            // Firebase 데이터가 있고, 로컬보다 최신인 경우
+            // Firebase ?�이?��? ?�고, 로컬보다 최신??경우
             if (firebaseData && firebaseData.lastUpdated > window.FIREBASE_SYNC.lastSyncTime) {
-                // 현재 기기에서 수정한 것이 아닌 경우에만 동기화
+                // ?�재 기기?�서 ?�정??것이 ?�닌 경우?�만 ?�기??
                 if (firebaseData.lastModifiedBy !== window.FIREBASE_SYNC.deviceId) {
-                    // 데이터 업데이트
+                    // ?�이???�데?�트
                     customers = firebaseData.customers || [];
                     purchases = firebaseData.purchases || [];
                     gifts = firebaseData.gifts || [];
                     visits = firebaseData.visits || [];
                     rankChanges = firebaseData.rankChanges || [];
                     
-                    // UI 새로고침
+                    // UI ?�로고침
                     const customerListElement = document.getElementById('customer-list');
                     if (customerListElement && customerListElement.style.display !== 'none') {
                         if (typeof loadCustomerList === 'function') {
@@ -105,12 +105,12 @@ async function checkFirebaseUpdates() {
                     
                     window.FIREBASE_SYNC.lastSyncTime = firebaseData.lastUpdated;
                     updateSyncStatus('success');
-                    console.log('Firebase에서 최신 데이터 동기화 완료');
+                    console.log('Firebase?�서 최신 ?�이???�기???�료');
                 }
             }
         }
     } catch (error) {
-        console.error('Firebase 업데이트 확인 오류:', error);
+        console.error('Firebase ?�데?�트 ?�인 ?�류:', error);
         updateSyncStatus('error', error.message);
     } finally {
         if (window.FIREBASE_SYNC) {
@@ -119,10 +119,10 @@ async function checkFirebaseUpdates() {
     }
 }
 
-// Firebase 동기화 설정 함수 (안전한 버전)
+// Firebase ?�기???�정 ?�수 (?�전??버전)
 function setupFirebaseSync(databaseUrl, apiKey) {
     if (!window.FIREBASE_SYNC) {
-        console.error('FIREBASE_SYNC 객체가 초기화되지 않았습니다.');
+        console.error('FIREBASE_SYNC 객체가 초기?�되지 ?�았?�니??');
         return;
     }
     
@@ -130,7 +130,7 @@ function setupFirebaseSync(databaseUrl, apiKey) {
     window.FIREBASE_SYNC.databaseUrl = databaseUrl;
     window.FIREBASE_SYNC.apiKey = apiKey;
     
-    // 사용자별 경로 생성 및 설정 저장
+    // ?�용?�별 경로 ?�성 �??�정 ?�??
     const userPath = generateUserPath();
     window.FIREBASE_SYNC.userPath = userPath;
     
@@ -142,34 +142,34 @@ function setupFirebaseSync(databaseUrl, apiKey) {
             enabled: true
         }));
     } catch (error) {
-        console.error('로컬 스토리지 저장 오류:', error);
+        console.error('로컬 ?�토리�? ?�???�류:', error);
     }
     
-    // 즉시 동기화 시작 (안전하게)
+    // 즉시 ?�기???�작 (?�전?�게)
     try {
         syncFromFirebase();
     } catch (error) {
-        console.error('즉시 Firebase 동기화 오류:', error);
+        console.error('즉시 Firebase ?�기???�류:', error);
     }
     
-    // 정기적 동기화 시작
+    // ?�기???�기???�작
     try {
         startSyncInterval();
     } catch (error) {
-        console.error('정기 Firebase 동기화 시작 오류:', error);
+        console.error('?�기 Firebase ?�기???�작 ?�류:', error);
     }
     
-    // 실시간 리스너 설정 시도
+    // ?�시�?리스???�정 ?�도
     try {
         setupRealtimeListener();
     } catch (error) {
-        console.error('실시간 리스너 설정 오류:', error);
+        console.error('?�시�?리스???�정 ?�류:', error);
     }
     
-    alert('Firebase 실시간 동기화가 활성화되었습니다!\n이제 모든 기기에서 실시간으로 데이터가 동기화됩니다.');
+    alert('Firebase ?�시�??�기?��? ?�성?�되?�습?�다!\n?�제 모든 기기?�서 ?�시간으�??�이?��? ?�기?�됩?�다.');
 }
 
-// Firebase 실시간 리스너 설정 (EventSource 사용)
+// Firebase ?�시�?리스???�정 (EventSource ?�용)
 function setupRealtimeListener() {
     if (!window.FIREBASE_SYNC || !window.FIREBASE_SYNC.enabled) return;
     
@@ -177,16 +177,16 @@ function setupRealtimeListener() {
     const eventSourceUrl = `${window.FIREBASE_SYNC.databaseUrl}/${userPath}/customerData.json?auth=${window.FIREBASE_SYNC.apiKey}`;
     
     try {
-        // 기존 EventSource가 있으면 닫기
+        // 기존 EventSource가 ?�으�??�기
         if (window.FIREBASE_SYNC.eventSource) {
             window.FIREBASE_SYNC.eventSource.close();
         }
         
-        // Server-Sent Events를 사용한 실시간 연결
+        // Server-Sent Events�??�용???�시�??�결
         window.FIREBASE_SYNC.eventSource = new EventSource(eventSourceUrl);
         
         window.FIREBASE_SYNC.eventSource.onopen = function() {
-            console.log('Firebase 실시간 연결 성공');
+            console.log('Firebase ?�시�??�결 ?�공');
             updateSyncStatus('realtime');
         };
         
@@ -194,19 +194,19 @@ function setupRealtimeListener() {
             try {
                 const data = JSON.parse(event.data);
                 if (data && data.lastModifiedBy !== window.FIREBASE_SYNC.deviceId) {
-                    console.log('Firebase에서 실시간 데이터 변경 감지');
+                    console.log('Firebase?�서 ?�시�??�이??변�?감�?');
                     syncFromFirebase();
                 }
             } catch (error) {
-                console.error('실시간 데이터 처리 오류:', error);
+                console.error('?�시�??�이??처리 ?�류:', error);
             }
         };
         
         window.FIREBASE_SYNC.eventSource.onerror = function(event) {
-            console.error('Firebase 실시간 연결 오류:', event);
-            updateSyncStatus('error', '실시간 연결 끊김');
+            console.error('Firebase ?�시�??�결 ?�류:', event);
+            updateSyncStatus('error', '?�시�??�결 ?��?');
             
-            // 재연결 시도
+            // ?�연�??�도
             setTimeout(() => {
                 if (window.FIREBASE_SYNC && window.FIREBASE_SYNC.enabled) {
                     setupRealtimeListener();
@@ -215,17 +215,17 @@ function setupRealtimeListener() {
         };
         
     } catch (error) {
-        console.error('실시간 리스너 설정 실패:', error);
-        // 실시간 연결 실패 시 정기 동기화로 대체
+        console.error('?�시�?리스???�정 ?�패:', error);
+        // ?�시�??�결 ?�패 ???�기 ?�기?�로 ?��?
         startSyncInterval();
     }
 }
 
-// 정기적 동기화 시작 (Firebase 버전)
-// 정기적으로 Firebase 업데이트 확인
+// ?�기???�기???�작 (Firebase 버전)
+// ?�기?�으�?Firebase ?�데?�트 ?�인
 function startUpdateChecker() {
     if (window.FIREBASE_SYNC && window.FIREBASE_SYNC.enabled) {
-        // 기존 인터벌이 있으면 제거
+        // 기존 ?�터벌이 ?�으�??�거
         if (window.FIREBASE_SYNC.updateIntervalId) {
             clearInterval(window.FIREBASE_SYNC.updateIntervalId);
         }
@@ -234,36 +234,36 @@ function startUpdateChecker() {
             try {
                 checkFirebaseUpdates();
             } catch (error) {
-                console.error('Firebase 업데이트 확인 오류:', error);
+                console.error('Firebase ?�데?�트 ?�인 ?�류:', error);
             }
         }, window.FIREBASE_SYNC.syncInterval);
-        console.log(`Firebase 업데이트 확인 시작 (${window.FIREBASE_SYNC.syncInterval}ms 간격)`);
+        console.log(`Firebase ?�데?�트 ?�인 ?�작 (${window.FIREBASE_SYNC.syncInterval}ms 간격)`);
     }
 }
 
-// Firebase 직접 연동 초기화
+// Firebase 직접 ?�동 초기??
 async function initializeFirebaseConnection() {
-    console.log('Firebase 직접 연동 시스템 초기화...');
+    console.log('Firebase 직접 ?�동 ?�스??초기??..');
     
     try {
-        // 고정된 데이터 경로 사용 (데이터 영구 보존)
+        // 고정???�이??경로 ?�용 (?�이???�구 보존)
         const userPath = window.FIREBASE_SYNC.userPath;
         
-        console.log('Firebase 직접 연동 시작 - 데이터 경로:', userPath);
-        updateSyncStatus('syncing', 'Firebase 연결 중...');
+        console.log('Firebase 직접 ?�동 ?�작 - ?�이??경로:', userPath);
+        updateSyncStatus('syncing', 'Firebase ?�결 �?..');
         
-        // Firebase에서 데이터 로드
+        // Firebase?�서 ?�이??로드
         await loadDataFromFirebase();
         
-        // 정기적으로 업데이트 확인
+        // ?�기?�으�??�데?�트 ?�인
         startUpdateChecker();
         
-        console.log('Firebase 연결 완료 - 데이터 영구 보존 모드');
+        console.log('Firebase ?�결 ?�료 - ?�이???�구 보존 모드');
         
     } catch (error) {
-        console.error('Firebase 연동 초기화 오류:', error);
-        updateSyncStatus('error', 'Firebase 연결 실패');
-        // 오류 시에도 빈 데이터로 시작
+        console.error('Firebase ?�동 초기???�류:', error);
+        updateSyncStatus('error', 'Firebase ?�결 ?�패');
+        // ?�류 ?�에??�??�이?�로 ?�작
         customers = [];
         purchases = [];
         gifts = [];
@@ -272,7 +272,7 @@ async function initializeFirebaseConnection() {
     }
 }
 
-// Firebase 설정 저장 (데이터 영구 보존)
+// Firebase ?�정 ?�??(?�이???�구 보존)
 function saveFirebaseConfig() {
     try {
         const config = {
@@ -282,21 +282,21 @@ function saveFirebaseConfig() {
             userPath: window.FIREBASE_SYNC.userPath
         };
         localStorage.setItem('firebaseSyncConfig', JSON.stringify(config));
-        console.log('Firebase 설정 저장 완료 - 데이터 영구 보존');
+        console.log('Firebase ?�정 ?�???�료 - ?�이???�구 보존');
     } catch (error) {
-        console.error('Firebase 설정 저장 오류:', error);
+        console.error('Firebase ?�정 ?�???�류:', error);
     }
 }
 
-// 등급 변경 이력 배열 추가
-let rankChanges = []; // 등급 변경 이력
+// ?�급 변�??�력 배열 추�?
+let rankChanges = []; // ?�급 변�??�력
 
-// Firebase에서 데이터 로드 (로컬 스토리지 제거)
+// Firebase?�서 ?�이??로드 (로컬 ?�토리�? ?�거)
 async function loadDataFromFirebase() {
-    console.log('Firebase에서 데이터 로드 중...');
+    console.log('Firebase?�서 ?�이??로드 �?..');
     
     if (!window.FIREBASE_SYNC || !window.FIREBASE_SYNC.enabled) {
-        console.log('Firebase 연결 안됨 - 빈 데이터로 초기화');
+        console.log('Firebase ?�결 ?�됨 - �??�이?�로 초기??);
         customers = [];
         purchases = [];
         gifts = [];
@@ -325,32 +325,32 @@ async function loadDataFromFirebase() {
                 rankChanges = firebaseData.rankChanges || [];
                 
                 window.FIREBASE_SYNC.lastSyncTime = firebaseData.lastUpdated || Date.now();
-                console.log('Firebase에서 데이터 로드 완료');
+                console.log('Firebase?�서 ?�이??로드 ?�료');
                 updateSyncStatus('success');
             } else {
-                // 데이터가 없으면 빈 배열로 초기화
+                // ?�이?��? ?�으�?�?배열�?초기??
                 customers = [];
                 purchases = [];
                 gifts = [];
                 visits = [];
                 rankChanges = [];
-                console.log('Firebase에 데이터 없음 - 빈 데이터로 초기화');
+                console.log('Firebase???�이???�음 - �??�이?�로 초기??);
             }
         } else if (response.status === 404) {
-            // 첫 사용자 - 빈 데이터로 시작
+            // �??�용??- �??�이?�로 ?�작
             customers = [];
             purchases = [];
             gifts = [];
             visits = [];
             rankChanges = [];
-            console.log('새 사용자 - 빈 데이터로 초기화');
+            console.log('???�용??- �??�이?�로 초기??);
         } else {
             throw new Error(`HTTP ${response.status}`);
         }
     } catch (error) {
-        console.error('Firebase 데이터 로드 오류:', error);
+        console.error('Firebase ?�이??로드 ?�류:', error);
         updateSyncStatus('error', error.message);
-        // 오류 시 빈 데이터로 초기화
+        // ?�류 ??�??�이?�로 초기??
         customers = [];
         purchases = [];
         gifts = [];
@@ -359,12 +359,12 @@ async function loadDataFromFirebase() {
     }
 }
 
-// Firebase에 데이터 저장 (로컬 스토리지 제거)
+// Firebase???�이???�??(로컬 ?�토리�? ?�거)
 async function saveDataToFirebase() {
-    console.log('Firebase에 데이터 저장 중...');
+    console.log('Firebase???�이???�??�?..');
     
     if (!window.FIREBASE_SYNC || !window.FIREBASE_SYNC.enabled) {
-        console.log('Firebase 연결 안됨 - 저장 실패');
+        console.log('Firebase ?�결 ?�됨 - ?�???�패');
         return false;
     }
     
@@ -391,81 +391,81 @@ async function saveDataToFirebase() {
         
         if (response.ok) {
             window.FIREBASE_SYNC.lastSyncTime = syncData.lastUpdated;
-            console.log('Firebase에 데이터 저장 완료');
+            console.log('Firebase???�이???�???�료');
             updateSyncStatus('success');
             return true;
         } else {
             throw new Error(`HTTP ${response.status}`);
         }
     } catch (error) {
-        console.error('Firebase 데이터 저장 오류:', error);
+        console.error('Firebase ?�이???�???�류:', error);
         updateSyncStatus('error', error.message);
         return false;
     }
 }
 
-// 테스트용 샘플 데이터 (초기화됨)
+// ?�스?�용 ?�플 ?�이??(초기?�됨)
 let customers = [];
 
-// 구매 이력 샘플 데이터 (초기화됨)
+// 구매 ?�력 ?�플 ?�이??(초기?�됨)
 let purchases = [];
 
-// 선물 이력 샘플 데이터 (초기화됨)
+// ?�물 ?�력 ?�플 ?�이??(초기?�됨)
 let gifts = [];
 
-// 방문 이력 샘플 데이터 (초기화됨)
+// 방문 ?�력 ?�플 ?�이??(초기?�됨)
 let visits = [];
 
-// 정렬 상태 변수
+// ?�렬 ?�태 변??
 let currentSort = {
     field: null,
     order: 'asc'
 };
 
-// DOM이 로드된 후 실행
+// DOM??로드?????�행
 document.addEventListener('DOMContentLoaded', async () => {
-    // Firebase에서 직접 데이터 로드
+    // Firebase?�서 직접 ?�이??로드
     await initializeFirebaseConnection();
     
-    // 로그인 상태 확인
+    // 로그???�태 ?�인
     checkLoginStatus();
     
-    // 로그인 폼 제출 이벤트 리스너
+    // 로그?????�출 ?�벤??리스??
     document.getElementById('login').addEventListener('submit', (e) => {
         e.preventDefault();
         const password = document.getElementById('password').value;
-        console.log('입력된 패스워드:', password);
+        console.log('?�력???�스?�드:', password);
         
-        // 패스워드 전용 로그인 체크
+        // ?�스?�드 ?�용 로그??체크
         if (password === 'grace1') {
             performLogin();
         } else {
-            // 로그인 실패
-            alert('비밀번호가 올바르지 않습니다.');
+            // 로그???�패
+            alert('비�?번호가 ?�바르�? ?�습?�다.');
         }
     });
 
-    // 로그아웃 버튼 이벤트 리스너
+    // 로그?�웃 버튼 ?�벤??리스??
     document.getElementById('logout-btn').addEventListener('click', (e) => {
         e.preventDefault();
         performLogout();
     });
 
-    // 네비게이션 메뉴 이벤트 리스너
+    // ?�비게이??메뉴 ?�벤??리스??
     document.querySelectorAll('.nav-link[data-page]').forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
             const targetPage = link.getAttribute('data-page');
             
-            // 모든 페이지 숨기기
+            // 모든 ?�이지 ?�기�?
             document.querySelectorAll('.page').forEach(page => {
                 page.classList.add('d-none');
             });
             
-            // 선택된 페이지 표시
+            // ?�택???�이지 ?�시
             document.getElementById(targetPage).classList.remove('d-none');
             
-            // 활성 메뉴 표시
+            // ?�성 메뉴 ?�시
             document.querySelectorAll('.nav-link').forEach(navLink => {
                 navLink.classList.remove('active');
             });
@@ -473,17 +473,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    // 고객 검색 기능 이벤트 리스너
+    // 고객 검??기능 ?�벤??리스??
     document.getElementById('search-btn').addEventListener('click', searchCustomers);
     
-    // 검색창 입력 이벤트 리스너 (실시간 검색)
+    // 검?�창 ?�력 ?�벤??리스??(?�시�?검??
     document.getElementById('search-input').addEventListener('input', searchCustomers);
 
-    // 고객 추가 폼 제출 이벤트 리스너
+    // 고객 추�? ???�출 ?�벤??리스??
     document.getElementById('customer-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        // 폼에서 데이터 가져오기
+        // ?�에???�이??가?�오�?
         const newCustomer = {
             id: customers.length > 0 ? Math.max(...customers.map(c => c.id)) + 1 : 1,
             name: document.getElementById('name').value,
@@ -500,24 +500,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             lastVisit: new Date().toISOString().split('T')[0]
         };
         
-        // 고객 추가
+        // 고객 추�?
         customers.push(newCustomer);
         
-        // Firebase에 데이터 저장
+        // Firebase???�이???�??
         await saveDataToFirebase();
         
-        // 폼 초기화
+        // ??초기??
         document.getElementById('customer-form').reset();
         
-        // 알림 표시
-        alert('고객 정보가 성공적으로 저장되었습니다.');
+        // ?�림 ?�시
+        alert('고객 ?�보가 ?�공?�으�??�?�되?�습?�다.');
         
-        // 고객 목록 페이지로 이동 및 목록 새로고침
+        // 고객 목록 ?�이지�??�동 �?목록 ?�로고침
         document.querySelector('.nav-link[data-page="customer-list"]').click();
         loadCustomerList();
     });
 
-    // 선물 검색 기능
+    // ?�물 검??기능
     document.getElementById('gift-search-btn').addEventListener('click', () => {
         const searchTerm = document.getElementById('gift-search').value.toLowerCase();
         const filteredGifts = gifts.filter(gift => {
@@ -527,7 +527,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderGiftHistory(filteredGifts);
     });
 
-    // 방문 검색 기능
+    // 방문 검??기능
     document.getElementById('visit-search-btn').addEventListener('click', () => {
         const searchTerm = document.getElementById('visit-search').value.toLowerCase();
         const filteredVisits = getVisitSummary().filter(summary => 
@@ -536,20 +536,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderVisitTracking(filteredVisits);
     });
 
-    // 구매 PDF 다운로드 버튼 이벤트 리스너
+    // 구매 PDF ?�운로드 버튼 ?�벤??리스??
     document.getElementById('download-purchase-pdf').addEventListener('click', () => {
-        // 현재 보고 있는 고객 ID 가져오기
+        // ?�재 보고 ?�는 고객 ID 가?�오�?
         const customerId = parseInt(document.querySelector('#purchase-history-content').getAttribute('data-customer-id'));
         if (customerId) {
             generatePurchasePDF(customerId);
         }
     });
 
-    // 고객 상세 정보 모달 탭 이벤트 리스너
+    // 고객 ?�세 ?�보 모달 ???�벤??리스??
     document.querySelectorAll('#customerTabs .nav-link').forEach(tab => {
         tab.addEventListener('click', (e) => {
             e.preventDefault();
-            // 현재 보고 있는 고객 ID 가져오기
+            // ?�재 보고 ?�는 고객 ID 가?�오�?
             const customerId = parseInt(document.querySelector('#customer-info-content').getAttribute('data-customer-id'));
             
             if (tab.getAttribute('href') === '#purchase-tab') {
@@ -562,42 +562,42 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    // 편집 버튼 이벤트 리스너
+    // ?�집 버튼 ?�벤??리스??
     document.getElementById('edit-customer-btn').addEventListener('click', () => {
         const customerId = parseInt(document.querySelector('#customer-info-content').getAttribute('data-customer-id'));
         editCustomerInfo(customerId);
     });
 
-    // 삭제 버튼 이벤트 리스너
+    // ??�� 버튼 ?�벤??리스??
     document.getElementById('delete-customer-btn').addEventListener('click', () => {
         const customerId = parseInt(document.querySelector('#customer-info-content').getAttribute('data-customer-id'));
-        // 모달 닫기
+        // 모달 ?�기
         const modal = bootstrap.Modal.getInstance(document.getElementById('customer-details-modal'));
         modal.hide();
-        // 고객 삭제
+        // 고객 ??��
         deleteCustomer(customerId);
     });
 
 
 
-    // 구매 기록 추가 버튼 이벤트 리스너
+    // 구매 기록 추�? 버튼 ?�벤??리스??
     document.getElementById('add-purchase-btn').addEventListener('click', () => {
         const customerId = parseInt(document.querySelector('#purchase-history-content').getAttribute('data-customer-id'));
         document.getElementById('purchase-customer-id').value = customerId;
         document.getElementById('purchase-date').value = new Date().toISOString().split('T')[0];
         document.getElementById('add-purchase-form').reset();
         
-        // 기본 아이템 입력 필드 초기화
+        // 기본 ?�이???�력 ?�드 초기??
         const purchaseItems = document.getElementById('purchase-items');
         purchaseItems.innerHTML = `
             <div class="purchase-item mb-3">
                 <div class="row g-2">
                     <div class="col-12 col-md-7">
-                        <label class="form-label">상품명 *</label>
-                        <input type="text" class="form-control item-name" required placeholder="구매하신 상품명을 입력하세요">
+                        <label class="form-label">?�품�?*</label>
+                        <input type="text" class="form-control item-name" required placeholder="구매?�신 ?�품명을 ?�력?�세??>
                     </div>
                     <div class="col-12 col-md-5">
-                        <label class="form-label">가격 *</label>
+                        <label class="form-label">가�?*</label>
                         <input type="number" class="form-control item-price" required placeholder="0">
                     </div>
                 </div>
@@ -608,7 +608,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         purchaseModal.show();
     });
     
-    // 상품 추가 버튼 이벤트 리스너
+    // ?�품 추�? 버튼 ?�벤??리스??
     document.getElementById('add-item-btn').addEventListener('click', () => {
         const purchaseItems = document.getElementById('purchase-items');
         const newItem = document.createElement('div');
@@ -616,29 +616,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         newItem.innerHTML = `
             <div class="row g-2">
                 <div class="col-12 col-md-7">
-                    <label class="form-label">상품명 *</label>
-                    <input type="text" class="form-control item-name" required placeholder="구매하신 상품명을 입력하세요">
+                    <label class="form-label">?�품�?*</label>
+                    <input type="text" class="form-control item-name" required placeholder="구매?�신 ?�품명을 ?�력?�세??>
                 </div>
                 <div class="col-12 col-md-5">
-                    <label class="form-label">가격 *</label>
+                    <label class="form-label">가�?*</label>
                     <input type="number" class="form-control item-price" required placeholder="0">
                 </div>
             </div>
             <div class="d-grid mt-2">
                 <button type="button" class="btn btn-sm btn-outline-danger remove-item-btn">
-                    <i class="bi bi-trash"></i> 이 상품 삭제
+                    <i class="bi bi-trash"></i> ???�품 ??��
                 </button>
             </div>
         `;
         purchaseItems.appendChild(newItem);
         
-        // 삭제 버튼 이벤트 리스너
+        // ??�� 버튼 ?�벤??리스??
         newItem.querySelector('.remove-item-btn').addEventListener('click', function() {
             this.closest('.purchase-item').remove();
         });
     });
     
-    // 구매 기록 추가 폼 제출 이벤트 리스너
+    // 구매 기록 추�? ???�출 ?�벤??리스??
     document.getElementById('add-purchase-form').addEventListener('submit', (e) => {
         e.preventDefault();
         
@@ -650,7 +650,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const orderNumber = document.getElementById('purchase-order-number').value;
         const memo = document.getElementById('purchase-memo').value;
         
-        // 상품 아이템 가져오기
+        // ?�품 ?�이??가?�오�?
         const items = [];
         let totalAmount = 0;
         
@@ -665,11 +665,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         
         if (items.length === 0) {
-            alert('상품을 최소 1개 이상 입력해주세요.');
+            alert('?�품??최소 1�??�상 ?�력?�주?�요.');
             return;
         }
         
-        // 구매 기록 추가
+        // 구매 기록 추�?
         const newPurchase = {
             id: purchases.length > 0 ? Math.max(...purchases.map(p => p.id)) + 1 : 1,
             customerId: customerId,
@@ -685,34 +685,34 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         purchases.push(newPurchase);
         
-        // 고객 총 구매액 및 구매 횟수 업데이트
+        // 고객 �?구매??�?구매 ?�수 ?�데?�트
         const customer = customers.find(c => c.id === customerId);
         if (customer) {
             customer.totalPurchase += totalAmount;
             customer.purchaseCount += 1;
             
-            // 고객 등급 자동 업데이트
+            // 고객 ?�급 ?�동 ?�데?�트
             updateCustomerRank(customer);
         }
         
-        // 데이터 저장
-        saveDataToStorage();
+        // ?�이???�??
+        saveDataToFirebase();
         
-        // 모달 닫기
+        // 모달 ?�기
         const purchaseModal = bootstrap.Modal.getInstance(document.getElementById('add-purchase-modal'));
         purchaseModal.hide();
         
-        // 구매 이력 다시 로드
+        // 구매 ?�력 ?�시 로드
         loadCustomerPurchases(customerId);
         
-        // 고객 상세 정보 업데이트 (총 구매액이 변경되었을 수 있음)
+        // 고객 ?�세 ?�보 ?�데?�트 (�?구매?�이 변경되?�을 ???�음)
         openCustomerDetails(customerId);
         
-        // 알림 표시
-        alert('구매 기록이 추가되었습니다.');
+        // ?�림 ?�시
+        alert('구매 기록??추�??�었?�니??');
     });
     
-    // 선물 기록 추가 버튼 이벤트 리스너
+    // ?�물 기록 추�? 버튼 ?�벤??리스??
     document.getElementById('add-customer-gift-btn').addEventListener('click', () => {
         const customerId = parseInt(document.querySelector('#customer-info-content').getAttribute('data-customer-id'));
         document.getElementById('gift-customer-id').value = customerId;
@@ -723,7 +723,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         giftModal.show();
     });
     
-    // 선물 기록 추가 폼 제출 이벤트 리스너
+    // ?�물 기록 추�? ???�출 ?�벤??리스??
     document.getElementById('add-gift-form').addEventListener('submit', (e) => {
         e.preventDefault();
         
@@ -733,7 +733,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const date = document.getElementById('gift-date').value;
         const reason = document.getElementById('gift-reason').value;
         
-        // 새 선물 기록 생성
+        // ???�물 기록 ?�성
         const newGift = {
             id: gifts.length > 0 ? Math.max(...gifts.map(g => g.id)) + 1 : 1,
             customerId,
@@ -743,24 +743,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             reason
         };
         
-        // 선물 기록 추가
+        // ?�물 기록 추�?
         gifts.push(newGift);
         
-        // 데이터 저장
-        saveDataToStorage();
+        // ?�이???�??
+        saveDataToFirebase();
         
-        // 모달 닫기
+        // 모달 ?�기
         const modal = bootstrap.Modal.getInstance(document.getElementById('add-gift-modal'));
         modal.hide();
         
-        // 선물 이력 다시 로드
+        // ?�물 ?�력 ?�시 로드
         loadCustomerGifts(customerId);
         
-        // 알림 표시
-        alert('선물 기록이 추가되었습니다.');
+        // ?�림 ?�시
+        alert('?�물 기록??추�??�었?�니??');
     });
     
-    // 방문 기록 추가 버튼 이벤트 리스너
+    // 방문 기록 추�? 버튼 ?�벤??리스??
     document.getElementById('add-customer-visit-btn').addEventListener('click', () => {
         const customerId = parseInt(document.querySelector('#customer-info-content').getAttribute('data-customer-id'));
         document.getElementById('visit-customer-id').value = customerId;
@@ -771,7 +771,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         visitModal.show();
     });
     
-    // 방문 기록 추가 폼 제출 이벤트 리스너
+    // 방문 기록 추�? ???�출 ?�벤??리스??
     document.getElementById('add-visit-form').addEventListener('submit', (e) => {
         e.preventDefault();
         
@@ -780,7 +780,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const purpose = document.getElementById('visit-purpose').value;
         const note = document.getElementById('visit-note').value;
         
-        // 새 방문 기록 생성
+        // ??방문 기록 ?�성
         const newVisit = {
             id: visits.length > 0 ? Math.max(...visits.map(v => v.id)) + 1 : 1,
             customerId,
@@ -789,10 +789,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             note
         };
         
-        // 방문 기록 추가
+        // 방문 기록 추�?
         visits.push(newVisit);
         
-        // 고객 정보 업데이트 (최근 방문일)
+        // 고객 ?�보 ?�데?�트 (최근 방문??
         const customer = customers.find(c => c.id === customerId);
         if (customer) {
             const visitDate = new Date(date);
@@ -803,30 +803,30 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
         
-        // 데이터 저장
-        saveDataToStorage();
+        // ?�이???�??
+        saveDataToFirebase();
         
-        // 모달 닫기
+        // 모달 ?�기
         const modal = bootstrap.Modal.getInstance(document.getElementById('add-visit-modal'));
         modal.hide();
         
-        // 방문 이력 다시 로드
+        // 방문 ?�력 ?�시 로드
         loadCustomerVisits(customerId);
         
-        // 알림 표시
-        alert('방문 기록이 추가되었습니다.');
+        // ?�림 ?�시
+        alert('방문 기록??추�??�었?�니??');
     });
 
-    // 로그인 상태 확인 함수
+    // 로그???�태 ?�인 ?�수
     function checkLoginStatus() {
         const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
         const username = localStorage.getItem('username');
         
         if (isLoggedIn && username) {
-            // 로그인 상태로 화면 표시 (강제 전환)
+            // 로그???�태�??�면 ?�시 (강제 ?�환)
             performLogin();
         } else {
-            // 로그아웃 상태로 화면 표시 (강제 전환)
+            // 로그?�웃 ?�태�??�면 ?�시 (강제 ?�환)
             const loginForm = document.getElementById('login-form');
             const mainContent = document.getElementById('main-content');
             
@@ -842,29 +842,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // 메인 콘텐츠에 has-mobile-buttons 클래스 추가
+    // 메인 콘텐츠에 has-mobile-buttons ?�래??추�?
     document.body.classList.add('has-mobile-buttons');
     
-    // 모든 고객의 등급을 새로운 기준으로 업데이트
+    // 모든 고객???�급???�로??기�??�로 ?�데?�트
     updateAllCustomerRanks();
     
-    // 모바일 고객 등록 버튼 이벤트 리스너
+    // 모바??고객 ?�록 버튼 ?�벤??리스??
     document.getElementById('mobile-add-customer-btn').addEventListener('click', () => {
-        // 고객 등록 페이지로 이동
+        // 고객 ?�록 ?�이지�??�동
         document.querySelector('.nav-link[data-page="add-customer"]').click();
     });
 
-    // 엑셀 업로드 버튼 이벤트 리스너
+    // ?��? ?�로??버튼 ?�벤??리스??
     document.getElementById('upload-excel-btn').addEventListener('click', handleExcelUpload);
 
-    // 템플릿 다운로드 버튼 이벤트 리스너
+    // ?�플�??�운로드 버튼 ?�벤??리스??
     document.getElementById('download-template-btn').addEventListener('click', downloadExcelTemplate);
     
-    // 엑셀 다운로드 버튼 이벤트 리스너
+    // ?��? ?�운로드 버튼 ?�벤??리스??
     document.getElementById('export-excel-btn').addEventListener('click', exportCustomersToExcel);
 });
 
-// 고객 목록 렌더링 함수
+// 고객 목록 ?�더�??�수
 function renderCustomerList(customerList) {
     const tbody = document.getElementById('customer-list-body');
     tbody.innerHTML = '';
@@ -872,17 +872,17 @@ function renderCustomerList(customerList) {
     customerList.forEach((customer, index) => {
         const tr = document.createElement('tr');
         
-        // 등급에 따른 배지 클래스 설정
+        // ?�급???�른 배�? ?�래???�정
         let rankBadgeClass = '';
         if (customer.rank === 'vvip') rankBadgeClass = 'badge-vvip';
         else if (customer.rank === 'vip') rankBadgeClass = 'badge-vip';
         else rankBadgeClass = 'badge-regular';
         
-        // 한글 등급 변환
+        // ?��? ?�급 변??
         let rankText = '';
         if (customer.rank === 'vvip') rankText = 'VVIP';
         else if (customer.rank === 'vip') rankText = 'VIP';
-        else rankText = '일반';
+        else rankText = '?�반';
 
         tr.innerHTML = `
             <td>${index + 1}</td>
@@ -894,10 +894,10 @@ function renderCustomerList(customerList) {
             <td class="mobile-hide">${formatDate(customer.lastVisit)}</td>
             <td>
                 <div class="btn-group">
-                    <button class="btn btn-sm btn-outline-primary view-details" data-customer-id="${customer.id}" title="상세보기">
+                    <button class="btn btn-sm btn-outline-primary view-details" data-customer-id="${customer.id}" title="?�세보기">
                         <i class="bi bi-eye"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger delete-customer" data-customer-id="${customer.id}" title="삭제">
+                    <button class="btn btn-sm btn-outline-danger delete-customer" data-customer-id="${customer.id}" title="??��">
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>
@@ -907,16 +907,16 @@ function renderCustomerList(customerList) {
         tbody.appendChild(tr);
     });
     
-    // 상세보기 버튼 이벤트 리스너 추가
+    // ?�세보기 버튼 ?�벤??리스??추�?
     document.querySelectorAll('.view-details').forEach(button => {
         button.addEventListener('click', () => {
             const customerId = parseInt(button.getAttribute('data-customer-id'));
-            // 새 창에서 고객 상세 정보 페이지 열기
+            // ??창에??고객 ?�세 ?�보 ?�이지 ?�기
             window.open(`customer-details.html?id=${customerId}`, `customer_${customerId}`, 'width=1000,height=800');
         });
     });
     
-    // 삭제 버튼 이벤트 리스너 추가
+    // ??�� 버튼 ?�벤??리스??추�?
     document.querySelectorAll('.delete-customer').forEach(button => {
         button.addEventListener('click', () => {
             const customerId = parseInt(button.getAttribute('data-customer-id'));
@@ -925,25 +925,25 @@ function renderCustomerList(customerList) {
     });
 }
 
-// 고객 목록 로드 함수
+// 고객 목록 로드 ?�수
 function loadCustomerList() {
-    // 검색창 초기화
+    // 검?�창 초기??
     document.getElementById('search-input').value = '';
-    // 정렬 상태 초기화
+    // ?�렬 ?�태 초기??
     currentSort = { field: null, order: 'asc' };
-    // 전체 고객 목록 표시
+    // ?�체 고객 목록 ?�시
     renderCustomerList(customers);
-    // 헤더 이벤트 리스너 재등록
+    // ?�더 ?�벤??리스???�등�?
     attachSortListeners();
 }
 
-// 생일 알림 로드 함수
+// ?�일 ?�림 로드 ?�수
 function loadBirthdayAlerts() {
     const today = new Date();
     const currentMonth = today.getMonth() + 1;
     const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
     
-    // 이번 달 생일 고객
+    // ?�번 ???�일 고객
     const thisMonthBirthdays = customers.filter(customer => {
         if (!customer.birthdate) return false;
         try {
@@ -954,7 +954,7 @@ function loadBirthdayAlerts() {
         }
     });
     
-    // 다음 달 생일 고객
+    // ?�음 ???�일 고객
     const nextMonthBirthdays = customers.filter(customer => {
         if (!customer.birthdate) return false;
         try {
@@ -965,12 +965,12 @@ function loadBirthdayAlerts() {
         }
     });
     
-    // 이번 달 생일 목록 렌더링
+    // ?�번 ???�일 목록 ?�더�?
     const thisMonthList = document.getElementById('this-month-birthdays');
     thisMonthList.innerHTML = '';
     
     if (thisMonthBirthdays.length === 0) {
-        thisMonthList.innerHTML = '<li class="list-group-item">이번 달 생일인 고객이 없습니다.</li>';
+        thisMonthList.innerHTML = '<li class="list-group-item">?�번 ???�일??고객???�습?�다.</li>';
     } else {
         thisMonthBirthdays.forEach(customer => {
             try {
@@ -979,7 +979,7 @@ function loadBirthdayAlerts() {
                 const li = document.createElement('li');
                 li.className = 'list-group-item';
                 
-                // 오늘이 생일인 고객 강조
+                // ?�늘???�일??고객 강조
                 if (birthDay === today) {
                     li.classList.add('list-group-item-danger');
                 }
@@ -990,22 +990,22 @@ function loadBirthdayAlerts() {
                             <strong>${customer.name}</strong> (${customer.rank.toUpperCase()})
                             <div><small>${customer.phone}</small></div>
                         </div>
-                        <div class="birthday-date">${customer.birthdate.split('-')[1]}월 ${birthDay}일</div>
+                        <div class="birthday-date">${customer.birthdate.split('-')[1]}??${birthDay}??/div>
                     </div>
                 `;
                 thisMonthList.appendChild(li);
             } catch (e) {
-                console.log('생년월일 처리 중 오류:', e);
+                console.log('?�년?�일 처리 �??�류:', e);
             }
         });
     }
     
-    // 다음 달 생일 목록 렌더링
+    // ?�음 ???�일 목록 ?�더�?
     const nextMonthList = document.getElementById('next-month-birthdays');
     nextMonthList.innerHTML = '';
     
     if (nextMonthBirthdays.length === 0) {
-        nextMonthList.innerHTML = '<li class="list-group-item">다음 달 생일인 고객이 없습니다.</li>';
+        nextMonthList.innerHTML = '<li class="list-group-item">?�음 ???�일??고객???�습?�다.</li>';
     } else {
         nextMonthBirthdays.forEach(customer => {
             try {
@@ -1019,24 +1019,24 @@ function loadBirthdayAlerts() {
                             <strong>${customer.name}</strong> (${customer.rank.toUpperCase()})
                             <div><small>${customer.phone}</small></div>
                         </div>
-                        <div class="birthday-date">${nextMonth}월 ${birthDay}일</div>
+                        <div class="birthday-date">${nextMonth}??${birthDay}??/div>
                     </div>
                 `;
                 nextMonthList.appendChild(li);
             } catch (e) {
-                console.log('생년월일 처리 중 오류:', e);
+                console.log('?�년?�일 처리 �??�류:', e);
             }
         });
     }
 }
 
-// 고객별 구매 정보 재계산 함수
+// 고객�?구매 ?�보 ?�계???�수
 function recalculateCustomerPurchaseInfo() {
     customers.forEach(customer => {
-        // 해당 고객의 모든 구매 기록 찾기
+        // ?�당 고객??모든 구매 기록 찾기
         const customerPurchases = purchases.filter(p => p.customerId === customer.id);
         
-        // 총 구매액과 구매 횟수 재계산
+        // �?구매?�과 구매 ?�수 ?�계??
         let totalPurchase = 0;
         let purchaseCount = customerPurchases.length;
         
@@ -1044,21 +1044,21 @@ function recalculateCustomerPurchaseInfo() {
             totalPurchase += purchase.totalAmount || 0;
         });
         
-        // 고객 정보 업데이트
+        // 고객 ?�보 ?�데?�트
         customer.totalPurchase = totalPurchase;
         customer.purchaseCount = purchaseCount;
         
-        // 등급 업데이트
+        // ?�급 ?�데?�트
         updateCustomerRank(customer);
     });
     
-    // 데이터 저장
-    saveDataToStorage();
+    // ?�이???�??
+    saveDataToFirebase();
 }
 
-// 고객 등급별 카운트 로드 함수
+// 고객 ?�급�?카운??로드 ?�수
 function loadRankingCounts() {
-    // 구매 정보 재계산
+    // 구매 ?�보 ?�계??
     recalculateCustomerPurchaseInfo();
     
     const vvipCount = customers.filter(c => c.rank === 'vvip').length;
@@ -1069,48 +1069,48 @@ function loadRankingCounts() {
     document.getElementById('vip-count').textContent = vipCount;
     document.getElementById('regular-count').textContent = regularCount;
     
-    // 고객 등급 목록 렌더링 (등급순 정렬)
+    // 고객 ?�급 목록 ?�더�?(?�급???�렬)
     const tbody = document.getElementById('ranking-list-body');
     tbody.innerHTML = '';
     
-    // 등급 순서로 정렬 (VVIP > VIP > 일반)
+    // ?�급 ?�서�??�렬 (VVIP > VIP > ?�반)
     const sortedCustomers = [...customers].sort((a, b) => {
         const rankOrder = { 'vvip': 3, 'vip': 2, 'regular': 1 };
         if (rankOrder[a.rank] !== rankOrder[b.rank]) {
             return rankOrder[b.rank] - rankOrder[a.rank];
         }
-        // 같은 등급 내에서는 총 구매액 순으로 정렬
+        // 같�? ?�급 ?�에?�는 �?구매???�으�??�렬
         return (b.totalPurchase || 0) - (a.totalPurchase || 0);
     });
     
     sortedCustomers.forEach((customer, index) => {
         const tr = document.createElement('tr');
         
-        // 등급에 따른 배지 클래스 설정
+        // ?�급???�른 배�? ?�래???�정
         let rankBadgeClass = '';
         if (customer.rank === 'vvip') rankBadgeClass = 'badge-vvip';
         else if (customer.rank === 'vip') rankBadgeClass = 'badge-vip';
         else rankBadgeClass = 'badge-regular';
         
-        // 한글 등급 변환
+        // ?��? ?�급 변??
         let rankText = '';
         if (customer.rank === 'vvip') rankText = 'VVIP';
         else if (customer.rank === 'vip') rankText = 'VIP';
-        else rankText = '일반';
+        else rankText = '?�반';
         
         tr.innerHTML = `
             <td>${index + 1}</td>
             <td>${customer.name}</td>
             <td><span class="badge ${rankBadgeClass}">${rankText}</span></td>
             <td>${formatCurrency(customer.totalPurchase || 0)}</td>
-            <td>${customer.purchaseCount || 0}회</td>
-            <td><button class="btn btn-sm btn-outline-secondary view-rank-history" data-customer-id="${customer.id}">등급 변경 이력</button></td>
+            <td>${customer.purchaseCount || 0}??/td>
+            <td><button class="btn btn-sm btn-outline-secondary view-rank-history" data-customer-id="${customer.id}">?�급 변�??�력</button></td>
         `;
         
         tbody.appendChild(tr);
     });
     
-    // 등급 변경 이력 버튼 이벤트 리스너
+    // ?�급 변�??�력 버튼 ?�벤??리스??
     document.querySelectorAll('.view-rank-history').forEach(button => {
         button.addEventListener('click', () => {
             const customerId = parseInt(button.getAttribute('data-customer-id'));
@@ -1119,7 +1119,7 @@ function loadRankingCounts() {
     });
 }
 
-// 선물 이력 렌더링 함수
+// ?�물 ?�력 ?�더�??�수
 function renderGiftHistory(giftList) {
     const tbody = document.getElementById('gift-history-body');
     tbody.innerHTML = '';
@@ -1136,7 +1136,7 @@ function renderGiftHistory(giftList) {
                 <td>${gift.description}</td>
                 <td>${formatDate(gift.date)}</td>
                 <td>${gift.reason}</td>
-                <td><button class="btn btn-sm btn-outline-primary view-customer-details" data-customer-id="${customer.id}">상세보기</button></td>
+                <td><button class="btn btn-sm btn-outline-primary view-customer-details" data-customer-id="${customer.id}">?�세보기</button></td>
             `;
             
             tbody.appendChild(tr);
@@ -1144,36 +1144,36 @@ function renderGiftHistory(giftList) {
     });
     
     if (giftList.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center">검색 결과가 없습니다.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center">검??결과가 ?�습?�다.</td></tr>';
     }
     
-    // 선물 이력에서 고객 상세보기 버튼 이벤트 리스너
+    // ?�물 ?�력?�서 고객 ?�세보기 버튼 ?�벤??리스??
     document.querySelectorAll('.view-customer-details').forEach(button => {
         button.addEventListener('click', () => {
             const customerId = parseInt(button.getAttribute('data-customer-id'));
-            // 새 창에서 고객 상세 정보 페이지 열기 (선물 탭 활성화)
+            // ??창에??고객 ?�세 ?�보 ?�이지 ?�기 (?�물 ???�성??
             window.open(`customer-details.html?id=${customerId}#gift-tab`, `customer_${customerId}`, 'width=1000,height=800');
         });
     });
 }
 
-// 방문 주기 요약 계산 함수
+// 방문 주기 ?�약 계산 ?�수
 function getVisitSummary() {
     const summary = [];
     
     customers.forEach(customer => {
-        // 고객별 방문 내역
+        // 고객�?방문 ?�역
         const customerVisits = visits.filter(v => v.customerId === customer.id);
         
         if (customerVisits.length > 0) {
-            // 방문 날짜 정렬
+            // 방문 ?�짜 ?�렬
             const sortedDates = customerVisits.map(v => new Date(v.date))
                 .sort((a, b) => b - a);
             
-            // 최근 방문일
+            // 최근 방문??
             const lastVisit = sortedDates[0];
             
-            // 방문 주기 계산 (평균 일수)
+            // 방문 주기 계산 (?�균 ?�수)
             let averageCycle = 0;
             if (sortedDates.length > 1) {
                 let totalDays = 0;
@@ -1185,16 +1185,16 @@ function getVisitSummary() {
                 averageCycle = Math.round(totalDays / (sortedDates.length - 1));
             }
             
-            // 다음 예상 방문일
+            // ?�음 ?�상 방문??
             const nextExpectedVisit = new Date(lastVisit);
             nextExpectedVisit.setDate(nextExpectedVisit.getDate() + averageCycle);
             
-            // 오늘과 다음 예상 방문일 사이의 일수
+            // ?�늘�??�음 ?�상 방문???�이???�수
             const today = new Date();
             const diffTime = nextExpectedVisit - today;
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             
-            // 요약 정보 추가
+            // ?�약 ?�보 추�?
             summary.push({
                 id: customer.id,
                 name: customer.name,
@@ -1210,7 +1210,7 @@ function getVisitSummary() {
     return summary;
 }
 
-// 방문 주기 관리 렌더링 함수
+// 방문 주기 관�??�더�??�수
 function renderVisitTracking(summaryList) {
     const tbody = document.getElementById('visit-list-body');
     tbody.innerHTML = '';
@@ -1218,12 +1218,12 @@ function renderVisitTracking(summaryList) {
     summaryList.forEach((summary, index) => {
         const tr = document.createElement('tr');
         
-        // 다음 방문 예정일에 따른 클래스 설정
+        // ?�음 방문 ?�정?�에 ?�른 ?�래???�정
         let visitClass = '';
         if (summary.daysUntilNextVisit < 0) {
-            visitClass = 'visit-due'; // 방문 예정일 지남
+            visitClass = 'visit-due'; // 방문 ?�정??지??
         } else if (summary.daysUntilNextVisit <= 7) {
-            visitClass = 'visit-upcoming'; // 방문 예정일 일주일 이내
+            visitClass = 'visit-upcoming'; // 방문 ?�정???�주???�내
         } else {
             visitClass = 'visit-recent'; // 최근 방문
         }
@@ -1232,30 +1232,30 @@ function renderVisitTracking(summaryList) {
             <td>${index + 1}</td>
             <td>${summary.name}</td>
             <td>${formatDate(summary.lastVisit)}</td>
-            <td>${summary.averageCycle > 0 ? summary.averageCycle + '일' : '-'}</td>
-            <td>${summary.visitCount}회</td>
+            <td>${summary.averageCycle > 0 ? summary.averageCycle + '?? : '-'}</td>
+            <td>${summary.visitCount}??/td>
             <td class="${visitClass}">${formatDate(summary.nextExpectedVisit)}</td>
-            <td><button class="btn btn-sm btn-outline-primary view-visit-details" data-customer-id="${summary.id}">상세보기</button></td>
+            <td><button class="btn btn-sm btn-outline-primary view-visit-details" data-customer-id="${summary.id}">?�세보기</button></td>
         `;
         
         tbody.appendChild(tr);
     });
     
     if (summaryList.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center">검색 결과가 없습니다.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center">검??결과가 ?�습?�다.</td></tr>';
     }
     
-    // 상세보기 버튼 이벤트 리스너 추가
+    // ?�세보기 버튼 ?�벤??리스??추�?
     document.querySelectorAll('.view-visit-details').forEach(button => {
         button.addEventListener('click', () => {
             const customerId = parseInt(button.getAttribute('data-customer-id'));
-            // 새 창에서 고객 상세 정보 페이지 열기 (방문 탭 활성화)
+            // ??창에??고객 ?�세 ?�보 ?�이지 ?�기 (방문 ???�성??
             window.open(`customer-details.html?id=${customerId}#visit-tab`, `customer_${customerId}`, 'width=1000,height=800');
         });
     });
 }
 
-// 고객 상세 정보 모달 열기
+// 고객 ?�세 ?�보 모달 ?�기
 function openCustomerDetails(customerId) {
     const customer = customers.find(c => c.id === customerId);
     if (!customer) return;
@@ -1263,22 +1263,22 @@ function openCustomerDetails(customerId) {
     const customerInfo = document.getElementById('customer-info-content');
     customerInfo.setAttribute('data-customer-id', customerId);
     
-    // 고객 기본 정보 표시
+    // 고객 기본 ?�보 ?�시
     let genderText = '';
-    if (customer.gender === 'male') genderText = '남성';
-    else if (customer.gender === 'female') genderText = '여성';
+    if (customer.gender === 'male') genderText = '?�성';
+    else if (customer.gender === 'female') genderText = '?�성';
     
-    // 등급에 따른 배지 클래스 설정
+    // ?�급???�른 배�? ?�래???�정
     let rankBadgeClass = '';
     if (customer.rank === 'vvip') rankBadgeClass = 'badge-vvip';
     else if (customer.rank === 'vip') rankBadgeClass = 'badge-vip';
     else rankBadgeClass = 'badge-regular';
     
-    // 한글 등급 변환
+    // ?��? ?�급 변??
     let rankText = '';
     if (customer.rank === 'vvip') rankText = 'VVIP';
     else if (customer.rank === 'vip') rankText = 'VIP';
-    else rankText = '일반';
+    else rankText = '?�반';
     
     const customerHtml = `
         <div class="customer-detail-header mb-4">
@@ -1287,7 +1287,7 @@ function openCustomerDetails(customerId) {
                 <div>
                     <span class="badge ${rankBadgeClass}">${rankText}</span>
                     <button class="btn btn-sm btn-outline-secondary ms-2 view-rank-history" data-customer-id="${customer.id}">
-                        <i class="bi bi-clock-history"></i> 등급 이력
+                        <i class="bi bi-clock-history"></i> ?�급 ?�력
                     </button>
                 </div>
                 <div><i class="bi bi-telephone"></i> ${customer.phone}</div>
@@ -1298,7 +1298,7 @@ function openCustomerDetails(customerId) {
         <div class="row mb-4">
             <div class="col-md-6">
                 <div class="card h-100">
-                    <div class="card-header">기본 정보</div>
+                    <div class="card-header">기본 ?�보</div>
                     <div class="card-body">
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item d-flex justify-content-between">
@@ -1306,11 +1306,11 @@ function openCustomerDetails(customerId) {
                                 <span class="text-muted">${customer.address || '-'}</span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between">
-                                <span>주방문매장</span>
+                                <span>주방문매??/span>
                                 <span class="text-muted">${customer.preferredStore || '-'}</span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between">
-                                <span>최근 방문일</span>
+                                <span>최근 방문??/span>
                                 <span class="text-muted">${customer.lastVisit ? formatDate(customer.lastVisit) : '-'}</span>
                             </li>
                         </ul>
@@ -1319,16 +1319,16 @@ function openCustomerDetails(customerId) {
             </div>
             <div class="col-md-6">
                 <div class="card h-100">
-                    <div class="card-header">구매 정보</div>
+                    <div class="card-header">구매 ?�보</div>
                     <div class="card-body">
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item d-flex justify-content-between">
-                                <span>총 구매액</span>
+                                <span>�?구매??/span>
                                 <span class="text-primary fw-bold">${formatCurrency(customer.totalPurchase)}</span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between">
-                                <span>구매 횟수</span>
-                                <span>${customer.purchaseCount}회</span>
+                                <span>구매 ?�수</span>
+                                <span>${customer.purchaseCount}??/span>
                             </li>
                             <li class="list-group-item">
                                 <div class="d-flex justify-content-between mb-2">
@@ -1344,7 +1344,7 @@ function openCustomerDetails(customerId) {
                                     </div>
                                     <div class="d-flex justify-content-end">
                                         <button class="btn btn-sm btn-secondary me-2" id="cancel-note-btn">취소</button>
-                                        <button class="btn btn-sm btn-primary" id="save-note-btn">저장</button>
+                                        <button class="btn btn-sm btn-primary" id="save-note-btn">?�??/button>
                                     </div>
                                 </div>
                             </li>
@@ -1357,58 +1357,58 @@ function openCustomerDetails(customerId) {
     
     customerInfo.innerHTML = customerHtml;
     
-    // 메모 편집 버튼 이벤트 리스너
+    // 메모 ?�집 버튼 ?�벤??리스??
     document.getElementById('edit-note-btn').addEventListener('click', () => {
         document.getElementById('customer-note').classList.add('d-none');
         document.getElementById('note-edit-form').classList.remove('d-none');
     });
     
-    // 메모 편집 취소 버튼 이벤트 리스너
+    // 메모 ?�집 취소 버튼 ?�벤??리스??
     document.getElementById('cancel-note-btn').addEventListener('click', () => {
         document.getElementById('customer-note').classList.remove('d-none');
         document.getElementById('note-edit-form').classList.add('d-none');
     });
     
-    // 메모 저장 버튼 이벤트 리스너
+    // 메모 ?�??버튼 ?�벤??리스??
     document.getElementById('save-note-btn').addEventListener('click', () => {
         const newNote = document.getElementById('note-input').value;
         customer.notes = newNote;
         
-        // 데이터 저장
-        saveDataToStorage();
+        // ?�이???�??
+        saveDataToFirebase();
         
-        // UI 업데이트
+        // UI ?�데?�트
         document.getElementById('customer-note').innerHTML = newNote || '-';
         document.getElementById('customer-note').classList.remove('d-none');
         document.getElementById('note-edit-form').classList.add('d-none');
     });
     
-    // 등급 변경 이력 버튼 이벤트 리스너
+    // ?�급 변�??�력 버튼 ?�벤??리스??
     document.querySelector('.view-rank-history').addEventListener('click', () => {
         viewRankChangeHistory(customerId);
     });
     
-    // 첫 번째 탭 (구매 이력) 로드
+    // �?번째 ??(구매 ?�력) 로드
     loadCustomerPurchases(customerId);
     
-    // 모달 표시
+    // 모달 ?�시
     const customerDetailsModal = new bootstrap.Modal(document.getElementById('customer-details-modal'));
     customerDetailsModal.show();
 }
 
-// 고객별 구매 이력 로드 함수
+// 고객�?구매 ?�력 로드 ?�수
 function loadCustomerPurchases(customerId) {
     const customerPurchases = purchases.filter(p => p.customerId === customerId);
     const purchaseContent = document.getElementById('purchase-history-content');
     purchaseContent.setAttribute('data-customer-id', customerId);
     
     if (customerPurchases.length === 0) {
-        purchaseContent.innerHTML = '<p class="text-center">구매 이력이 없습니다.</p>';
+        purchaseContent.innerHTML = '<p class="text-center">구매 ?�력???�습?�다.</p>';
         return;
     }
     
     let html = '<div class="table-responsive"><table class="table table-striped">';
-    html += '<thead><tr><th>구매일</th><th>구매제품</th><th>결제금액</th><th>주문장번호</th><th>구매매장</th><th>담당셀러</th><th>메모</th><th>결제방법</th><th>관리</th></tr></thead><tbody>';
+    html += '<thead><tr><th>구매??/th><th>구매?�품</th><th>결제금액</th><th>주문?�번??/th><th>구매매장</th><th>?�당?�??/th><th>메모</th><th>결제방법</th><th>관�?/th></tr></thead><tbody>';
     
     customerPurchases.forEach(purchase => {
         html += `<tr>
@@ -1440,7 +1440,7 @@ function loadCustomerPurchases(customerId) {
     html += '</tbody></table></div>';
     purchaseContent.innerHTML = html;
     
-    // 구매 이력 수정 버튼 이벤트 리스너
+    // 구매 ?�력 ?�정 버튼 ?�벤??리스??
     document.querySelectorAll('.edit-purchase').forEach(button => {
         button.addEventListener('click', () => {
             const purchaseId = parseInt(button.getAttribute('data-purchase-id'));
@@ -1448,7 +1448,7 @@ function loadCustomerPurchases(customerId) {
         });
     });
     
-    // 구매 이력 삭제 버튼 이벤트 리스너
+    // 구매 ?�력 ??�� 버튼 ?�벤??리스??
     document.querySelectorAll('.delete-purchase').forEach(button => {
         button.addEventListener('click', () => {
             const purchaseId = parseInt(button.getAttribute('data-purchase-id'));
@@ -1457,18 +1457,18 @@ function loadCustomerPurchases(customerId) {
     });
 }
 
-// 고객별 선물 이력 로드 함수
+// 고객�??�물 ?�력 로드 ?�수
 function loadCustomerGifts(customerId) {
     const customerGifts = gifts.filter(g => g.customerId === customerId);
     const giftContent = document.getElementById('gift-history-content');
     
     if (customerGifts.length === 0) {
-        giftContent.innerHTML = '<p class="text-center">선물 이력이 없습니다.</p>';
+        giftContent.innerHTML = '<p class="text-center">?�물 ?�력???�습?�다.</p>';
         return;
     }
     
     let html = '<div class="table-responsive"><table class="table table-striped">';
-    html += '<thead><tr><th>날짜</th><th>선물 종류</th><th>선물 내용</th><th>제공 이유</th><th>관리</th></tr></thead><tbody>';
+    html += '<thead><tr><th>?�짜</th><th>?�물 종류</th><th>?�물 ?�용</th><th>?�공 ?�유</th><th>관�?/th></tr></thead><tbody>';
     
     customerGifts.forEach(gift => {
         html += `<tr>
@@ -1492,7 +1492,7 @@ function loadCustomerGifts(customerId) {
     html += '</tbody></table></div>';
     giftContent.innerHTML = html;
     
-    // 선물 이력 수정 버튼 이벤트 리스너
+    // ?�물 ?�력 ?�정 버튼 ?�벤??리스??
     document.querySelectorAll('.edit-gift').forEach(button => {
         button.addEventListener('click', () => {
             const giftId = parseInt(button.getAttribute('data-gift-id'));
@@ -1500,7 +1500,7 @@ function loadCustomerGifts(customerId) {
         });
     });
     
-    // 선물 이력 삭제 버튼 이벤트 리스너
+    // ?�물 ?�력 ??�� 버튼 ?�벤??리스??
     document.querySelectorAll('.delete-gift').forEach(button => {
         button.addEventListener('click', () => {
             const giftId = parseInt(button.getAttribute('data-gift-id'));
@@ -1509,23 +1509,23 @@ function loadCustomerGifts(customerId) {
     });
 }
 
-// 고객별 방문 이력 로드 함수
+// 고객�?방문 ?�력 로드 ?�수
 function loadCustomerVisits(customerId) {
     const customerVisits = visits.filter(v => v.customerId === customerId);
     const visitContent = document.getElementById('visit-history-content');
     
     if (customerVisits.length === 0) {
-        visitContent.innerHTML = '<p class="text-center">방문 이력이 없습니다.</p>';
+        visitContent.innerHTML = '<p class="text-center">방문 ?�력???�습?�다.</p>';
         return;
     }
     
-    // 방문 날짜 기준으로 정렬 (최신순)
+    // 방문 ?�짜 기�??�로 ?�렬 (최신??
     const sortedVisits = [...customerVisits].sort((a, b) => 
         new Date(b.date) - new Date(a.date)
     );
     
     let html = '<div class="table-responsive"><table class="table table-striped">';
-    html += '<thead><tr><th>날짜</th><th>방문 목적</th><th>메모</th><th>관리</th></tr></thead><tbody>';
+    html += '<thead><tr><th>?�짜</th><th>방문 목적</th><th>메모</th><th>관�?/th></tr></thead><tbody>';
     
     sortedVisits.forEach(visit => {
         html += `<tr>
@@ -1548,7 +1548,7 @@ function loadCustomerVisits(customerId) {
     html += '</tbody></table></div>';
     visitContent.innerHTML = html;
     
-    // 방문 이력 수정 버튼 이벤트 리스너
+    // 방문 ?�력 ?�정 버튼 ?�벤??리스??
     document.querySelectorAll('.edit-visit').forEach(button => {
         button.addEventListener('click', () => {
             const visitId = parseInt(button.getAttribute('data-visit-id'));
@@ -1556,7 +1556,7 @@ function loadCustomerVisits(customerId) {
         });
     });
     
-    // 방문 이력 삭제 버튼 이벤트 리스너
+    // 방문 ?�력 ??�� 버튼 ?�벤??리스??
     document.querySelectorAll('.delete-visit').forEach(button => {
         button.addEventListener('click', () => {
             const visitId = parseInt(button.getAttribute('data-visit-id'));
@@ -1565,80 +1565,80 @@ function loadCustomerVisits(customerId) {
     });
 }
 
-// 구매 이력 PDF 생성 함수
+// 구매 ?�력 PDF ?�성 ?�수
 function generatePurchasePDF(customerId) {
     const customer = customers.find(c => c.id === customerId);
     const customerPurchases = purchases.filter(p => p.customerId === customerId);
     
     if (!customer || customerPurchases.length === 0) {
-        alert('PDF로 변환할 구매 이력이 없습니다.');
+        alert('PDF�?변?�할 구매 ?�력???�습?�다.');
         return;
     }
     
-    // PDF 생성
+    // PDF ?�성
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    // 제목
+    // ?�목
     doc.setFontSize(18);
-    doc.text('아서앤그레이스 고객 구매 이력', 14, 20);
+    doc.text('?�서?�그?�이??고객 구매 ?�력', 14, 20);
     
-    // 고객 정보
+    // 고객 ?�보
     doc.setFontSize(12);
-    doc.text(`고객명: ${customer.name}`, 14, 30);
-    doc.text(`연락처: ${customer.phone}`, 14, 37);
-    doc.text(`등급: ${customer.rank.toUpperCase()}`, 14, 44);
-    doc.text(`총 구매액: ${formatCurrency(customer.totalPurchase)}`, 14, 51);
+    doc.text(`고객�? ${customer.name}`, 14, 30);
+    doc.text(`?�락�? ${customer.phone}`, 14, 37);
+    doc.text(`?�급: ${customer.rank.toUpperCase()}`, 14, 44);
+    doc.text(`�?구매?? ${formatCurrency(customer.totalPurchase)}`, 14, 51);
     
-    // 구매 이력 테이블
+    // 구매 ?�력 ?�이�?
     doc.setFontSize(14);
-    doc.text('구매 이력', 14, 65);
+    doc.text('구매 ?�력', 14, 65);
     
     let yPosition = 75;
     const pageWidth = doc.internal.pageSize.getWidth();
     
     customerPurchases.forEach((purchase, index) => {
-        // 페이지 확인 및 새 페이지 추가
+        // ?�이지 ?�인 �????�이지 추�?
         if (yPosition > 250) {
             doc.addPage();
             yPosition = 20;
         }
         
-        // 구매 정보
+        // 구매 ?�보
         doc.setFontSize(12);
-        doc.text(`${index + 1}. 구매일: ${formatDate(purchase.date)}`, 14, yPosition);
+        doc.text(`${index + 1}. 구매?? ${formatDate(purchase.date)}`, 14, yPosition);
         yPosition += 7;
         doc.text(`   결제 금액: ${formatCurrency(purchase.totalAmount)}`, 14, yPosition);
         yPosition += 7;
         doc.text(`   결제 방법: ${purchase.paymentMethod}`, 14, yPosition);
         yPosition += 7;
         
-        // 주문장번호 추가
+        // 주문?�번??추�?
         if (purchase.orderNumber) {
-            doc.text(`   주문장번호: ${purchase.orderNumber}`, 14, yPosition);
+            doc.text(`   주문?�번?? ${purchase.orderNumber}`, 14, yPosition);
             yPosition += 7;
         }
         
-        // 구매매장 정보 추가
+        // 구매매장 ?�보 추�?
         if (purchase.store) {
             doc.text(`   구매매장: ${purchase.store}`, 14, yPosition);
             yPosition += 7;
         }
         
-        // 담당셀러 정보 추가
+        // ?�당?�???�보 추�?
         if (purchase.staff) {
-            doc.text(`   담당셀러: ${purchase.staff}`, 14, yPosition);
+            doc.text(`   ?�당?�?? ${purchase.staff}`, 14, yPosition);
             yPosition += 7;
         }
         
-        // 메모 정보 추가
+        // 메모 ?�보 추�?
         if (purchase.memo) {
             doc.text(`   메모: ${purchase.memo}`, 14, yPosition);
             yPosition += 7;
         }
         
-        // 구매 항목
-        doc.text('   구매 제품:', 14, yPosition);
+        // 구매 ??��
+        doc.text('   구매 ?�품:', 14, yPosition);
         yPosition += 7;
         
         purchase.items.forEach(item => {
@@ -1646,36 +1646,36 @@ function generatePurchasePDF(customerId) {
             yPosition += 7;
         });
         
-        // 구분선
+        // 구분??
         doc.setDrawColor(200, 200, 200);
         doc.line(14, yPosition, pageWidth - 14, yPosition);
         yPosition += 10;
     });
     
-    // 날짜 형식의 파일명 생성
+    // ?�짜 ?�식???�일�??�성
     const today = new Date();
-    const fileName = `${customer.name}_구매이력_${today.getFullYear()}${(today.getMonth() + 1).toString().padStart(2, '0')}${today.getDate().toString().padStart(2, '0')}.pdf`;
+    const fileName = `${customer.name}_구매?�력_${today.getFullYear()}${(today.getMonth() + 1).toString().padStart(2, '0')}${today.getDate().toString().padStart(2, '0')}.pdf`;
     
-    // PDF 저장
+    // PDF ?�??
     doc.save(fileName);
 }
 
-// 고객 정보 편집 함수
+// 고객 ?�보 ?�집 ?�수
 function editCustomerInfo(customerId) {
     const customer = customers.find(c => c.id === customerId);
     if (!customer) return;
     
-    // 현재 모달을 숨기고 편집 모달 표시
+    // ?�재 모달???�기�??�집 모달 ?�시
     const currentModal = bootstrap.Modal.getInstance(document.getElementById('customer-details-modal'));
     currentModal.hide();
     
-    // 편집 폼 생성
+    // ?�집 ???�성
     const editForm = `
     <div class="modal fade" id="edit-customer-modal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">고객 정보 수정</h5>
+                    <h5 class="modal-title">고객 ?�보 ?�정</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -1684,23 +1684,23 @@ function editCustomerInfo(customerId) {
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="edit-name" class="form-label">이름</label>
+                                    <label for="edit-name" class="form-label">?�름</label>
                                     <input type="text" class="form-control" id="edit-name" value="${customer.name}" required>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="edit-gender" class="form-label">성별</label>
+                                    <label for="edit-gender" class="form-label">?�별</label>
                                     <select class="form-control" id="edit-gender">
-                                        <option value="" ${!customer.gender ? 'selected' : ''}>선택 안함</option>
-                                        <option value="male" ${customer.gender === 'male' ? 'selected' : ''}>남성</option>
-                                        <option value="female" ${customer.gender === 'female' ? 'selected' : ''}>여성</option>
+                                        <option value="" ${!customer.gender ? 'selected' : ''}>?�택 ?�함</option>
+                                        <option value="male" ${customer.gender === 'male' ? 'selected' : ''}>?�성</option>
+                                        <option value="female" ${customer.gender === 'female' ? 'selected' : ''}>?�성</option>
                                     </select>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="edit-phone" class="form-label">전화번호</label>
+                                    <label for="edit-phone" class="form-label">?�화번호</label>
                                     <input type="tel" class="form-control" id="edit-phone" value="${customer.phone}" required>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="edit-birthdate" class="form-label">생년월일</label>
+                                    <label for="edit-birthdate" class="form-label">?�년?�일</label>
                                     <input type="date" class="form-control" id="edit-birthdate" value="${customer.birthdate}">
                                 </div>
                             </div>
@@ -1710,19 +1710,19 @@ function editCustomerInfo(customerId) {
                                     <input type="text" class="form-control" id="edit-address" value="${customer.address || ''}">
                                 </div>
                                 <div class="mb-3">
-                                    <label for="edit-preferred-store" class="form-label">주방문매장</label>
+                                    <label for="edit-preferred-store" class="form-label">주방문매??/label>
                                     <input type="text" class="form-control" id="edit-preferred-store" value="${customer.preferredStore || ''}">
                                 </div>
                                 <div class="mb-3">
-                                    <label for="edit-email" class="form-label">이메일</label>
+                                    <label for="edit-email" class="form-label">?�메??/label>
                                     <input type="email" class="form-control" id="edit-email" value="${customer.email || ''}">
                                 </div>
                                 <div class="mb-3">
-                                    <label for="edit-rank" class="form-label">등급</label>
+                                    <label for="edit-rank" class="form-label">?�급</label>
                                     <select class="form-control" id="edit-rank">
                                         <option value="vvip" ${customer.rank === 'vvip' ? 'selected' : ''}>VVIP</option>
                                         <option value="vip" ${customer.rank === 'vip' ? 'selected' : ''}>VIP</option>
-                                        <option value="regular" ${customer.rank === 'regular' ? 'selected' : ''}>일반</option>
+                                        <option value="regular" ${customer.rank === 'regular' ? 'selected' : ''}>?�반</option>
                                     </select>
                                 </div>
                             </div>
@@ -1733,7 +1733,7 @@ function editCustomerInfo(customerId) {
                         </div>
                         <div class="text-end">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
-                            <button type="submit" class="btn btn-primary">저장</button>
+                            <button type="submit" class="btn btn-primary">?�??/button>
                         </div>
                     </form>
                 </div>
@@ -1742,22 +1742,22 @@ function editCustomerInfo(customerId) {
     </div>
     `;
     
-    // 편집 모달이 이미 있으면 제거
+    // ?�집 모달???��? ?�으�??�거
     const existingModal = document.getElementById('edit-customer-modal');
     if (existingModal) {
         existingModal.remove();
     }
     
-    // 편집 모달 추가 및 표시
+    // ?�집 모달 추�? �??�시
     document.body.insertAdjacentHTML('beforeend', editForm);
     const editModal = new bootstrap.Modal(document.getElementById('edit-customer-modal'));
     editModal.show();
     
-    // 편집 폼 제출 이벤트 리스너
+    // ?�집 ???�출 ?�벤??리스??
     document.getElementById('edit-customer-form').addEventListener('submit', (e) => {
         e.preventDefault();
         
-        // 수정된 데이터 가져오기
+        // ?�정???�이??가?�오�?
         const editedCustomer = {
             id: parseInt(document.getElementById('edit-customer-id').value),
             name: document.getElementById('edit-name').value,
@@ -1774,54 +1774,54 @@ function editCustomerInfo(customerId) {
             lastVisit: customer.lastVisit
         };
         
-        // 고객 데이터 업데이트
+        // 고객 ?�이???�데?�트
         const index = customers.findIndex(c => c.id === editedCustomer.id);
         if (index !== -1) {
             customers[index] = editedCustomer;
             
-            // 데이터 저장
-            saveDataToStorage();
+            // ?�이???�??
+            saveDataToFirebase();
         }
         
-        // 모달 닫기
+        // 모달 ?�기
         editModal.hide();
         
-        // 고객 목록 새로고침
+        // 고객 목록 ?�로고침
         loadCustomerList();
         
-        // 상세 정보 모달 다시 열기
+        // ?�세 ?�보 모달 ?�시 ?�기
         setTimeout(() => {
             openCustomerDetails(editedCustomer.id);
         }, 500);
     });
 }
 
-// 날짜 포맷 함수 (YYYY-MM-DD -> YYYY년 MM월 DD일)
+// ?�짜 ?�맷 ?�수 (YYYY-MM-DD -> YYYY??MM??DD??
 function formatDate(dateString) {
     if (!dateString) return '-';
     const parts = dateString.split('-');
     if (parts.length !== 3) return dateString;
     
-    return `${parts[0]}년 ${parts[1]}월 ${parts[2]}일`;
+    return `${parts[0]}??${parts[1]}??${parts[2]}??;
 }
 
-// 금액 포맷 함수 (1000000 -> 1,000,000원)
+// 금액 ?�맷 ?�수 (1000000 -> 1,000,000??
 function formatCurrency(amount) {
-    return amount.toLocaleString('ko-KR') + '원';
+    return amount.toLocaleString('ko-KR') + '??;
 }
 
-// 전화번호 포맷팅 함수
+// ?�화번호 ?�맷???�수
 function formatPhoneNumber(phone) {
     if (!phone) return '-';
     
-    // 숫자만 추출
+    // ?�자�?추출
     const cleaned = phone.replace(/\D/g, '');
     
-    // 11자리 휴대폰 번호 (010-xxxx-xxxx)
+    // 11?�리 ?��???번호 (010-xxxx-xxxx)
     if (cleaned.length === 11) {
         return cleaned.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
     }
-    // 10자리 번호 (010-xxx-xxxx 또는 02-xxx-xxxx)
+    // 10?�리 번호 (010-xxx-xxxx ?�는 02-xxx-xxxx)
     else if (cleaned.length === 10) {
         if (cleaned.startsWith('02')) {
             return cleaned.replace(/(\d{2})(\d{4})(\d{4})/, '$1-$2-$3');
@@ -1829,21 +1829,21 @@ function formatPhoneNumber(phone) {
             return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
         }
     }
-    // 8자리 번호 (02-xxx-xxxx)
+    // 8?�리 번호 (02-xxx-xxxx)
     else if (cleaned.length === 8) {
         return cleaned.replace(/(\d{4})(\d{4})/, '02-$1-$2');
     }
-    // 기타 형식은 원본 반환
+    // 기�? ?�식?� ?�본 반환
     else {
         return phone;
     }
 }
 
-// 고객 등급 업데이트 함수
+// 고객 ?�급 ?�데?�트 ?�수
 function updateCustomerRank(customer) {
     const oldRank = customer.rank;
     
-    // 새 등급 기준: 2천만원 이상 VVIP, 천만원 이상 VIP, 나머지 일반
+    // ???�급 기�?: 2천만???�상 VVIP, 천만???�상 VIP, ?�머지 ?�반
     if (customer.totalPurchase >= 20000000) {
         customer.rank = 'vvip';
     } else if (customer.totalPurchase >= 10000000) {
@@ -1852,26 +1852,26 @@ function updateCustomerRank(customer) {
         customer.rank = 'regular';
     }
     
-    // 등급이 변경되었을 경우 이력 추가
+    // ?�급??변경되?�을 경우 ?�력 추�?
     if (oldRank !== customer.rank) {
         const rankChange = {
             id: rankChanges.length > 0 ? Math.max(...rankChanges.map(r => r.id)) + 1 : 1,
             customerId: customer.id,
             oldRank: oldRank,
             newRank: customer.rank,
-            reason: `구매 누적 금액 ${formatCurrency(customer.totalPurchase)}에 따른 자동 등급 변경`,
+            reason: `구매 ?�적 금액 ${formatCurrency(customer.totalPurchase)}???�른 ?�동 ?�급 변�?,
             date: new Date().toISOString().split('T')[0],
-            changedBy: localStorage.getItem('username') || '시스템'
+            changedBy: localStorage.getItem('username') || '?�스??
         };
         
         rankChanges.push(rankChange);
-        saveDataToStorage();
+        saveDataToFirebase();
     }
     
     return customer;
 }
 
-// 모든 고객의 등급을 새로운 기준으로 업데이트하는 함수
+// 모든 고객???�급???�로??기�??�로 ?�데?�트?�는 ?�수
 function updateAllCustomerRanks() {
     let updatedCount = 0;
     
@@ -1885,24 +1885,24 @@ function updateAllCustomerRanks() {
     });
     
     if (updatedCount > 0) {
-        saveDataToStorage();
-        console.log(`${updatedCount}명의 고객 등급이 새로운 기준으로 업데이트되었습니다.`);
+        saveDataToFirebase();
+        console.log(`${updatedCount}명의 고객 ?�급???�로??기�??�로 ?�데?�트?�었?�니??`);
     }
 }
 
-// 고객 삭제 함수
+// 고객 ??�� ?�수
 function deleteCustomer(customerId) {
     const customer = customers.find(c => c.id === customerId);
     if (!customer) return;
     
-    // 삭제 확인
-    if (confirm(`정말로 ${customer.name} 고객의 정보를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) {
-        // 관련된 구매 이력, 선물 이력, 방문 이력도 함께 삭제
+    // ??�� ?�인
+    if (confirm(`?�말�?${customer.name} 고객???�보�???��?�시겠습?�까? ???�업?� ?�돌�????�습?�다.`)) {
+        // 관?�된 구매 ?�력, ?�물 ?�력, 방문 ?�력???�께 ??��
         const customerPurchases = purchases.filter(p => p.customerId === customerId);
         const customerGifts = gifts.filter(g => g.customerId === customerId);
         const customerVisits = visits.filter(v => v.customerId === customerId);
         
-        // 구매 이력 삭제
+        // 구매 ?�력 ??��
         customerPurchases.forEach(purchase => {
             const index = purchases.findIndex(p => p.id === purchase.id);
             if (index !== -1) {
@@ -1910,7 +1910,7 @@ function deleteCustomer(customerId) {
             }
         });
         
-        // 선물 이력 삭제
+        // ?�물 ?�력 ??��
         customerGifts.forEach(gift => {
             const index = gifts.findIndex(g => g.id === gift.id);
             if (index !== -1) {
@@ -1918,7 +1918,7 @@ function deleteCustomer(customerId) {
             }
         });
         
-        // 방문 이력 삭제
+        // 방문 ?�력 ??��
         customerVisits.forEach(visit => {
             const index = visits.findIndex(v => v.id === visit.id);
             if (index !== -1) {
@@ -1926,35 +1926,35 @@ function deleteCustomer(customerId) {
             }
         });
         
-        // 고객 정보 삭제
+        // 고객 ?�보 ??��
         const index = customers.findIndex(c => c.id === customerId);
         if (index !== -1) {
             customers.splice(index, 1);
             
-            // 데이터 저장
-            saveDataToStorage();
+            // ?�이???�??
+            saveDataToFirebase();
             
-            // 고객 목록 새로고침
+            // 고객 목록 ?�로고침
             loadCustomerList();
             
-            // 알림 표시
-            alert('고객 정보가 삭제되었습니다.');
+            // ?�림 ?�시
+            alert('고객 ?�보가 ??��?�었?�니??');
         }
     }
 }
 
-// 구매 기록 수정 함수
+// 구매 기록 ?�정 ?�수
 function editPurchaseRecord(purchaseId, customerId) {
     const purchase = purchases.find(p => p.id === purchaseId);
     if (!purchase) return;
     
-    // 구매 기록 수정 모달 생성
+    // 구매 기록 ?�정 모달 ?�성
     const editForm = `
     <div class="modal fade" id="edit-purchase-modal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">구매 기록 수정</h5>
+                    <h5 class="modal-title">구매 기록 ?�정</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -1962,12 +1962,12 @@ function editPurchaseRecord(purchaseId, customerId) {
                         <input type="hidden" id="edit-purchase-id" value="${purchase.id}">
                         <input type="hidden" id="edit-purchase-customer-id" value="${purchase.customerId}">
                         <div class="mb-3">
-                            <label for="edit-purchase-date" class="form-label">구매일</label>
+                            <label for="edit-purchase-date" class="form-label">구매??/label>
                             <input type="date" class="form-control" id="edit-purchase-date" value="${purchase.date}" required>
                         </div>
                         <div class="card mb-3">
                             <div class="card-header">
-                                <small class="text-muted">구매 상품 정보</small>
+                                <small class="text-muted">구매 ?�품 ?�보</small>
                             </div>
                             <div class="card-body">
                                 <div id="edit-purchase-items">
@@ -1975,18 +1975,18 @@ function editPurchaseRecord(purchaseId, customerId) {
                                         <div class="purchase-item mb-3">
                                             <div class="row g-2">
                                                 <div class="col-12 col-md-7">
-                                                    <label class="form-label">상품명 *</label>
-                                                    <input type="text" class="form-control item-name" value="${item.name}" required placeholder="구매하신 상품명을 입력하세요">
+                                                    <label class="form-label">?�품�?*</label>
+                                                    <input type="text" class="form-control item-name" value="${item.name}" required placeholder="구매?�신 ?�품명을 ?�력?�세??>
                                                 </div>
                                                 <div class="col-12 col-md-5">
-                                                    <label class="form-label">가격 *</label>
+                                                    <label class="form-label">가�?*</label>
                                                     <input type="number" class="form-control item-price" value="${item.price}" required placeholder="0">
                                                 </div>
                                             </div>
                                             ${index > 0 ? `
                                                 <div class="d-grid mt-2">
                                                     <button type="button" class="btn btn-sm btn-outline-danger remove-item-btn">
-                                                        <i class="bi bi-trash"></i> 이 상품 삭제
+                                                        <i class="bi bi-trash"></i> ???�품 ??��
                                                     </button>
                                                 </div>
                                             ` : ''}
@@ -1995,13 +1995,13 @@ function editPurchaseRecord(purchaseId, customerId) {
                                 </div>
                                 <div class="d-grid">
                                     <button type="button" class="btn btn-outline-secondary" id="edit-add-item-btn">
-                                        <i class="bi bi-plus-circle"></i> 상품 추가
+                                        <i class="bi bi-plus-circle"></i> ?�품 추�?
                                     </button>
                                 </div>
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label for="edit-purchase-order-number" class="form-label">주문장번호</label>
+                            <label for="edit-purchase-order-number" class="form-label">주문?�번??/label>
                             <input type="text" class="form-control" id="edit-purchase-order-number" value="${purchase.orderNumber || ''}">
                         </div>
                         <div class="row mb-3">
@@ -2010,7 +2010,7 @@ function editPurchaseRecord(purchaseId, customerId) {
                                 <input type="text" class="form-control" id="edit-purchase-store" value="${purchase.store || ''}">
                             </div>
                             <div class="col-md-6">
-                                <label for="edit-purchase-staff" class="form-label">담당셀러</label>
+                                <label for="edit-purchase-staff" class="form-label">?�당?�??/label>
                                 <input type="text" class="form-control" id="edit-purchase-staff" value="${purchase.staff || ''}">
                             </div>
                         </div>
@@ -2021,15 +2021,15 @@ function editPurchaseRecord(purchaseId, customerId) {
                         <div class="mb-3">
                             <label for="edit-payment-method" class="form-label">결제 방법</label>
                             <select class="form-control" id="edit-payment-method" required>
-                                <option value="신용카드" ${purchase.paymentMethod === '신용카드' ? 'selected' : ''}>신용카드</option>
-                                <option value="현금" ${purchase.paymentMethod === '현금' ? 'selected' : ''}>현금</option>
-                                <option value="계좌이체" ${purchase.paymentMethod === '계좌이체' ? 'selected' : ''}>계좌이체</option>
-                                <option value="기타" ${purchase.paymentMethod === '기타' ? 'selected' : ''}>기타</option>
+                                <option value="?�용카드" ${purchase.paymentMethod === '?�용카드' ? 'selected' : ''}>?�용카드</option>
+                                <option value="?�금" ${purchase.paymentMethod === '?�금' ? 'selected' : ''}>?�금</option>
+                                <option value="계좌?�체" ${purchase.paymentMethod === '계좌?�체' ? 'selected' : ''}>계좌?�체</option>
+                                <option value="기�?" ${purchase.paymentMethod === '기�?' ? 'selected' : ''}>기�?</option>
                             </select>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
-                            <button type="submit" class="btn btn-primary">저장</button>
+                            <button type="submit" class="btn btn-primary">?�??/button>
                         </div>
                     </form>
                 </div>
@@ -2038,18 +2038,18 @@ function editPurchaseRecord(purchaseId, customerId) {
     </div>
     `;
     
-    // 기존 모달이 있으면 제거
+    // 기존 모달???�으�??�거
     const existingModal = document.getElementById('edit-purchase-modal');
     if (existingModal) {
         existingModal.remove();
     }
     
-    // 모달 추가 및 표시
+    // 모달 추�? �??�시
     document.body.insertAdjacentHTML('beforeend', editForm);
     const editModal = new bootstrap.Modal(document.getElementById('edit-purchase-modal'));
     editModal.show();
     
-    // 상품 추가 버튼 이벤트 리스너
+    // ?�품 추�? 버튼 ?�벤??리스??
     document.getElementById('edit-add-item-btn').addEventListener('click', () => {
         const purchaseItems = document.getElementById('edit-purchase-items');
         const newItem = document.createElement('div');
@@ -2057,36 +2057,36 @@ function editPurchaseRecord(purchaseId, customerId) {
         newItem.innerHTML = `
             <div class="row g-2">
                 <div class="col-12 col-md-7">
-                    <label class="form-label">상품명 *</label>
-                    <input type="text" class="form-control item-name" required placeholder="구매하신 상품명을 입력하세요">
+                    <label class="form-label">?�품�?*</label>
+                    <input type="text" class="form-control item-name" required placeholder="구매?�신 ?�품명을 ?�력?�세??>
                 </div>
                 <div class="col-12 col-md-5">
-                    <label class="form-label">가격 *</label>
+                    <label class="form-label">가�?*</label>
                     <input type="number" class="form-control item-price" required placeholder="0">
                 </div>
             </div>
             <div class="d-grid mt-2">
                 <button type="button" class="btn btn-sm btn-outline-danger remove-item-btn">
-                    <i class="bi bi-trash"></i> 이 상품 삭제
+                    <i class="bi bi-trash"></i> ???�품 ??��
                 </button>
             </div>
         `;
         purchaseItems.appendChild(newItem);
         
-        // 삭제 버튼 이벤트 리스너
+        // ??�� 버튼 ?�벤??리스??
         newItem.querySelector('.remove-item-btn').addEventListener('click', function() {
             this.closest('.purchase-item').remove();
         });
     });
     
-    // 기존 상품 삭제 버튼 이벤트 리스너
+    // 기존 ?�품 ??�� 버튼 ?�벤??리스??
     document.querySelectorAll('#edit-purchase-items .remove-item-btn').forEach(button => {
         button.addEventListener('click', function() {
             this.closest('.purchase-item').remove();
         });
     });
     
-    // 수정 폼 제출 이벤트 리스너
+    // ?�정 ???�출 ?�벤??리스??
     document.getElementById('edit-purchase-form').addEventListener('submit', (e) => {
         e.preventDefault();
         
@@ -2099,7 +2099,7 @@ function editPurchaseRecord(purchaseId, customerId) {
         const orderNumber = document.getElementById('edit-purchase-order-number').value;
         const memo = document.getElementById('edit-purchase-memo').value;
         
-        // 상품 아이템 가져오기
+        // ?�품 ?�이??가?�오�?
         const items = [];
         let totalAmount = 0;
         
@@ -2114,26 +2114,26 @@ function editPurchaseRecord(purchaseId, customerId) {
         });
         
         if (items.length === 0) {
-            alert('상품을 최소 1개 이상 입력해주세요.');
+            alert('?�품??최소 1�??�상 ?�력?�주?�요.');
             return;
         }
         
-        // 구매 기록 수정
+        // 구매 기록 ?�정
         const index = purchases.findIndex(p => p.id === purchaseId);
         if (index !== -1) {
             const oldPurchase = purchases[index];
             
-            // 고객 총 구매액 업데이트 (기존 금액 빼고 새 금액 추가)
+            // 고객 �?구매???�데?�트 (기존 금액 빼고 ??금액 추�?)
             const customer = customers.find(c => c.id === customerId);
             if (customer) {
                 customer.totalPurchase -= oldPurchase.totalAmount;
                 customer.totalPurchase += totalAmount;
                 
-                // 고객 등급 자동 업데이트
+                // 고객 ?�급 ?�동 ?�데?�트
                 updateCustomerRank(customer);
             }
             
-            // 구매 기록 업데이트
+            // 구매 기록 ?�데?�트
             purchases[index] = {
                 ...oldPurchase,
                 date,
@@ -2146,73 +2146,73 @@ function editPurchaseRecord(purchaseId, customerId) {
                 paymentMethod
             };
             
-            // 데이터 저장
-            saveDataToStorage();
+            // ?�이???�??
+            saveDataToFirebase();
             
-            // 모달 닫기
+            // 모달 ?�기
             editModal.hide();
             
-            // 구매 이력 다시 로드
+            // 구매 ?�력 ?�시 로드
             loadCustomerPurchases(customerId);
             
-            // 고객 상세 정보 업데이트 (총 구매액이 변경되었을 수 있음)
+            // 고객 ?�세 ?�보 ?�데?�트 (�?구매?�이 변경되?�을 ???�음)
             openCustomerDetails(customerId);
             
-            // 알림 표시
-            alert('구매 기록이 수정되었습니다.');
+            // ?�림 ?�시
+            alert('구매 기록???�정?�었?�니??');
         }
     });
 }
 
-// 구매 기록 삭제 함수
+// 구매 기록 ??�� ?�수
 function deletePurchaseRecord(purchaseId, customerId) {
     const purchase = purchases.find(p => p.id === purchaseId);
     if (!purchase) return;
     
-    // 삭제 확인
-    if (confirm('정말로 이 구매 기록을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
-        // 고객 총 구매액 및 구매 횟수 업데이트
+    // ??�� ?�인
+    if (confirm('?�말�???구매 기록????��?�시겠습?�까? ???�업?� ?�돌�????�습?�다.')) {
+        // 고객 �?구매??�?구매 ?�수 ?�데?�트
         const customer = customers.find(c => c.id === customerId);
         if (customer) {
             customer.totalPurchase -= purchase.totalAmount;
             customer.purchaseCount -= 1;
             
-            // 고객 등급 자동 업데이트
+            // 고객 ?�급 ?�동 ?�데?�트
             updateCustomerRank(customer);
         }
         
-        // 구매 기록 삭제
+        // 구매 기록 ??��
         const index = purchases.findIndex(p => p.id === purchaseId);
         if (index !== -1) {
             purchases.splice(index, 1);
             
-            // 데이터 저장
-            saveDataToStorage();
+            // ?�이???�??
+            saveDataToFirebase();
             
-            // 구매 이력 다시 로드
+            // 구매 ?�력 ?�시 로드
             loadCustomerPurchases(customerId);
             
-            // 고객 상세 정보 업데이트 (총 구매액이 변경되었을 수 있음)
+            // 고객 ?�세 ?�보 ?�데?�트 (�?구매?�이 변경되?�을 ???�음)
             openCustomerDetails(customerId);
             
-            // 알림 표시
-            alert('구매 기록이 삭제되었습니다.');
+            // ?�림 ?�시
+            alert('구매 기록????��?�었?�니??');
         }
     }
 }
 
-// 선물 기록 수정 함수
+// ?�물 기록 ?�정 ?�수
 function editGiftRecord(giftId, customerId) {
     const gift = gifts.find(g => g.id === giftId);
     if (!gift) return;
     
-    // 선물 기록 수정 모달 생성
+    // ?�물 기록 ?�정 모달 ?�성
     const editForm = `
     <div class="modal fade" id="edit-gift-modal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">선물 기록 수정</h5>
+                    <h5 class="modal-title">?�물 기록 ?�정</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -2220,29 +2220,29 @@ function editGiftRecord(giftId, customerId) {
                         <input type="hidden" id="edit-gift-id" value="${gift.id}">
                         <input type="hidden" id="edit-gift-customer-id" value="${gift.customerId}">
                         <div class="mb-3">
-                            <label for="edit-gift-type" class="form-label">선물 종류</label>
+                            <label for="edit-gift-type" class="form-label">?�물 종류</label>
                             <select class="form-control" id="edit-gift-type" required>
-                                <option value="생일선물" ${gift.type === '생일선물' ? 'selected' : ''}>생일선물</option>
-                                <option value="연말선물" ${gift.type === '연말선물' ? 'selected' : ''}>연말선물</option>
-                                <option value="감사선물" ${gift.type === '감사선물' ? 'selected' : ''}>감사선물</option>
-                                <option value="기타" ${gift.type === '기타' ? 'selected' : ''}>기타</option>
+                                <option value="?�일?�물" ${gift.type === '?�일?�물' ? 'selected' : ''}>?�일?�물</option>
+                                <option value="?�말?�물" ${gift.type === '?�말?�물' ? 'selected' : ''}>?�말?�물</option>
+                                <option value="감사?�물" ${gift.type === '감사?�물' ? 'selected' : ''}>감사?�물</option>
+                                <option value="기�?" ${gift.type === '기�?' ? 'selected' : ''}>기�?</option>
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label for="edit-gift-description" class="form-label">선물 내용</label>
+                            <label for="edit-gift-description" class="form-label">?�물 ?�용</label>
                             <input type="text" class="form-control" id="edit-gift-description" value="${gift.description}" required>
                         </div>
                         <div class="mb-3">
-                            <label for="edit-gift-date" class="form-label">제공일</label>
+                            <label for="edit-gift-date" class="form-label">?�공??/label>
                             <input type="date" class="form-control" id="edit-gift-date" value="${gift.date}" required>
                         </div>
                         <div class="mb-3">
-                            <label for="edit-gift-reason" class="form-label">제공 이유</label>
+                            <label for="edit-gift-reason" class="form-label">?�공 ?�유</label>
                             <input type="text" class="form-control" id="edit-gift-reason" value="${gift.reason}" required>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
-                            <button type="submit" class="btn btn-primary">저장</button>
+                            <button type="submit" class="btn btn-primary">?�??/button>
                         </div>
                     </form>
                 </div>
@@ -2251,18 +2251,18 @@ function editGiftRecord(giftId, customerId) {
     </div>
     `;
     
-    // 기존 모달이 있으면 제거
+    // 기존 모달???�으�??�거
     const existingModal = document.getElementById('edit-gift-modal');
     if (existingModal) {
         existingModal.remove();
     }
     
-    // 모달 추가 및 표시
+    // 모달 추�? �??�시
     document.body.insertAdjacentHTML('beforeend', editForm);
     const editModal = new bootstrap.Modal(document.getElementById('edit-gift-modal'));
     editModal.show();
     
-    // 수정 폼 제출 이벤트 리스너
+    // ?�정 ???�출 ?�벤??리스??
     document.getElementById('edit-gift-form').addEventListener('submit', (e) => {
         e.preventDefault();
         
@@ -2273,10 +2273,10 @@ function editGiftRecord(giftId, customerId) {
         const date = document.getElementById('edit-gift-date').value;
         const reason = document.getElementById('edit-gift-reason').value;
         
-        // 선물 기록 수정
+        // ?�물 기록 ?�정
         const index = gifts.findIndex(g => g.id === giftId);
         if (index !== -1) {
-            // 선물 기록 업데이트
+            // ?�물 기록 ?�데?�트
             gifts[index] = {
                 ...gifts[index],
                 type,
@@ -2285,57 +2285,57 @@ function editGiftRecord(giftId, customerId) {
                 reason
             };
             
-            // 데이터 저장
-            saveDataToStorage();
+            // ?�이???�??
+            saveDataToFirebase();
             
-            // 모달 닫기
+            // 모달 ?�기
             editModal.hide();
             
-            // 선물 이력 다시 로드
+            // ?�물 ?�력 ?�시 로드
             loadCustomerGifts(customerId);
             
-            // 알림 표시
-            alert('선물 기록이 수정되었습니다.');
+            // ?�림 ?�시
+            alert('?�물 기록???�정?�었?�니??');
         }
     });
 }
 
-// 선물 기록 삭제 함수
+// ?�물 기록 ??�� ?�수
 function deleteGiftRecord(giftId, customerId) {
     const gift = gifts.find(g => g.id === giftId);
     if (!gift) return;
     
-    // 삭제 확인
-    if (confirm('정말로 이 선물 기록을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
-        // 선물 기록 삭제
+    // ??�� ?�인
+    if (confirm('?�말�????�물 기록????��?�시겠습?�까? ???�업?� ?�돌�????�습?�다.')) {
+        // ?�물 기록 ??��
         const index = gifts.findIndex(g => g.id === giftId);
         if (index !== -1) {
             gifts.splice(index, 1);
             
-            // 데이터 저장
-            saveDataToStorage();
+            // ?�이???�??
+            saveDataToFirebase();
             
-            // 선물 이력 다시 로드
+            // ?�물 ?�력 ?�시 로드
             loadCustomerGifts(customerId);
             
-            // 알림 표시
-            alert('선물 기록이 삭제되었습니다.');
+            // ?�림 ?�시
+            alert('?�물 기록????��?�었?�니??');
         }
     }
 }
 
-// 방문 기록 수정 함수
+// 방문 기록 ?�정 ?�수
 function editVisitRecord(visitId, customerId) {
     const visit = visits.find(v => v.id === visitId);
     if (!visit) return;
     
-    // 방문 기록 수정 모달 생성
+    // 방문 기록 ?�정 모달 ?�성
     const editForm = `
     <div class="modal fade" id="edit-visit-modal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">방문 기록 수정</h5>
+                    <h5 class="modal-title">방문 기록 ?�정</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -2343,7 +2343,7 @@ function editVisitRecord(visitId, customerId) {
                         <input type="hidden" id="edit-visit-id" value="${visit.id}">
                         <input type="hidden" id="edit-visit-customer-id" value="${visit.customerId}">
                         <div class="mb-3">
-                            <label for="edit-visit-date" class="form-label">방문일</label>
+                            <label for="edit-visit-date" class="form-label">방문??/label>
                             <input type="date" class="form-control" id="edit-visit-date" value="${visit.date}" required>
                         </div>
                         <div class="mb-3">
@@ -2356,7 +2356,7 @@ function editVisitRecord(visitId, customerId) {
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
-                            <button type="submit" class="btn btn-primary">저장</button>
+                            <button type="submit" class="btn btn-primary">?�??/button>
                         </div>
                     </form>
                 </div>
@@ -2365,18 +2365,18 @@ function editVisitRecord(visitId, customerId) {
     </div>
     `;
     
-    // 기존 모달이 있으면 제거
+    // 기존 모달???�으�??�거
     const existingModal = document.getElementById('edit-visit-modal');
     if (existingModal) {
         existingModal.remove();
     }
     
-    // 모달 추가 및 표시
+    // 모달 추�? �??�시
     document.body.insertAdjacentHTML('beforeend', editForm);
     const editModal = new bootstrap.Modal(document.getElementById('edit-visit-modal'));
     editModal.show();
     
-    // 수정 폼 제출 이벤트 리스너
+    // ?�정 ???�출 ?�벤??리스??
     document.getElementById('edit-visit-form').addEventListener('submit', (e) => {
         e.preventDefault();
         
@@ -2386,10 +2386,10 @@ function editVisitRecord(visitId, customerId) {
         const purpose = document.getElementById('edit-visit-purpose').value;
         const note = document.getElementById('edit-visit-note').value;
         
-        // 방문 기록 수정
+        // 방문 기록 ?�정
         const index = visits.findIndex(v => v.id === visitId);
         if (index !== -1) {
-            // 방문 기록 업데이트
+            // 방문 기록 ?�데?�트
             visits[index] = {
                 ...visits[index],
                 date,
@@ -2397,13 +2397,13 @@ function editVisitRecord(visitId, customerId) {
                 note
             };
             
-            // 데이터 저장
-            saveDataToStorage();
+            // ?�이???�??
+            saveDataToFirebase();
             
-            // 고객 최근 방문일 업데이트
+            // 고객 최근 방문???�데?�트
             const customer = customers.find(c => c.id === customerId);
             if (customer) {
-                // 모든 방문 날짜 확인하여 최근 방문일 업데이트
+                // 모든 방문 ?�짜 ?�인?�여 최근 방문???�데?�트
                 const customerVisits = visits.filter(v => v.customerId === customerId);
                 if (customerVisits.length > 0) {
                     const sortedDates = customerVisits.map(v => v.date).sort((a, b) => 
@@ -2413,40 +2413,40 @@ function editVisitRecord(visitId, customerId) {
                 }
             }
             
-            // 모달 닫기
+            // 모달 ?�기
             editModal.hide();
             
-            // 방문 이력 다시 로드
+            // 방문 ?�력 ?�시 로드
             loadCustomerVisits(customerId);
             
-            // 고객 상세 정보 업데이트 (최근 방문일이 변경되었을 수 있음)
+            // 고객 ?�세 ?�보 ?�데?�트 (최근 방문?�이 변경되?�을 ???�음)
             openCustomerDetails(customerId);
             
-            // 알림 표시
-            alert('방문 기록이 수정되었습니다.');
+            // ?�림 ?�시
+            alert('방문 기록???�정?�었?�니??');
         }
     });
 }
 
-// 방문 기록 삭제 함수
+// 방문 기록 ??�� ?�수
 function deleteVisitRecord(visitId, customerId) {
     const visit = visits.find(v => v.id === visitId);
     if (!visit) return;
     
-    // 삭제 확인
-    if (confirm('정말로 이 방문 기록을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
-        // 방문 기록 삭제
+    // ??�� ?�인
+    if (confirm('?�말�???방문 기록????��?�시겠습?�까? ???�업?� ?�돌�????�습?�다.')) {
+        // 방문 기록 ??��
         const index = visits.findIndex(v => v.id === visitId);
         if (index !== -1) {
             visits.splice(index, 1);
             
-            // 데이터 저장
-            saveDataToStorage();
+            // ?�이???�??
+            saveDataToFirebase();
             
-            // 고객 최근 방문일 업데이트
+            // 고객 최근 방문???�데?�트
             const customer = customers.find(c => c.id === customerId);
             if (customer) {
-                // 모든 방문 날짜 확인하여 최근 방문일 업데이트
+                // 모든 방문 ?�짜 ?�인?�여 최근 방문???�데?�트
                 const customerVisits = visits.filter(v => v.customerId === customerId);
                 if (customerVisits.length > 0) {
                     const sortedDates = customerVisits.map(v => v.date).sort((a, b) => 
@@ -2454,52 +2454,52 @@ function deleteVisitRecord(visitId, customerId) {
                     );
                     customer.lastVisit = sortedDates[0];
                 } else {
-                    // 방문 기록이 없으면 기본값으로 설정
+                    // 방문 기록???�으�?기본값으�??�정
                     customer.lastVisit = new Date().toISOString().split('T')[0];
                 }
             }
             
-            // 방문 이력 다시 로드
+            // 방문 ?�력 ?�시 로드
             loadCustomerVisits(customerId);
             
-            // 고객 상세 정보 업데이트 (최근 방문일이 변경되었을 수 있음)
+            // 고객 ?�세 ?�보 ?�데?�트 (최근 방문?�이 변경되?�을 ???�음)
             openCustomerDetails(customerId);
             
-            // 알림 표시
-            alert('방문 기록이 삭제되었습니다.');
+            // ?�림 ?�시
+            alert('방문 기록????��?�었?�니??');
         }
     }
 }
 
-// 고객 검색 함수
+// 고객 검???�수
 function searchCustomers() {
     const searchTerm = document.getElementById('search-input').value.trim().toLowerCase();
     let displayedCustomers = customers;
     
-    // 검색창이 비어있지 않으면 필터링
+    // 검?�창??비어?��? ?�으�??�터�?
     if (searchTerm !== '') {
         displayedCustomers = customers.filter(customer => {
-            // 기본 정보 검색
+            // 기본 ?�보 검??
             const nameMatch = customer.name.toLowerCase().includes(searchTerm);
             const phoneMatch = customer.phone && customer.phone.toLowerCase().includes(searchTerm);
             const storeMatch = customer.preferredStore && customer.preferredStore.toLowerCase().includes(searchTerm);
             const notesMatch = customer.notes && customer.notes.toLowerCase().includes(searchTerm);
             
-            // 등급 검색 (다양한 표현 지원)
+            // ?�급 검??(?�양???�현 지??
             let rankMatch = false;
             if (customer.rank === 'vvip') {
-                rankMatch = searchTerm.includes('vvip') || searchTerm.includes('브이브이아이피') || searchTerm.includes('최고등급');
+                rankMatch = searchTerm.includes('vvip') || searchTerm.includes('브이브이?�이??) || searchTerm.includes('최고?�급');
             } else if (customer.rank === 'vip') {
-                rankMatch = searchTerm.includes('vip') || searchTerm.includes('브이아이피') || searchTerm.includes('우수등급');
+                rankMatch = searchTerm.includes('vip') || searchTerm.includes('브이?�이??) || searchTerm.includes('?�수?�급');
             } else if (customer.rank === 'regular') {
-                rankMatch = searchTerm.includes('일반') || searchTerm.includes('레귤러') || searchTerm.includes('regular') || searchTerm.includes('기본');
+                rankMatch = searchTerm.includes('?�반') || searchTerm.includes('?�귤??) || searchTerm.includes('regular') || searchTerm.includes('기본');
             }
             
             return nameMatch || phoneMatch || storeMatch || notesMatch || rankMatch;
         });
     }
     
-    // 현재 정렬 상태가 있으면 적용
+    // ?�재 ?�렬 ?�태가 ?�으�??�용
     if (currentSort.field) {
         displayedCustomers = applySort(displayedCustomers, currentSort.field, currentSort.order);
     }
@@ -2507,32 +2507,32 @@ function searchCustomers() {
     renderCustomerList(displayedCustomers);
 }
 
-// 등급 변경 이력 보기 함수
+// ?�급 변�??�력 보기 ?�수
 function viewRankChangeHistory(customerId) {
     const customer = customers.find(c => c.id === customerId);
     if (!customer) return;
     
     const customerRankChanges = rankChanges.filter(rc => rc.customerId === customerId);
     
-    // 등급 변경 이력 모달 생성
+    // ?�급 변�??�력 모달 ?�성
     const historyModal = `
     <div class="modal fade" id="rank-history-modal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">${customer.name} 고객 등급 변경 이력</h5>
+                    <h5 class="modal-title">${customer.name} 고객 ?�급 변�??�력</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
                         <div class="d-flex justify-content-between">
                             <div>
-                                <strong>현재 등급:</strong> 
+                                <strong>?�재 ?�급:</strong> 
                                 <span class="badge ${customer.rank === 'vvip' ? 'badge-vvip' : customer.rank === 'vip' ? 'badge-vip' : 'badge-regular'}">
-                                    ${customer.rank === 'vvip' ? 'VVIP' : customer.rank === 'vip' ? 'VIP' : '일반'}
+                                    ${customer.rank === 'vvip' ? 'VVIP' : customer.rank === 'vip' ? 'VIP' : '?�반'}
                                 </span>
                             </div>
-                            <button class="btn btn-sm btn-primary" id="manual-rank-change-btn">수동 등급 변경</button>
+                            <button class="btn btn-sm btn-primary" id="manual-rank-change-btn">?�동 ?�급 변�?/button>
                         </div>
                     </div>
                     <div class="table-responsive">
@@ -2540,9 +2540,9 @@ function viewRankChangeHistory(customerId) {
                             <thead>
                                 <tr>
                                     <th>변경일</th>
-                                    <th>이전 등급</th>
-                                    <th>변경 등급</th>
-                                    <th>변경 사유</th>
+                                    <th>?�전 ?�급</th>
+                                    <th>변�??�급</th>
+                                    <th>변�??�유</th>
                                     <th>변경자</th>
                                 </tr>
                             </thead>
@@ -2554,85 +2554,85 @@ function viewRankChangeHistory(customerId) {
                                             <td>${formatDate(rc.date)}</td>
                                             <td>
                                                 <span class="badge ${rc.oldRank === 'vvip' ? 'badge-vvip' : rc.oldRank === 'vip' ? 'badge-vip' : 'badge-regular'}">
-                                                    ${rc.oldRank === 'vvip' ? 'VVIP' : rc.oldRank === 'vip' ? 'VIP' : '일반'}
+                                                    ${rc.oldRank === 'vvip' ? 'VVIP' : rc.oldRank === 'vip' ? 'VIP' : '?�반'}
                                                 </span>
                                             </td>
                                             <td>
                                                 <span class="badge ${rc.newRank === 'vvip' ? 'badge-vvip' : rc.newRank === 'vip' ? 'badge-vip' : 'badge-regular'}">
-                                                    ${rc.newRank === 'vvip' ? 'VVIP' : rc.newRank === 'vip' ? 'VIP' : '일반'}
+                                                    ${rc.newRank === 'vvip' ? 'VVIP' : rc.newRank === 'vip' ? 'VIP' : '?�반'}
                                                 </span>
                                             </td>
                                             <td>${rc.reason}</td>
                                             <td>${rc.changedBy}</td>
                                         </tr>
                                     `).join('') 
-                                    : '<tr><td colspan="5" class="text-center">등급 변경 이력이 없습니다.</td></tr>'
+                                    : '<tr><td colspan="5" class="text-center">?�급 변�??�력???�습?�다.</td></tr>'
                                 }
                             </tbody>
                         </table>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">?�기</button>
                 </div>
             </div>
         </div>
     </div>
     `;
     
-    // 기존 모달이 있으면 제거
+    // 기존 모달???�으�??�거
     const existingModal = document.getElementById('rank-history-modal');
     if (existingModal) {
         existingModal.remove();
     }
     
-    // 모달 추가 및 표시
+    // 모달 추�? �??�시
     document.body.insertAdjacentHTML('beforeend', historyModal);
     const modal = new bootstrap.Modal(document.getElementById('rank-history-modal'));
     modal.show();
     
-    // 수동 등급 변경 버튼 이벤트 리스너
+    // ?�동 ?�급 변�?버튼 ?�벤??리스??
     document.getElementById('manual-rank-change-btn').addEventListener('click', () => {
         manualRankChange(customerId, modal);
     });
 }
 
-// 수동 등급 변경 함수
+// ?�동 ?�급 변�??�수
 function manualRankChange(customerId, historyModal) {
     const customer = customers.find(c => c.id === customerId);
     if (!customer) return;
     
-    // 수동 등급 변경 모달 생성
+    // ?�동 ?�급 변�?모달 ?�성
     const changeForm = `
     <div class="modal fade" id="manual-rank-change-modal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">${customer.name} 고객 등급 수동 변경</h5>
+                    <h5 class="modal-title">${customer.name} 고객 ?�급 ?�동 변�?/h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="rank-change-form">
                         <input type="hidden" id="rank-change-customer-id" value="${customer.id}">
                         <div class="mb-3">
-                            <label for="current-rank" class="form-label">현재 등급</label>
-                            <input type="text" class="form-control" id="current-rank" value="${customer.rank === 'vvip' ? 'VVIP' : customer.rank === 'vip' ? 'VIP' : '일반'}" disabled>
+                            <label for="current-rank" class="form-label">?�재 ?�급</label>
+                            <input type="text" class="form-control" id="current-rank" value="${customer.rank === 'vvip' ? 'VVIP' : customer.rank === 'vip' ? 'VIP' : '?�반'}" disabled>
                         </div>
                         <div class="mb-3">
-                            <label for="new-rank" class="form-label">변경 등급</label>
+                            <label for="new-rank" class="form-label">변�??�급</label>
                             <select class="form-control" id="new-rank" required>
                                 <option value="vvip" ${customer.rank === 'vvip' ? 'selected' : ''}>VVIP</option>
                                 <option value="vip" ${customer.rank === 'vip' ? 'selected' : ''}>VIP</option>
-                                <option value="regular" ${customer.rank === 'regular' ? 'selected' : ''}>일반</option>
+                                <option value="regular" ${customer.rank === 'regular' ? 'selected' : ''}>?�반</option>
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label for="rank-change-reason" class="form-label">변경 사유</label>
+                            <label for="rank-change-reason" class="form-label">변�??�유</label>
                             <textarea class="form-control" id="rank-change-reason" rows="3" required></textarea>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
-                            <button type="submit" class="btn btn-primary">저장</button>
+                            <button type="submit" class="btn btn-primary">?�??/button>
                         </div>
                     </form>
                 </div>
@@ -2641,18 +2641,18 @@ function manualRankChange(customerId, historyModal) {
     </div>
     `;
     
-    // 기존 모달이 있으면 제거
+    // 기존 모달???�으�??�거
     const existingModal = document.getElementById('manual-rank-change-modal');
     if (existingModal) {
         existingModal.remove();
     }
     
-    // 모달 추가 및 표시
+    // 모달 추�? �??�시
     document.body.insertAdjacentHTML('beforeend', changeForm);
     const modal = new bootstrap.Modal(document.getElementById('manual-rank-change-modal'));
     modal.show();
     
-    // 수동 등급 변경 폼 제출 이벤트 리스너
+    // ?�동 ?�급 변�????�출 ?�벤??리스??
     document.getElementById('rank-change-form').addEventListener('submit', (e) => {
         e.preventDefault();
         
@@ -2664,12 +2664,12 @@ function manualRankChange(customerId, historyModal) {
         if (customer) {
             const oldRank = customer.rank;
             
-            // 등급이 변경된 경우에만 이력 추가
+            // ?�급??변경된 경우?�만 ?�력 추�?
             if (oldRank !== newRank) {
-                // 고객 등급 변경
+                // 고객 ?�급 변�?
                 customer.rank = newRank;
                 
-                // 등급 변경 이력 추가
+                // ?�급 변�??�력 추�?
                 const rankChange = {
                     id: rankChanges.length > 0 ? Math.max(...rankChanges.map(r => r.id)) + 1 : 1,
                     customerId: customer.id,
@@ -2682,112 +2682,112 @@ function manualRankChange(customerId, historyModal) {
                 
                 rankChanges.push(rankChange);
                 
-                // 데이터 저장
-                saveDataToStorage();
+                // ?�이???�??
+                saveDataToFirebase();
                 
-                // 알림 표시
-                alert('고객 등급이 변경되었습니다.');
+                // ?�림 ?�시
+                alert('고객 ?�급??변경되?�습?�다.');
                 
-                // 모달 닫기
+                // 모달 ?�기
                 modal.hide();
                 
-                // 이력 모달 닫기
+                // ?�력 모달 ?�기
                 historyModal.hide();
                 
-                // 고객 목록 새로고침
+                // 고객 목록 ?�로고침
                 loadCustomerList();
                 
-                // 등급 변경 이력 모달 다시 열기
+                // ?�급 변�??�력 모달 ?�시 ?�기
                 viewRankChangeHistory(customerId);
             } else {
-                alert('같은 등급으로는 변경할 수 없습니다.');
+                alert('같�? ?�급?�로??변경할 ???�습?�다.');
             }
         }
     });
 }
 
-// 엑셀 업로드 처리 함수
-function handleExcelUpload() {
+// ?��? ?�로??처리 ?�수
+async function handleExcelUpload() {
     const fileInput = document.getElementById('excel-file');
     const file = fileInput.files[0];
     
     if (!file) {
-        alert('엑셀 파일을 선택해주세요.');
+        alert('?��? ?�일???�택?�주?�요.');
         return;
     }
     
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = async function(e) {
         try {
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
             
-            // 고객정보 시트 처리
+            // 고객?�보 ?�트 처리
             let customerData = [];
             let purchaseData = [];
             
-            // 시트별 데이터 추출
-            console.log('🔍 발견된 시트:', workbook.SheetNames);
+            // ?�트�??�이??추출
+            console.log('?�� 발견???�트:', workbook.SheetNames);
             
             workbook.SheetNames.forEach((sheetName, index) => {
                 const worksheet = workbook.Sheets[sheetName];
                 const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
                 
-                console.log(`📋 시트 "${sheetName}" 데이터 (첫 3행):`, jsonData.slice(0, 3));
+                console.log(`?�� ?�트 "${sheetName}" ?�이??(�?3??:`, jsonData.slice(0, 3));
                 
                 if (index === 0) {
-                    // 첫 번째 시트는 항상 고객정보로 간주
+                    // �?번째 ?�트????�� 고객?�보�?간주
                     customerData = jsonData;
-                    console.log('✅ 첫 번째 시트를 고객정보로 설정');
+                    console.log('??�?번째 ?�트�?고객?�보�??�정');
                 } else if (index === 1) {
-                    // 두 번째 시트는 항상 구매이력으로 간주
+                    // ??번째 ?�트????�� 구매?�력?�로 간주
                     purchaseData = jsonData;
-                    console.log('✅ 두 번째 시트를 구매이력으로 설정');
+                    console.log('????번째 ?�트�?구매?�력?�로 ?�정');
                 } else if (sheetName.includes('고객') || sheetName.includes('customer') || workbook.SheetNames.length === 1) {
                     customerData = jsonData;
-                    console.log('✅ 시트명으로 고객정보 인식');
+                    console.log('???�트명으�?고객?�보 ?�식');
                 } else if (sheetName.includes('구매') || sheetName.includes('purchase')) {
                     purchaseData = jsonData;
-                    console.log('✅ 시트명으로 구매이력 인식');
+                    console.log('???�트명으�?구매?�력 ?�식');
                 }
             });
             
-            // 단일 시트인 경우 고객정보로 처리
+            // ?�일 ?�트??경우 고객?�보�?처리
             if (workbook.SheetNames.length === 1 && customerData.length === 0) {
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
                 customerData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
             }
             
-            console.log('📊 최종 처리할 데이터:');
-            console.log('고객정보 행 수:', customerData.length);
-            console.log('구매이력 행 수:', purchaseData.length);
+            console.log('?�� 최종 처리???�이??');
+            console.log('고객?�보 ????', customerData.length);
+            console.log('구매?�력 ????', purchaseData.length);
             
-            processExcelDataWithPurchases(customerData, purchaseData);
+            await processExcelDataWithPurchases(customerData, purchaseData);
         } catch (error) {
-            alert('엑셀 파일 읽기 중 오류가 발생했습니다: ' + error.message);
+            alert('?��? ?�일 ?�기 �??�류가 발생?�습?�다: ' + error.message);
         }
     };
     reader.readAsArrayBuffer(file);
 }
 
-// 고객정보와 구매이력을 함께 처리하는 함수
-function processExcelDataWithPurchases(customerData, purchaseData) {
+// 고객?�보?� 구매?�력???�께 처리?�는 ?�수
+async function processExcelDataWithPurchases(customerData, purchaseData) {
     let customerSuccessCount = 0;
     let customerErrorCount = 0;
     let purchaseSuccessCount = 0;
     let purchaseErrorCount = 0;
     const errors = [];
-    const customerPhoneMap = new Map(); // 전화번호로 고객 ID 매핑
+    const customerPhoneMap = new Map(); // ?�화번호�?고객 ID 매핑
     
-    // 기존 고객들을 맵에 추가
+    // 기존 고객?�을 맵에 추�?
     customers.forEach(customer => {
         const cleanPhone = customer.phone.replace(/[\s-]/g, '');
         customerPhoneMap.set(cleanPhone, customer.id);
     });
-    console.log('💡 기존 고객 매핑 완료:', customerPhoneMap.size, '명');
+    console.log('?�� 기존 고객 매핑 ?�료:', customerPhoneMap.size, '�?);
     
-    // 1단계: 고객정보 처리
+    // 1?�계: 고객?�보 처리
     if (customerData.length > 1) {
         for (let i = 1; i < customerData.length; i++) {
             const row = customerData[i];
@@ -2801,7 +2801,7 @@ function processExcelDataWithPurchases(customerData, purchaseData) {
                     id: customers.length > 0 ? Math.max(...customers.map(c => c.id)) + 1 : 1,
                     name: row[0] || '',
                     gender: convertGender(row[1]),
-                    phone: (row[2] || '').toString().replace(/[\s-]/g, ''), // 전화번호 정리
+                    phone: (row[2] || '').toString().replace(/[\s-]/g, ''), // ?�화번호 ?�리
                     birthdate: convertDate(row[3]),
                     address: row[4] || '',
                     preferredStore: row[5] || '',
@@ -2814,17 +2814,17 @@ function processExcelDataWithPurchases(customerData, purchaseData) {
                 };
                 
                 if (!customer.name || !customer.phone) {
-                    errors.push(`고객정보 ${i + 1}행: 이름과 전화번호는 필수입니다.`);
+                    errors.push(`고객?�보 ${i + 1}?? ?�름�??�화번호???�수?�니??`);
                     customerErrorCount++;
                     continue;
                 }
                 
-                // 전화번호 중복 체크 (동일인으로 간주)
+                // ?�화번호 중복 체크 (?�일?�으�?간주)
                 const existingCustomer = customers.find(c => c.phone.replace(/[\s-]/g, '') === customer.phone);
                 if (existingCustomer) {
-                    // 기존 고객 정보를 업데이트하고 맵에 추가
+                    // 기존 고객 ?�보�??�데?�트?�고 맵에 추�?
                     customerPhoneMap.set(customer.phone, existingCustomer.id);
-                    errors.push(`고객정보 ${i + 1}행: 전화번호 ${customer.phone}는 이미 존재합니다. (기존 고객과 연결)`);
+                    errors.push(`고객?�보 ${i + 1}?? ?�화번호 ${customer.phone}???��? 존재?�니?? (기존 고객�??�결)`);
                     customerErrorCount++;
                     continue;
                 }
@@ -2834,118 +2834,118 @@ function processExcelDataWithPurchases(customerData, purchaseData) {
                 customerSuccessCount++;
                 
             } catch (error) {
-                errors.push(`고객정보 ${i + 1}행: 데이터 처리 오류 - ${error.message}`);
+                errors.push(`고객?�보 ${i + 1}?? ?�이??처리 ?�류 - ${error.message}`);
                 customerErrorCount++;
             }
         }
     }
     
-    // 2단계: 구매이력 처리
-    console.log('💰 구매이력 처리 시작...');
-    console.log('구매이력 데이터 길이:', purchaseData.length);
-    console.log('등록된 고객 수:', customers.length);
-    console.log('고객 전화번호 맵:', Array.from(customerPhoneMap.entries()));
+    // 2?�계: 구매?�력 처리
+    console.log('?�� 구매?�력 처리 ?�작...');
+    console.log('구매?�력 ?�이??길이:', purchaseData.length);
+    console.log('?�록??고객 ??', customers.length);
+    console.log('고객 ?�화번호 �?', Array.from(customerPhoneMap.entries()));
     
     if (purchaseData.length > 1) {
-        console.log('구매이력 헤더:', purchaseData[0]);
+        console.log('구매?�력 ?�더:', purchaseData[0]);
         for (let i = 1; i < purchaseData.length; i++) {
             const row = purchaseData[i];
             
-            // 처음 5행만 상세 로그 출력
+            // 처음 5?�만 ?�세 로그 출력
             const isDetailLog = i <= 5;
             
             if (isDetailLog) {
-                console.log(`📊 구매이력 ${i + 1}행 체크:`, { 'row존재': !!row, '길이': row?.length, '첫번째값': row?.[0] });
+                console.log(`?�� 구매?�력 ${i + 1}??체크:`, { 'row존재': !!row, '길이': row?.length, '첫번째값': row?.[0] });
             }
             
             if (!row || row.length === 0 || (!row[0] && row[0] !== 0)) {
-                if (isDetailLog) console.log(`⏭️ 구매이력 ${i + 1}행 건너뜀 (빈 행)`);
+                if (isDetailLog) console.log(`??�� 구매?�력 ${i + 1}??건너?� (�???`);
                 continue;
             }
             
             try {
-                // 디버깅: 원본 데이터 확인 (처음 5행만)
+                // ?�버�? ?�본 ?�이???�인 (처음 5?�만)
                 if (isDetailLog) {
-                    console.log(`\n🔍 구매이력 ${i + 1}행 원본:`, row);
+                    console.log(`\n?�� 구매?�력 ${i + 1}???�본:`, row);
                 }
                 
-                // 전화번호 정리 (공백, 하이픈 제거)
+                // ?�화번호 ?�리 (공백, ?�이???�거)
                 const customerPhone = (row[0] || '').toString().replace(/[\s-]/g, '');
                 const purchaseDate = convertDate(row[1]);
                 const itemName = row[2] || '';
-                // 가격 처리 개선 (다양한 형태의 가격 형식 처리)
+                // 가�?처리 개선 (?�양???�태??가�??�식 처리)
                 let priceStr = (row[3] || '').toString()
-                    .replace(/,/g, '')           // 콤마 제거
-                    .replace(/원/g, '')          // '원' 문자 제거
-                    .replace(/\s/g, '')          // 공백 제거
-                    .replace(/[^0-9.-]/g, '');   // 숫자, 점, 하이픈 외 모든 문자 제거
+                    .replace(/,/g, '')           // 콤마 ?�거
+                    .replace(/??g, '')          // '?? 문자 ?�거
+                    .replace(/\s/g, '')          // 공백 ?�거
+                    .replace(/[^0-9.-]/g, '');   // ?�자, ?? ?�이????모든 문자 ?�거
                 
                 const price = parseFloat(priceStr) || 0;
                 
                 if (isDetailLog) {
-                    console.log(`💰 가격 처리:`, {
-                        '원본': row[3],
-                        '처리후 문자열': priceStr,
-                        '최종 숫자': price,
-                        '유효한가': price > 0
+                    console.log(`?�� 가�?처리:`, {
+                        '?�본': row[3],
+                        '처리??문자??: priceStr,
+                        '최종 ?�자': price,
+                        '?�효?��?': price > 0
                     });
                 }
                 const orderNumber = row[4] || '';
                 const store = row[5] || '';
                 const seller = row[6] || '';
-                const paymentMethod = row[7] || '신용카드';
+                const paymentMethod = row[7] || '?�용카드';
                 const memo = row[8] || '';
                 
-                // 디버깅: 처리된 데이터 확인 (처음 5행만)
+                // ?�버�? 처리???�이???�인 (처음 5?�만)
                 if (isDetailLog) {
-                    console.log(`📝 구매이력 ${i + 1}행 처리후:`, {
+                    console.log(`?�� 구매?�력 ${i + 1}??처리??`, {
                         customerPhone, purchaseDate, itemName, price, orderNumber, store, seller, paymentMethod, memo
                     });
                     
-                    // 필수 필드 검증 (더 자세한 로그)
-                    console.log(`✅ 필수 필드 검증:`, {
-                        '전화번호': customerPhone ? '✓' : '✗',
-                        '상품명': itemName ? '✓' : '✗', 
-                        '가격': price > 0 ? '✓' : '✗',
+                    // ?�수 ?�드 검�?(???�세??로그)
+                    console.log(`???�수 ?�드 검�?`, {
+                        '?�화번호': customerPhone ? '?? : '??,
+                        '?�품�?: itemName ? '?? : '??, 
+                        '가�?: price > 0 ? '?? : '??,
                         '가격값': price,
-                        '가격문자열': priceStr
+                        '가격문?�열': priceStr
                     });
                 }
                 
                 if (!customerPhone || !itemName || price <= 0) {
                     const reason = [];
-                    if (!customerPhone) reason.push('전화번호 없음');
-                    if (!itemName) reason.push('상품명 없음');
-                    if (price <= 0) reason.push(`가격 오류(${price})`);
+                    if (!customerPhone) reason.push('?�화번호 ?�음');
+                    if (!itemName) reason.push('?�품�??�음');
+                    if (price <= 0) reason.push(`가�??�류(${price})`);
                     
-                    errors.push(`구매이력 ${i + 1}행: ${reason.join(', ')} (전화번호:"${customerPhone}", 상품명:"${itemName}", 가격:${price})`);
+                    errors.push(`구매?�력 ${i + 1}?? ${reason.join(', ')} (?�화번호:"${customerPhone}", ?�품�?"${itemName}", 가�?${price})`);
                     purchaseErrorCount++;
-                    if (isDetailLog) console.log(`❌ 구매이력 ${i + 1}행 실패: ${reason.join(', ')}`);
+                    if (isDetailLog) console.log(`??구매?�력 ${i + 1}???�패: ${reason.join(', ')}`);
                     continue;
                 }
                 
-                // 고객 찾기 (새로 등록된 고객 또는 기존 고객)
+                // 고객 찾기 (?�로 ?�록??고객 ?�는 기존 고객)
                 let customerId = customerPhoneMap.get(customerPhone);
-                if (isDetailLog) console.log(`👤 고객 찾기: 전화번호="${customerPhone}", 맵에서 찾은 ID=${customerId}`);
+                if (isDetailLog) console.log(`?�� 고객 찾기: ?�화번호="${customerPhone}", 맵에??찾�? ID=${customerId}`);
                 
                 if (!customerId) {
-                    // 기존 고객에서 전화번호 정리해서 비교
+                    // 기존 고객?�서 ?�화번호 ?�리?�서 비교
                     const existingCustomer = customers.find(c => c.phone.replace(/[\s-]/g, '') === customerPhone);
                     if (existingCustomer) {
                         customerId = existingCustomer.id;
-                        // 새로 등록된 고객과의 연결을 위해 맵에 추가
+                        // ?�로 ?�록??고객과의 ?�결???�해 맵에 추�?
                         customerPhoneMap.set(customerPhone, customerId);
-                        if (isDetailLog) console.log(`✅ 기존 고객 발견: ${existingCustomer.name} (ID: ${customerId})`);
+                        if (isDetailLog) console.log(`??기존 고객 발견: ${existingCustomer.name} (ID: ${customerId})`);
                     } else {
-                        // 맵에 있는 전화번호 목록 확인
+                        // 맵에 ?�는 ?�화번호 목록 ?�인
                         const mapPhones = Array.from(customerPhoneMap.keys()).slice(0, 10).join(', ');
-                        errors.push(`구매이력 ${i + 1}행: 전화번호 "${customerPhone}"에 해당하는 고객을 찾을 수 없습니다. (맵의 전화번호 예시: ${mapPhones}...)`);
+                        errors.push(`구매?�력 ${i + 1}?? ?�화번호 "${customerPhone}"???�당?�는 고객??찾을 ???�습?�다. (맵의 ?�화번호 ?�시: ${mapPhones}...)`);
                         purchaseErrorCount++;
                         continue;
                     }
                 }
                 
-                // 구매 기록 추가
+                // 구매 기록 추�?
                 const purchase = {
                     id: purchases.length > 0 ? Math.max(...purchases.map(p => p.id)) + 1 : 1,
                     customerId: customerId,
@@ -2961,7 +2961,7 @@ function processExcelDataWithPurchases(customerData, purchaseData) {
                 
                 purchases.push(purchase);
                 
-                // 고객 구매 정보 업데이트
+                // 고객 구매 ?�보 ?�데?�트
                 const customer = customers.find(c => c.id === customerId);
                 if (customer) {
                     const oldTotal = customer.totalPurchase;
@@ -2972,49 +2972,49 @@ function processExcelDataWithPurchases(customerData, purchaseData) {
                     customer.lastVisit = purchase.date;
                     updateCustomerRank(customer);
                     
-                    console.log(`구매이력 추가: ${customer.name} (${customerPhone}) - 기존: ${formatCurrency(oldTotal)}/${oldCount}건 → 변경: ${formatCurrency(customer.totalPurchase)}/${customer.purchaseCount}건`);
+                    console.log(`구매?�력 추�?: ${customer.name} (${customerPhone}) - 기존: ${formatCurrency(oldTotal)}/${oldCount}�???변�? ${formatCurrency(customer.totalPurchase)}/${customer.purchaseCount}�?);
                 }
                 
                 purchaseSuccessCount++;
                 
             } catch (error) {
-                errors.push(`구매이력 ${i + 1}행: 데이터 처리 오류 - ${error.message}`);
+                errors.push(`구매?�력 ${i + 1}?? ?�이??처리 ?�류 - ${error.message}`);
                 purchaseErrorCount++;
             }
         }
     }
     
-    // 결과 저장 및 알림
+    // 결과 ?�??�??�림
     if (customerSuccessCount > 0 || purchaseSuccessCount > 0) {
-        saveDataToStorage();
+        await saveDataToFirebase();
         loadCustomerList();
     }
     
-    let message = `업로드 완료!\n`;
-    message += `고객정보 - 성공: ${customerSuccessCount}명, 실패: ${customerErrorCount}명\n`;
-    message += `구매이력 - 성공: ${purchaseSuccessCount}건, 실패: ${purchaseErrorCount}건`;
+    let message = `?�로???�료!\n`;
+    message += `고객?�보 - ?�공: ${customerSuccessCount}�? ?�패: ${customerErrorCount}�?n`;
+    message += `구매?�력 - ?�공: ${purchaseSuccessCount}�? ?�패: ${purchaseErrorCount}�?;
     
     if (errors.length > 0) {
-        message += '\n\n💡 오류 해결 가이드:\n';
-        message += '• 구매이력 시트의 고객전화번호가 고객정보 시트의 전화번호와 정확히 일치하는지 확인하세요\n';
-        message += '• 전화번호에 공백이나 특수문자가 없는지 확인하세요\n';
-        message += '• 가격이 숫자로 입력되었는지 확인하세요\n\n';
-        message += '오류 내용:\n' + errors.slice(0, 15).join('\n');
+        message += '\n\n?�� ?�류 ?�결 가?�드:\n';
+        message += '??구매?�력 ?�트??고객?�화번호가 고객?�보 ?�트???�화번호?� ?�확???�치?�는지 ?�인?�세??n';
+        message += '???�화번호??공백?�나 ?�수문자가 ?�는지 ?�인?�세??n';
+        message += '??가격이 ?�자�??�력?�었?��? ?�인?�세??n\n';
+        message += '?�류 ?�용:\n' + errors.slice(0, 15).join('\n');
         if (errors.length > 15) {
-            message += `\n... 및 ${errors.length - 15}개 추가 오류`;
+            message += `\n... �?${errors.length - 15}�?추�? ?�류`;
         }
     }
     
-    // 긴 메시지를 위해 confirm 대신 새 창 사용
+    // �?메시지�??�해 confirm ?�????�??�용
     if (message.length > 1000) {
         const newWindow = window.open('', '_blank', 'width=600,height=400');
         newWindow.document.write(`
             <html>
-                <head><title>엑셀 업로드 결과</title></head>
+                <head><title>?��? ?�로??결과</title></head>
                 <body style="font-family: Arial; padding: 20px; white-space: pre-wrap;">
                     ${message.replace(/\n/g, '<br>')}
                     <br><br>
-                    <button onclick="window.close()">닫기</button>
+                    <button onclick="window.close()">?�기</button>
                 </body>
             </html>
         `);
@@ -3024,10 +3024,10 @@ function processExcelDataWithPurchases(customerData, purchaseData) {
     document.getElementById('excel-file').value = '';
 }
 
-// 기존 엑셀 데이터 처리 함수 (단일 시트 호환용)
-function processExcelData(data) {
+// 기존 ?��? ?�이??처리 ?�수 (?�일 ?�트 ?�환??
+async function processExcelData(data) {
     if (data.length < 2) {
-        alert('엑셀 파일에 데이터가 없습니다.');
+        alert('?��? ?�일???�이?��? ?�습?�다.');
         return;
     }
     
@@ -3035,22 +3035,22 @@ function processExcelData(data) {
     let errorCount = 0;
     const errors = [];
     
-    // 첫 번째 행은 헤더로 간주하고 건너뛰기
+    // �?번째 ?��? ?�더�?간주?�고 건너?�기
     for (let i = 1; i < data.length; i++) {
         const row = data[i];
         
-        // 빈 행 건너뛰기
+        // �???건너?�기
         if (!row || row.length === 0 || !row[0]) {
             continue;
         }
         
         try {
-            // 엑셀 데이터를 고객 객체로 변환
+            // ?��? ?�이?��? 고객 객체�?변??
             const customer = {
                 id: customers.length > 0 ? Math.max(...customers.map(c => c.id)) + 1 : 1,
                 name: row[0] || '',
                 gender: convertGender(row[1]),
-                phone: (row[2] || '').toString().replace(/[\s-]/g, ''), // 전화번호 정리
+                phone: (row[2] || '').toString().replace(/[\s-]/g, ''), // ?�화번호 ?�리
                 birthdate: convertDate(row[3]),
                 address: row[4] || '',
                 preferredStore: row[5] || '',
@@ -3062,16 +3062,16 @@ function processExcelData(data) {
                 lastVisit: new Date().toISOString().split('T')[0]
             };
             
-            // 필수 필드 검증
+            // ?�수 ?�드 검�?
             if (!customer.name || !customer.phone) {
-                errors.push(`${i + 1}행: 이름과 전화번호는 필수입니다.`);
+                errors.push(`${i + 1}?? ?�름�??�화번호???�수?�니??`);
                 errorCount++;
                 continue;
             }
             
-            // 전화번호 중복 체크 (동일인으로 간주)
+            // ?�화번호 중복 체크 (?�일?�으�?간주)
             if (customers.find(c => c.phone.replace(/[\s-]/g, '') === customer.phone)) {
-                errors.push(`${i + 1}행: 전화번호 ${customer.phone}는 이미 존재합니다. (동일인으로 간주하여 생략)`);
+                errors.push(`${i + 1}?? ?�화번호 ${customer.phone}???��? 존재?�니?? (?�일?�으�?간주?�여 ?�략)`);
                 errorCount++;
                 continue;
             }
@@ -3080,53 +3080,53 @@ function processExcelData(data) {
             successCount++;
             
         } catch (error) {
-            errors.push(`${i + 1}행: 데이터 처리 오류 - ${error.message}`);
+            errors.push(`${i + 1}?? ?�이??처리 ?�류 - ${error.message}`);
             errorCount++;
         }
     }
     
-    // 결과 저장 및 알림
+    // 결과 ?�??�??�림
     if (successCount > 0) {
-        saveDataToStorage();
+        await saveDataToFirebase();
         loadCustomerList();
     }
     
-    let message = `업로드 완료!\n성공: ${successCount}명, 실패: ${errorCount}명`;
+    let message = `?�로???�료!\n?�공: ${successCount}�? ?�패: ${errorCount}�?;
     if (errors.length > 0) {
-        message += '\n\n오류 내용:\n' + errors.slice(0, 5).join('\n');
+        message += '\n\n?�류 ?�용:\n' + errors.slice(0, 5).join('\n');
         if (errors.length > 5) {
-            message += `\n... 및 ${errors.length - 5}개 추가 오류`;
+            message += `\n... �?${errors.length - 5}�?추�? ?�류`;
         }
     }
     
     alert(message);
     
-    // 파일 입력 초기화
+    // ?�일 ?�력 초기??
     document.getElementById('excel-file').value = '';
 }
 
-// 성별 변환 함수
+// ?�별 변???�수
 function convertGender(value) {
     if (!value) return '';
     const str = value.toString().toLowerCase();
-    if (str.includes('남') || str === 'm' || str === 'male') return 'male';
-    if (str.includes('여') || str === 'f' || str === 'female') return 'female';
+    if (str.includes('??) || str === 'm' || str === 'male') return 'male';
+    if (str.includes('??) || str === 'f' || str === 'female') return 'female';
     return '';
 }
 
-// 날짜 변환 함수
+// ?�짜 변???�수
 function convertDate(value) {
     if (!value) return '';
     
     try {
-        // 엑셀 날짜 형식 처리
+        // ?��? ?�짜 ?�식 처리
         if (typeof value === 'number') {
             // Excel date serial number
             const date = new Date((value - 25569) * 86400 * 1000);
             return date.toISOString().split('T')[0];
         }
         
-        // 문자열 날짜 처리
+        // 문자???�짜 처리
         const str = value.toString();
         if (str.includes('-') || str.includes('/')) {
             const date = new Date(str);
@@ -3141,21 +3141,21 @@ function convertDate(value) {
     }
 }
 
-// 고객 데이터 엑셀 내보내기 함수
+// 고객 ?�이???��? ?�보?�기 ?�수
 function exportCustomersToExcel() {
     if (customers.length === 0) {
-        alert('내보낼 고객 데이터가 없습니다.');
+        alert('?�보??고객 ?�이?��? ?�습?�다.');
         return;
     }
     
-    // 고객정보 시트 데이터 준비
+    // 고객?�보 ?�트 ?�이??준�?
     const customerData = [
-        ['번호', '이름', '성별', '전화번호', '생년월일', '주소', '주방문매장', '이메일', '등급', '총구매액', '구매횟수', '최근방문일', '메모']
+        ['번호', '?�름', '?�별', '?�화번호', '?�년?�일', '주소', '주방문매??, '?�메??, '?�급', '총구매액', '구매?�수', '최근방문??, '메모']
     ];
     
     customers.forEach((customer, index) => {
-        const genderText = customer.gender === 'male' ? '남성' : customer.gender === 'female' ? '여성' : '';
-        const rankText = customer.rank === 'vvip' ? 'VVIP' : customer.rank === 'vip' ? 'VIP' : '일반';
+        const genderText = customer.gender === 'male' ? '?�성' : customer.gender === 'female' ? '?�성' : '';
+        const rankText = customer.rank === 'vvip' ? 'VVIP' : customer.rank === 'vip' ? 'VIP' : '?�반';
         
         customerData.push([
             index + 1,
@@ -3174,9 +3174,9 @@ function exportCustomersToExcel() {
         ]);
     });
     
-    // 구매이력 시트 데이터 준비
+    // 구매?�력 ?�트 ?�이??준�?
     const purchaseData = [
-        ['번호', '고객명', '고객전화번호', '구매일', '상품명', '가격', '주문장번호', '구매매장', '담당셀러', '결제방법', '메모']
+        ['번호', '고객�?, '고객?�화번호', '구매??, '?�품�?, '가�?, '주문?�번??, '구매매장', '?�당?�??, '결제방법', '메모']
     ];
     
     purchases.forEach((purchase, index) => {
@@ -3193,16 +3193,16 @@ function exportCustomersToExcel() {
                     purchase.orderNumber || '',
                     purchase.store || '',
                     purchase.seller || '',
-                    purchase.paymentMethod || '신용카드',
+                    purchase.paymentMethod || '?�용카드',
                     purchase.memo || ''
                 ]);
             });
         }
     });
     
-    // 선물이력 시트 데이터 준비
+    // ?�물?�력 ?�트 ?�이??준�?
     const giftData = [
-        ['번호', '고객명', '고객전화번호', '선물종류', '선물내용', '제공일자', '제공이유']
+        ['번호', '고객�?, '고객?�화번호', '?�물종류', '?�물?�용', '?�공?�자', '?�공?�유']
     ];
     
     gifts.forEach((gift, index) => {
@@ -3220,9 +3220,9 @@ function exportCustomersToExcel() {
         }
     });
     
-    // 방문이력 시트 데이터 준비
+    // 방문?�력 ?�트 ?�이??준�?
     const visitData = [
-        ['번호', '고객명', '고객전화번호', '방문일', '방문매장', '방문목적', '메모']
+        ['번호', '고객�?, '고객?�화번호', '방문??, '방문매장', '방문목적', '메모']
     ];
     
     visits.forEach((visit, index) => {
@@ -3240,92 +3240,92 @@ function exportCustomersToExcel() {
         }
     });
     
-    // 워크북 생성
+    // ?�크�??�성
     const workbook = XLSX.utils.book_new();
     
-    // 각 시트 추가
+    // �??�트 추�?
     const customerSheet = XLSX.utils.aoa_to_sheet(customerData);
-    XLSX.utils.book_append_sheet(workbook, customerSheet, '고객정보');
+    XLSX.utils.book_append_sheet(workbook, customerSheet, '고객?�보');
     
     if (purchaseData.length > 1) {
         const purchaseSheet = XLSX.utils.aoa_to_sheet(purchaseData);
-        XLSX.utils.book_append_sheet(workbook, purchaseSheet, '구매이력');
+        XLSX.utils.book_append_sheet(workbook, purchaseSheet, '구매?�력');
     }
     
     if (giftData.length > 1) {
         const giftSheet = XLSX.utils.aoa_to_sheet(giftData);
-        XLSX.utils.book_append_sheet(workbook, giftSheet, '선물이력');
+        XLSX.utils.book_append_sheet(workbook, giftSheet, '?�물?�력');
     }
     
     if (visitData.length > 1) {
         const visitSheet = XLSX.utils.aoa_to_sheet(visitData);
-        XLSX.utils.book_append_sheet(workbook, visitSheet, '방문이력');
+        XLSX.utils.book_append_sheet(workbook, visitSheet, '방문?�력');
     }
     
-    // 파일명에 현재 날짜 포함
+    // ?�일명에 ?�재 ?�짜 ?�함
     const today = new Date();
     const dateStr = today.toISOString().split('T')[0];
-    const fileName = `고객관리데이터_${dateStr}.xlsx`;
+    const fileName = `고객관리데?�터_${dateStr}.xlsx`;
     
-    // 파일 다운로드
+    // ?�일 ?�운로드
     XLSX.writeFile(workbook, fileName);
     
-    alert(`고객 데이터가 성공적으로 다운로드되었습니다!\n파일명: ${fileName}\n\n포함된 시트:\n- 고객정보 (${customers.length}명)\n- 구매이력 (${purchases.length}건)\n- 선물이력 (${gifts.length}건)\n- 방문이력 (${visits.length}건)`);
+    alert(`고객 ?�이?��? ?�공?�으�??�운로드?�었?�니??\n?�일�? ${fileName}\n\n?�함???�트:\n- 고객?�보 (${customers.length}�?\n- 구매?�력 (${purchases.length}�?\n- ?�물?�력 (${gifts.length}�?\n- 방문?�력 (${visits.length}�?`);
 }
 
-// 엑셀 템플릿 다운로드 함수
+// ?��? ?�플�??�운로드 ?�수
 function downloadExcelTemplate() {
-    // 고객 기본정보 시트
+    // 고객 기본?�보 ?�트
     const customerData = [
-        ['이름', '성별', '전화번호', '생년월일', '주소', '주방문매장', '이메일', '메모'],
-        ['홍길동', '남성', '010-1234-5678', '1990-01-01', '서울시 강남구', '강남점', 'hong@example.com', '우수고객'],
-        ['김영희', '여성', '010-9876-5432', '1985-05-15', '서울시 서초구', '서초점', 'kim@example.com', '단골고객'],
-        ['박철수', '남성', '010-5555-1234', '1988-12-25', '서울시 송파구', '잠실점', 'park@example.com', 'VIP고객']
+        ['?�름', '?�별', '?�화번호', '?�년?�일', '주소', '주방문매??, '?�메??, '메모'],
+        ['?�길??, '?�성', '010-1234-5678', '1990-01-01', '?�울??강남�?, '강남??, 'hong@example.com', '?�수고객'],
+        ['김?�희', '?�성', '010-9876-5432', '1985-05-15', '?�울???�초�?, '?�초??, 'kim@example.com', '?�골고객'],
+        ['박철??, '?�성', '010-5555-1234', '1988-12-25', '?�울???�파�?, '?�실??, 'park@example.com', 'VIP고객']
     ];
     
-    // 구매이력 시트 (고객 전화번호로 연결)
+    // 구매?�력 ?�트 (고객 ?�화번호�??�결)
     const purchaseData = [
-        ['고객전화번호', '구매일', '상품명', '가격', '주문장번호', '구매매장', '담당셀러', '결제방법', '메모'],
-        ['010-1234-5678', '2024-01-15', '가죽 핸드백', '2800000', 'ORD-2024-001', '강남점', '김셀러', '신용카드', '신년 선물'],
-        ['010-1234-5678', '2024-02-14', '실크 스카프', '450000', 'ORD-2024-002', '강남점', '김셀러', '신용카드', '발렌타인 선물'],
-        ['010-9876-5432', '2024-01-20', '디자이너 코트', '3200000', 'ORD-2024-003', '서초점', '이셀러', '현금', '겨울 아우터'],
-        ['010-5555-1234', '2024-03-01', '명품 시계', '5500000', 'ORD-2024-004', '잠실점', '박셀러', '신용카드', '생일 선물']
+        ['고객?�화번호', '구매??, '?�품�?, '가�?, '주문?�번??, '구매매장', '?�당?�??, '결제방법', '메모'],
+        ['010-1234-5678', '2024-01-15', '가�??�드�?, '2800000', 'ORD-2024-001', '강남??, '김?�??, '?�용카드', '?�년 ?�물'],
+        ['010-1234-5678', '2024-02-14', '?�크 ?�카??, '450000', 'ORD-2024-002', '강남??, '김?�??, '?�용카드', '발렌?�???�물'],
+        ['010-9876-5432', '2024-01-20', '?�자?�너 코트', '3200000', 'ORD-2024-003', '?�초??, '?��???, '?�금', '겨울 ?�우??],
+        ['010-5555-1234', '2024-03-01', '명품 ?�계', '5500000', 'ORD-2024-004', '?�실??, '박�???, '?�용카드', '?�일 ?�물']
     ];
     
     const workbook = XLSX.utils.book_new();
     
-    // 고객정보 시트 추가
+    // 고객?�보 ?�트 추�?
     const customerSheet = XLSX.utils.aoa_to_sheet(customerData);
-    XLSX.utils.book_append_sheet(workbook, customerSheet, '고객정보');
+    XLSX.utils.book_append_sheet(workbook, customerSheet, '고객?�보');
     
-    // 구매이력 시트 추가
+    // 구매?�력 ?�트 추�?
     const purchaseSheet = XLSX.utils.aoa_to_sheet(purchaseData);
-    XLSX.utils.book_append_sheet(workbook, purchaseSheet, '구매이력');
+    XLSX.utils.book_append_sheet(workbook, purchaseSheet, '구매?�력');
     
-    // 파일 다운로드
-    XLSX.writeFile(workbook, '고객관리_통합템플릿.xlsx');
+    // ?�일 ?�운로드
+    XLSX.writeFile(workbook, '고객관�??�합?�플�?xlsx');
 }
 
-// 고객 정렬 함수
+// 고객 ?�렬 ?�수
 function sortCustomers(field) {
-    // 현재 정렬 상태 확인
+    // ?�재 ?�렬 ?�태 ?�인
     if (currentSort.field === field) {
-        // 같은 필드를 클릭한 경우 정렬 순서 변경
+        // 같�? ?�드�??�릭??경우 ?�렬 ?�서 변�?
         currentSort.order = currentSort.order === 'asc' ? 'desc' : 'asc';
     } else {
-        // 다른 필드를 클릭한 경우 새로운 필드로 오름차순 정렬
+        // ?�른 ?�드�??�릭??경우 ?�로???�드�??�름차순 ?�렬
         currentSort.field = field;
         currentSort.order = 'asc';
     }
     
-    // 헤더 스타일 업데이트
+    // ?�더 ?��????�데?�트
     updateSortHeaders();
     
-    // 현재 표시 중인 고객 목록 가져오기
+    // ?�재 ?�시 중인 고객 목록 가?�오�?
     const searchTerm = document.getElementById('search-input').value.toLowerCase();
     let displayedCustomers = customers;
     
-    // 검색 필터 적용
+    // 검???�터 ?�용
     if (searchTerm) {
         displayedCustomers = customers.filter(customer => {
             return customer.name.toLowerCase().includes(searchTerm) ||
@@ -3336,16 +3336,16 @@ function sortCustomers(field) {
         });
     }
     
-    // 정렬 적용
+    // ?�렬 ?�용
     displayedCustomers = applySort(displayedCustomers, field, currentSort.order);
     
-    // 정렬된 목록 렌더링
+    // ?�렬??목록 ?�더�?
     renderCustomerList(displayedCustomers);
 }
 
-// 정렬 헤더 스타일 업데이트 함수
+// ?�렬 ?�더 ?��????�데?�트 ?�수
 function updateSortHeaders() {
-    // 모든 정렬 헤더 초기화
+    // 모든 ?�렬 ?�더 초기??
     document.querySelectorAll('.sortable').forEach(header => {
         header.classList.remove('sort-asc', 'sort-desc');
         const icon = header.querySelector('.sort-icon');
@@ -3354,7 +3354,7 @@ function updateSortHeaders() {
         }
     });
     
-    // 현재 정렬 필드 표시
+    // ?�재 ?�렬 ?�드 ?�시
     if (currentSort.field) {
         const currentHeader = document.querySelector(`[data-sort="${currentSort.field}"]`);
         if (currentHeader) {
@@ -3371,33 +3371,33 @@ function updateSortHeaders() {
     }
 }
 
-// 등급 텍스트 변환 함수
+// ?�급 ?�스??변???�수
 function getRankText(rank) {
     switch (rank) {
         case 'vvip': return 'VVIP';
         case 'vip': return 'VIP';
-        case 'regular': return '일반';
-        default: return '일반';
+        case 'regular': return '?�반';
+        default: return '?�반';
     }
 }
 
-// 정렬 이벤트 리스너 등록 함수
+// ?�렬 ?�벤??리스???�록 ?�수
 function attachSortListeners() {
     document.querySelectorAll('.sortable').forEach(header => {
-        // 기존 이벤트 리스너 제거 (중복 방지)
+        // 기존 ?�벤??리스???�거 (중복 방�?)
         header.removeEventListener('click', sortHandler);
-        // 새 이벤트 리스너 추가
+        // ???�벤??리스??추�?
         header.addEventListener('click', sortHandler);
     });
 }
 
-// 정렬 이벤트 핸들러 함수
+// ?�렬 ?�벤???�들???�수
 function sortHandler(event) {
     const sortField = event.currentTarget.getAttribute('data-sort');
     sortCustomers(sortField);
 }
 
-// 배열에 정렬 적용하는 함수
+// 배열???�렬 ?�용?�는 ?�수
 function applySort(customerArray, field, order) {
     return customerArray.sort((a, b) => {
         let aValue, bValue;
@@ -3416,7 +3416,7 @@ function applySort(customerArray, field, order) {
                 bValue = b.preferredStore || '';
                 break;
             case 'rank':
-                // 등급 우선순위: vvip > vip > regular
+                // ?�급 ?�선?�위: vvip > vip > regular
                 const rankOrder = { 'vvip': 3, 'vip': 2, 'regular': 1 };
                 aValue = rankOrder[a.rank] || 0;
                 bValue = rankOrder[b.rank] || 0;
@@ -3429,13 +3429,13 @@ function applySort(customerArray, field, order) {
                 return 0;
         }
         
-        // 문자열 비교
+        // 문자??비교
         if (typeof aValue === 'string' && typeof bValue === 'string') {
             const comparison = aValue.localeCompare(bValue, 'ko');
             return order === 'asc' ? comparison : -comparison;
         }
         
-        // 숫자 비교
+        // ?�자 비교
         if (aValue < bValue) {
             return order === 'asc' ? -1 : 1;
         }
@@ -3448,24 +3448,24 @@ function applySort(customerArray, field, order) {
 
 
 
-// 삭제됨 - 더 이상 동기화 비활성화 기능 없음 (항상 활성화)
+// ??��??- ???�상 ?�기??비활?�화 기능 ?�음 (??�� ?�성??
 
-// 로그인 수행 함수
+// 로그???�행 ?�수
 function performLogin() {
-    console.log('로그인 시작...');
+    console.log('로그???�작...');
     
-    // 로그인 상태 저장
+    // 로그???�태 ?�??
     localStorage.setItem('isLoggedIn', 'true');
     localStorage.setItem('username', 'admin');
     
-    // DOM 요소 가져오기
+    // DOM ?�소 가?�오�?
     const loginForm = document.getElementById('login-form');
     const mainContent = document.getElementById('main-content');
     
     console.log('loginForm:', loginForm);
     console.log('mainContent:', mainContent);
     
-    // 즉시 페이지 전환 (여러 방법으로 강제)
+    // 즉시 ?�이지 ?�환 (?�러 방법?�로 강제)
     if (loginForm) {
         loginForm.style.display = 'none';
         loginForm.style.visibility = 'hidden';
@@ -3480,16 +3480,16 @@ function performLogin() {
         mainContent.classList.add('force-show');
     }
     
-    // 데이터 로드 (즉시)
+    // ?�이??로드 (즉시)
     try {
         if (typeof loadCustomerList === 'function') loadCustomerList();
         if (typeof loadBirthdayAlerts === 'function') loadBirthdayAlerts();
         if (typeof loadRankingCounts === 'function') loadRankingCounts();
     } catch (error) {
-        console.error('데이터 로드 오류:', error);
+        console.error('?�이??로드 ?�류:', error);
     }
     
-    // 강제 리렌더링
+    // 강제 리렌?�링
     requestAnimationFrame(() => {
         if (mainContent) {
             mainContent.style.opacity = '0';
@@ -3499,18 +3499,18 @@ function performLogin() {
         }
     });
     
-    console.log('로그인 완료');
+    console.log('로그???�료');
 }
 
-// 로그아웃 수행 함수  
+// 로그?�웃 ?�행 ?�수  
 function performLogout() {
-    console.log('로그아웃 시작...');
+    console.log('로그?�웃 ?�작...');
     
-    // 로그인 상태 제거
+    // 로그???�태 ?�거
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('username');
     
-    // DOM 요소 가져오기
+    // DOM ?�소 가?�오�?
     const loginForm = document.getElementById('login-form');
     const mainContent = document.getElementById('main-content');
     const passwordInput = document.getElementById('password');
@@ -3518,7 +3518,7 @@ function performLogout() {
     console.log('logout - loginForm:', loginForm);
     console.log('logout - mainContent:', mainContent);
     
-    // 즉시 페이지 전환 (여러 방법으로 강제)
+    // 즉시 ?�이지 ?�환 (?�러 방법?�로 강제)
     if (mainContent) {
         mainContent.style.display = 'none';
         mainContent.style.visibility = 'hidden';
@@ -3533,16 +3533,16 @@ function performLogout() {
         loginForm.classList.add('force-show');
     }
     
-    // 패스워드 입력창 초기화
+    // ?�스?�드 ?�력�?초기??
     if (passwordInput) {
         passwordInput.value = '';
-        // 약간의 지연 후 포커스 (화면 전환 후)
+        // ?�간??지?????�커??(?�면 ?�환 ??
         setTimeout(() => {
             passwordInput.focus();
         }, 100);
     }
     
-    // 강제 리렌더링
+    // 강제 리렌?�링
     requestAnimationFrame(() => {
         if (loginForm) {
             loginForm.style.opacity = '0';
@@ -3552,5 +3552,5 @@ function performLogout() {
         }
     });
     
-    console.log('로그아웃 완료');
+    console.log('로그?�웃 ?�료');
 }
