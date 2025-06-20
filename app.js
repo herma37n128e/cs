@@ -224,8 +224,40 @@ function checkLoginStatus() {
 
 // 로그인 모달 표시
 function showLoginModal() {
-    const loginModal = new bootstrap.Modal(document.getElementById('login-modal'));
+    const loginModal = new bootstrap.Modal(document.getElementById('login-modal'), {
+        backdrop: 'static',
+        keyboard: false
+    });
+    
+    // 배경 완전 차단을 위한 추가 처리
+    document.body.style.overflow = 'hidden';
+    document.body.style.backgroundColor = '#000000';
+    
+    // 메인 컨테이너 숨기기
+    const mainContainer = document.querySelector('.container-fluid');
+    if (mainContainer) {
+        mainContainer.style.visibility = 'hidden';
+    }
+    
     loginModal.show();
+    
+    // 모달이 완전히 표시된 후 배경 강화
+    document.getElementById('login-modal').addEventListener('shown.bs.modal', function () {
+        // 추가 배경 오버레이 생성
+        const overlay = document.createElement('div');
+        overlay.id = 'login-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.95);
+            z-index: 1040;
+            pointer-events: none;
+        `;
+        document.body.appendChild(overlay);
+    });
     
     // 로그인 폼 이벤트 리스너
     document.getElementById('login-form').addEventListener('submit', handleLogin);
@@ -266,6 +298,22 @@ function handleLogin(e) {
         // 로그인 모달 닫기
         const loginModal = bootstrap.Modal.getInstance(document.getElementById('login-modal'));
         loginModal.hide();
+        
+        // 배경 복원
+        document.body.style.overflow = '';
+        document.body.style.backgroundColor = '';
+        
+        // 메인 컨테이너 다시 표시
+        const mainContainer = document.querySelector('.container-fluid');
+        if (mainContainer) {
+            mainContainer.style.visibility = 'visible';
+        }
+        
+        // 추가 오버레이 제거
+        const overlay = document.getElementById('login-overlay');
+        if (overlay) {
+            overlay.remove();
+        }
         
         // 메인 시스템 초기화
         initializeMainSystem();
