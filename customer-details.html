@@ -156,38 +156,148 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
-    <!-- Firebase 데이터 연동 스크립트 -->
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    
+    <!-- Firebase 독립 연결 시스템 -->
     <script>
-        // Firebase 데이터 관리 (부모 창 연동)
+        // Firebase 설정
+        const firebaseConfig = {
+            apiKey: "AIzaSyBEMfBi1JfZNqfgbMKGvsIQIfjCR5hW_oU",
+            authDomain: "cs-service-d955e.firebaseapp.com",
+            databaseURL: "https://cs-service-d955e-default-rtdb.asia-southeast1.firebasedatabase.app/",
+            projectId: "cs-service-d955e",
+            storageBucket: "cs-service-d955e.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef"
+        };
+
+        // Firebase 초기화
+        let firebaseApp;
+        let database;
+        let firebaseRetrySucceeded = false;
+
+        async function initializeFirebase() {
+            if (firebaseRetrySucceeded) {
+                console.log('🔥 Firebase 이미 초기화 완료됨 - 재시도 생략');
+                return true;
+            }
+
+            try {
+                console.log('🔥 고객상세페이지 Firebase 초기화 시작...');
+                
+                if (!firebase.apps.length) {
+                    firebaseApp = firebase.initializeApp(firebaseConfig);
+                } else {
+                    firebaseApp = firebase.app();
+                }
+                
+                database = firebase.database();
+                
+                // 연결 테스트
+                await database.ref('.info/connected').once('value');
+                
+                console.log('✅ 고객상세페이지 Firebase 초기화 성공');
+                firebaseRetrySucceeded = true;
+                return true;
+                
+            } catch (error) {
+                console.error('❌ 고객상세페이지 Firebase 초기화 실패:', error);
+                return false;
+            }
+        }
+
+        // Firebase 데이터 관리 시스템 (독립적)
         window.FirebaseData = {
-            // 부모 창의 Firebase 시스템 사용
+            isInitialized: false,
+            
+            // Firebase에서 데이터 로드
+            async loadFromFirebase() {
+                try {
+                    if (!this.isInitialized) {
+                        const initSuccess = await initializeFirebase();
+                        if (!initSuccess) {
+                            throw new Error('Firebase 초기화 실패');
+                        }
+                        this.isInitialized = true;
+                    }
+
+                    console.log('🔥 고객상세페이지에서 Firebase 데이터 로드 시작...');
+                    
+                    const snapshot = await database.ref('customerData').once('value');
+                    const data = snapshot.val();
+                    
+                    if (data) {
+                        console.log('✅ 고객상세페이지 Firebase 데이터 로드 성공:', {
+                            customers: (data.customers || []).length,
+                            purchases: (data.purchases || []).length
+                        });
+                        
+                        return {
+                            customers: data.customers || [],
+                            purchases: data.purchases || [],
+                            gifts: data.gifts || [],
+                            visits: data.visits || [],
+                            rankChanges: data.rankChanges || []
+                        };
+                    } else {
+                        console.log('⚠️ Firebase에 데이터가 없음');
+                        return {
+                            customers: [],
+                            purchases: [],
+                            gifts: [],
+                            visits: [],
+                            rankChanges: []
+                        };
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Firebase 데이터 로드 실패:', error);
+                    throw error;
+                }
+            },
+            
+            // Firebase에 데이터 저장
             async saveToFirebase(data) {
                 try {
-                    if (window.opener && window.opener.FirebaseData) {
-                        return await window.opener.FirebaseData.saveToFirebase(data);
+                    if (!this.isInitialized) {
+                        const initSuccess = await initializeFirebase();
+                        if (!initSuccess) {
+                            throw new Error('Firebase 초기화 실패');
+                        }
+                        this.isInitialized = true;
                     }
-                    return false;
+
+                    console.log('🔥 고객상세페이지에서 Firebase 데이터 저장 시작...');
+                    
+                    await database.ref('customerData').set(data);
+                    
+                    console.log('✅ 고객상세페이지 Firebase 데이터 저장 성공');
+                    return true;
+                    
                 } catch (error) {
-                    console.error('Firebase 저장 오류:', error);
+                    console.error('❌ Firebase 데이터 저장 실패:', error);
                     return false;
                 }
             },
             
-            // 부모 창에서 데이터 로드
-            async loadFromFirebase() {
+            // 강제 동기화
+            async forceSyncWithFirebase(showMessage = true) {
                 try {
-                    if (window.opener && window.opener.FirebaseData) {
-                        return await window.opener.FirebaseData.loadFromFirebase();
+                    const data = await this.loadFromFirebase();
+                    if (showMessage) {
+                        console.log('🔄 Firebase 강제 동기화 완료');
                     }
-                    return null;
+                    return data;
                 } catch (error) {
-                    console.error('Firebase 로드 오류:', error);
-                    return null;
+                    console.error('❌ Firebase 강제 동기화 실패:', error);
+                    throw error;
                 }
             }
         };
         
-                            // 기존 CloudSync 호환성 유지 (오류 방지)
+        // 기존 CloudSync 호환성 유지 (오류 방지)
         window.CloudSync = {
             startAutoSync: () => console.log('Firebase 시스템으로 전환됨'),
             syncToCloud: () => Promise.resolve(true),
@@ -196,7 +306,15 @@
         
         window.CLOUD_SYNC = { enabled: false }; // 기존 시스템 비활성화
         
-        console.log('🔥 고객 상세 페이지 Firebase 시스템 초기화 완료');
+        // Firebase 초기화 시작
+        initializeFirebase().then(success => {
+            if (success) {
+                window.FirebaseData.isInitialized = true;
+                console.log('🚀 고객 상세 페이지 독립 Firebase 시스템 준비 완료');
+            } else {
+                console.error('❌ 고객 상세 페이지 Firebase 초기화 실패');
+            }
+        });
     </script>
     
     <script src="customer-details.js"></script>
