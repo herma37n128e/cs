@@ -4,6 +4,363 @@ const ADMIN_USERS = [
     { username: 'manager', password: 'manager456' }
 ];
 
+// 보안 강화된 로컬 동기화 설정 (기본: 로컬 전용)
+window.FIREBASE_SYNC = {
+    enabled: false, // 기본적으로 비활성화 (보안상 안전)
+    databaseUrl: '', // 사용자가 직접 설정
+    apiKey: '', // 사용자가 직접 설정
+    syncInterval: 5000, // 5초마다 동기화 체크
+    lastSyncTime: 0,
+    deviceId: localStorage.getItem('deviceId') || generateDeviceId(),
+    isSyncing: false,
+    database: null, // Firebase 데이터베이스 참조
+    autoSync: false, // 보안상 수동 설정으로 변경
+    userPath: '' // 사용자별 데이터 경로
+};
+
+// 기기 고유 ID 생성
+function generateDeviceId() {
+    const deviceId = 'device_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    localStorage.setItem('deviceId', deviceId);
+    return deviceId;
+}
+
+// Firebase 동기화 상태 표시 (안전한 버전)
+function updateSyncStatus(status, message = '') {
+    const statusElement = document.getElementById('sync-status');
+    if (!statusElement) {
+        // 동기화 상태 요소가 없으면 단순히 콘솔에 로그만 출력
+        console.log(`Firebase 동기화 상태: ${status}`, message);
+        return;
+    }
+    
+    const now = new Date().toLocaleTimeString('ko-KR');
+    let statusText = '';
+    let statusClass = '';
+    
+    switch (status) {
+        case 'syncing':
+            statusText = '🔄 Firebase 동기화 중...';
+            statusClass = 'text-warning';
+            break;
+        case 'success':
+            statusText = `✅ Firebase 동기화 완료 (${now})`;
+            statusClass = 'text-success';
+            break;
+        case 'error':
+            statusText = `❌ Firebase 동기화 실패: ${message}`;
+            statusClass = 'text-danger';
+            break;
+        case 'offline':
+            statusText = '📶 오프라인 모드';
+            statusClass = 'text-secondary';
+            break;
+        case 'realtime':
+            statusText = `🔥 Firebase 실시간 연결됨 (${now})`;
+            statusClass = 'text-info';
+            break;
+        default:
+            statusText = '⚪ Firebase 대기 중';
+            statusClass = 'text-muted';
+    }
+    
+    statusElement.innerHTML = `<small class="${statusClass}">${statusText}</small>`;
+}
+
+// Firebase에서 데이터 가져오기 (안전한 버전)
+async function syncFromFirebase() {
+    if (!window.FIREBASE_SYNC || !window.FIREBASE_SYNC.enabled || window.FIREBASE_SYNC.isSyncing) return;
+    
+    window.FIREBASE_SYNC.isSyncing = true;
+    updateSyncStatus('syncing');
+    
+    try {
+        const userPath = window.FIREBASE_SYNC.userPath || 'default';
+        const response = await fetch(`${window.FIREBASE_SYNC.databaseUrl}/${userPath}/customerData.json?auth=${window.FIREBASE_SYNC.apiKey}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (response.ok) {
+            const firebaseData = await response.json();
+            
+            // Firebase 데이터가 있고, 로컬보다 최신인 경우
+            if (firebaseData && firebaseData.lastUpdated > window.FIREBASE_SYNC.lastSyncTime) {
+                // 현재 기기에서 수정한 것이 아닌 경우에만 동기화
+                if (firebaseData.lastModifiedBy !== window.FIREBASE_SYNC.deviceId) {
+                    // 로컬 데이터 업데이트 (전역 변수가 존재하는지 확인)
+                    if (firebaseData.customers && typeof customers !== 'undefined') customers = firebaseData.customers;
+                    if (firebaseData.purchases && typeof purchases !== 'undefined') purchases = firebaseData.purchases;
+                    if (firebaseData.gifts && typeof gifts !== 'undefined') gifts = firebaseData.gifts;
+                    if (firebaseData.visits && typeof visits !== 'undefined') visits = firebaseData.visits;
+                    if (firebaseData.rankChanges && typeof rankChanges !== 'undefined') rankChanges = firebaseData.rankChanges;
+                    
+                    // 로컬 스토리지 업데이트 (함수가 존재하는지 확인)
+                    if (typeof saveDataToStorage === 'function') {
+                        saveDataToStorage();
+                    }
+                    
+                    // UI 새로고침 (요소가 존재하는지 확인)
+                    const customerListElement = document.getElementById('customer-list');
+                    if (customerListElement && customerListElement.style.display !== 'none') {
+                        if (typeof loadCustomerList === 'function') {
+                            loadCustomerList();
+                        }
+                    }
+                    
+                    window.FIREBASE_SYNC.lastSyncTime = firebaseData.lastUpdated;
+                    updateSyncStatus('success');
+                    console.log('Firebase에서 데이터 동기화 완료');
+                }
+            } else {
+                updateSyncStatus('success');
+            }
+        } else if (response.status === 404) {
+            // 데이터가 없는 경우 (첫 사용)
+            console.log('Firebase에 데이터가 없습니다. 로컬 데이터를 업로드합니다.');
+            await syncToFirebase();
+        } else {
+            throw new Error(`HTTP ${response.status}`);
+        }
+    } catch (error) {
+        console.error('Firebase 동기화 오류:', error);
+        updateSyncStatus('error', error.message);
+    } finally {
+        if (window.FIREBASE_SYNC) {
+            window.FIREBASE_SYNC.isSyncing = false;
+        }
+    }
+}
+
+// Firebase에 데이터 저장하기 (안전한 버전)
+async function syncToFirebase() {
+    if (!window.FIREBASE_SYNC || !window.FIREBASE_SYNC.enabled || window.FIREBASE_SYNC.isSyncing) return;
+    
+    window.FIREBASE_SYNC.isSyncing = true;
+    updateSyncStatus('syncing');
+    
+    try {
+        const syncData = {
+            customers: typeof customers !== 'undefined' ? customers : [],
+            purchases: typeof purchases !== 'undefined' ? purchases : [],
+            gifts: typeof gifts !== 'undefined' ? gifts : [],
+            visits: typeof visits !== 'undefined' ? visits : [],
+            rankChanges: typeof rankChanges !== 'undefined' ? rankChanges : [],
+            lastUpdated: Date.now(),
+            lastModifiedBy: window.FIREBASE_SYNC.deviceId,
+            version: '1.0.0'
+        };
+        
+        const userPath = window.FIREBASE_SYNC.userPath || 'default';
+        const response = await fetch(`${window.FIREBASE_SYNC.databaseUrl}/${userPath}/customerData.json?auth=${window.FIREBASE_SYNC.apiKey}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(syncData)
+        });
+        
+        if (response.ok) {
+            window.FIREBASE_SYNC.lastSyncTime = syncData.lastUpdated;
+            updateSyncStatus('success');
+            console.log('Firebase에 데이터 저장 완료');
+        } else {
+            throw new Error(`HTTP ${response.status}`);
+        }
+    } catch (error) {
+        console.error('Firebase 동기화 오류:', error);
+        updateSyncStatus('error', error.message);
+    } finally {
+        if (window.FIREBASE_SYNC) {
+            window.FIREBASE_SYNC.isSyncing = false;
+        }
+    }
+}
+
+// Firebase 동기화 설정 함수 (안전한 버전)
+function setupFirebaseSync(databaseUrl, apiKey) {
+    if (!window.FIREBASE_SYNC) {
+        console.error('FIREBASE_SYNC 객체가 초기화되지 않았습니다.');
+        return;
+    }
+    
+    window.FIREBASE_SYNC.enabled = true;
+    window.FIREBASE_SYNC.databaseUrl = databaseUrl;
+    window.FIREBASE_SYNC.apiKey = apiKey;
+    
+    // 사용자별 경로 생성 및 설정 저장
+    const userPath = generateUserPath();
+    window.FIREBASE_SYNC.userPath = userPath;
+    
+    try {
+        localStorage.setItem('firebaseSyncConfig', JSON.stringify({
+            databaseUrl: databaseUrl,
+            apiKey: apiKey,
+            userPath: userPath,
+            enabled: true
+        }));
+    } catch (error) {
+        console.error('로컬 스토리지 저장 오류:', error);
+    }
+    
+    // 즉시 동기화 시작 (안전하게)
+    try {
+        syncFromFirebase();
+    } catch (error) {
+        console.error('즉시 Firebase 동기화 오류:', error);
+    }
+    
+    // 정기적 동기화 시작
+    try {
+        startSyncInterval();
+    } catch (error) {
+        console.error('정기 Firebase 동기화 시작 오류:', error);
+    }
+    
+    // 실시간 리스너 설정 시도
+    try {
+        setupRealtimeListener();
+    } catch (error) {
+        console.error('실시간 리스너 설정 오류:', error);
+    }
+    
+    alert('Firebase 실시간 동기화가 활성화되었습니다!\n이제 모든 기기에서 실시간으로 데이터가 동기화됩니다.');
+}
+
+// Firebase 실시간 리스너 설정 (EventSource 사용)
+function setupRealtimeListener() {
+    if (!window.FIREBASE_SYNC || !window.FIREBASE_SYNC.enabled) return;
+    
+    const userPath = window.FIREBASE_SYNC.userPath || 'default';
+    const eventSourceUrl = `${window.FIREBASE_SYNC.databaseUrl}/${userPath}/customerData.json?auth=${window.FIREBASE_SYNC.apiKey}`;
+    
+    try {
+        // 기존 EventSource가 있으면 닫기
+        if (window.FIREBASE_SYNC.eventSource) {
+            window.FIREBASE_SYNC.eventSource.close();
+        }
+        
+        // Server-Sent Events를 사용한 실시간 연결
+        window.FIREBASE_SYNC.eventSource = new EventSource(eventSourceUrl);
+        
+        window.FIREBASE_SYNC.eventSource.onopen = function() {
+            console.log('Firebase 실시간 연결 성공');
+            updateSyncStatus('realtime');
+        };
+        
+        window.FIREBASE_SYNC.eventSource.onmessage = function(event) {
+            try {
+                const data = JSON.parse(event.data);
+                if (data && data.lastModifiedBy !== window.FIREBASE_SYNC.deviceId) {
+                    console.log('Firebase에서 실시간 데이터 변경 감지');
+                    syncFromFirebase();
+                }
+            } catch (error) {
+                console.error('실시간 데이터 처리 오류:', error);
+            }
+        };
+        
+        window.FIREBASE_SYNC.eventSource.onerror = function(event) {
+            console.error('Firebase 실시간 연결 오류:', event);
+            updateSyncStatus('error', '실시간 연결 끊김');
+            
+            // 재연결 시도
+            setTimeout(() => {
+                if (window.FIREBASE_SYNC && window.FIREBASE_SYNC.enabled) {
+                    setupRealtimeListener();
+                }
+            }, 5000);
+        };
+        
+    } catch (error) {
+        console.error('실시간 리스너 설정 실패:', error);
+        // 실시간 연결 실패 시 정기 동기화로 대체
+        startSyncInterval();
+    }
+}
+
+// 정기적 동기화 시작 (Firebase 버전)
+function startSyncInterval() {
+    if (window.FIREBASE_SYNC && window.FIREBASE_SYNC.enabled) {
+        // 기존 인터벌이 있으면 제거
+        if (window.FIREBASE_SYNC.syncIntervalId) {
+            clearInterval(window.FIREBASE_SYNC.syncIntervalId);
+        }
+        
+        window.FIREBASE_SYNC.syncIntervalId = setInterval(() => {
+            try {
+                syncFromFirebase();
+            } catch (error) {
+                console.error('정기 Firebase 동기화 오류:', error);
+            }
+        }, window.FIREBASE_SYNC.syncInterval);
+    }
+}
+
+// 보안 강화된 동기화 초기화 (사용자 설정 필요)
+function initializeSecureSync() {
+    console.log('보안 동기화 시스템 초기화...');
+    
+    // 사용자가 설정한 Firebase만 사용 (보안 강화)
+    try {
+        const config = localStorage.getItem('firebaseSyncConfig');
+        if (config) {
+            const parsedConfig = JSON.parse(config);
+            if (parsedConfig.enabled && parsedConfig.databaseUrl && parsedConfig.apiKey) {
+                // 사용자 설정이 있으면 동기화 활성화
+                window.FIREBASE_SYNC.enabled = true;
+                window.FIREBASE_SYNC.databaseUrl = parsedConfig.databaseUrl;
+                window.FIREBASE_SYNC.apiKey = parsedConfig.apiKey;
+                window.FIREBASE_SYNC.userPath = parsedConfig.userPath || generateUserPath();
+                
+                console.log('사용자 Firebase 설정으로 동기화 시작');
+                
+                // Firebase 동기화 시작
+                setTimeout(() => {
+                    try {
+                        updateSyncStatus('syncing', 'Firebase 연결 중...');
+                        syncFromFirebase();
+                        setupRealtimeListener();
+                    } catch (error) {
+                        console.error('Firebase 동기화 시작 오류:', error);
+                        updateSyncStatus('error', '동기화 실패');
+                        startSyncInterval();
+                    }
+                }, 1000);
+            } else {
+                console.log('Firebase 설정 없음 - 로컬 전용 모드');
+                updateSyncStatus('offline', '로컬 전용');
+            }
+        } else {
+            console.log('동기화 설정 없음 - 보안 로컬 모드');
+            updateSyncStatus('offline', '로컬 전용');
+        }
+    } catch (error) {
+        console.error('동기화 설정 로드 오류:', error);
+        updateSyncStatus('offline', '로컬 전용');
+    }
+}
+
+// 사용자별 고유 경로 생성 (데이터 격리)
+function generateUserPath() {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 15);
+    const userPath = `users/${timestamp}_${random}`;
+    
+    // 사용자 경로를 설정에 저장
+    try {
+        const config = JSON.parse(localStorage.getItem('firebaseSyncConfig') || '{}');
+        config.userPath = userPath;
+        localStorage.setItem('firebaseSyncConfig', JSON.stringify(config));
+    } catch (error) {
+        console.error('사용자 경로 저장 오류:', error);
+    }
+    
+    return userPath;
+}
+
 // 등급 변경 이력 배열 추가
 let rankChanges = []; // 등급 변경 이력
 
@@ -16,22 +373,21 @@ function loadDataFromStorage() {
     rankChanges = JSON.parse(localStorage.getItem('rankChanges')) || []; // 등급 변경 이력 로드
 }
 
-// 로컬 스토리지에 데이터 저장 (클라우드 동기화 포함)
+// 로컬 스토리지에 데이터 저장
 function saveDataToStorage() {
     localStorage.setItem('customers', JSON.stringify(customers));
     localStorage.setItem('purchases', JSON.stringify(purchases));
     localStorage.setItem('gifts', JSON.stringify(gifts));
     localStorage.setItem('visits', JSON.stringify(visits));
     localStorage.setItem('rankChanges', JSON.stringify(rankChanges)); // 등급 변경 이력 저장
-    localStorage.setItem('lastUpdated', Date.now().toString());
     
-    // 클라우드에 자동 동기화 (비동기)
-    if (window.CloudSync && window.CLOUD_SYNC.enabled) {
-        setTimeout(() => {
-            window.CloudSync.syncToCloud().catch(error => {
-                console.log('자동 클라우드 동기화 실패:', error);
-            });
-        }, 100); // 100ms 지연 후 동기화
+    // Firebase 동기화가 활성화되어 있으면 Firebase에도 저장 (안전하게)
+    if (window.FIREBASE_SYNC && window.FIREBASE_SYNC.enabled) {
+        try {
+            syncToFirebase();
+        } catch (error) {
+            console.error('Firebase 저장 오류:', error);
+        }
     }
 }
 
@@ -47,15 +403,19 @@ let gifts = [];
 // 방문 이력 샘플 데이터 (초기화됨)
 let visits = [];
 
+// 정렬 상태 변수
+let currentSort = {
+    field: null,
+    order: 'asc'
+};
+
 // DOM이 로드된 후 실행
 document.addEventListener('DOMContentLoaded', () => {
     // 로컬 스토리지에서 데이터 로드
     loadDataFromStorage();
     
-    // 클라우드 동기화 시작
-    if (window.CloudSync && window.CloudSync.startAutoSync) {
-        window.CloudSync.startAutoSync();
-    }
+    // 보안 강화된 동기화 시작
+    initializeSecureSync();
     
     // 로그인 상태 확인
     checkLoginStatus();
@@ -68,91 +428,17 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // 패스워드 전용 로그인 체크
         if (password === 'grace1') {
-            // 로그인 성공 - 로그인 상태 저장
-            localStorage.setItem('isLoggedIn', 'true');
-            localStorage.setItem('username', 'admin');
-            
-            // 로그인 성공
-            document.getElementById('login-form').classList.add('d-none');
-            document.getElementById('main-content').classList.remove('d-none');
-            loadCustomerList();
-            loadBirthdayAlerts();
-            loadRankingCounts();
+            performLogin();
         } else {
             // 로그인 실패
             alert('비밀번호가 올바르지 않습니다.');
         }
     });
 
-    // 비밀번호 표시/숨김 토글 기능
-    document.getElementById('password-toggle').addEventListener('click', () => {
-        const passwordInput = document.getElementById('password');
-        const passwordIcon = document.getElementById('password-icon');
-        
-        if (passwordInput.type === 'password') {
-            passwordInput.type = 'text';
-            passwordIcon.classList.remove('bi-eye');
-            passwordIcon.classList.add('bi-eye-slash');
-        } else {
-            passwordInput.type = 'password';
-            passwordIcon.classList.remove('bi-eye-slash');
-            passwordIcon.classList.add('bi-eye');
-        }
-    });
-
     // 로그아웃 버튼 이벤트 리스너
-    document.getElementById('logout-btn').addEventListener('click', () => {
-        // 로그인 상태 제거
-        localStorage.removeItem('isLoggedIn');
-        localStorage.removeItem('username');
-        
-        document.getElementById('main-content').classList.add('d-none');
-        document.getElementById('login-form').classList.remove('d-none');
-        document.getElementById('password').value = '';
-    });
-
-    // 모바일 로그아웃 버튼 이벤트 리스너
-    document.getElementById('mobile-logout-btn').addEventListener('click', () => {
-        // 로그인 상태 제거
-        localStorage.removeItem('isLoggedIn');
-        localStorage.removeItem('username');
-        
-        document.getElementById('main-content').classList.add('d-none');
-        document.getElementById('login-form').classList.remove('d-none');
-        document.getElementById('password').value = '';
-    });
-
-    // 사이드바 토글 기능
-    const sidebar = document.getElementById('sidebar');
-    const sidebarOverlay = document.getElementById('sidebar-overlay');
-    const sidebarToggle = document.getElementById('sidebar-toggle');
-    const sidebarClose = document.getElementById('sidebar-close');
-
-    // 사이드바 닫기 함수를 전역으로 정의
-    window.closeSidebar = function() {
-        sidebar.classList.remove('show');
-        sidebarOverlay.classList.remove('show');
-        document.body.style.overflow = ''; // 스크롤 복원
-    };
-
-    // 사이드바 열기
-    sidebarToggle.addEventListener('click', () => {
-        sidebar.classList.add('show');
-        sidebarOverlay.classList.add('show');
-        document.body.style.overflow = 'hidden'; // 스크롤 방지
-    });
-
-    // 사이드바 닫기 버튼 클릭
-    sidebarClose.addEventListener('click', window.closeSidebar);
-
-    // 오버레이 클릭 시 사이드바 닫기
-    sidebarOverlay.addEventListener('click', window.closeSidebar);
-
-    // ESC 키로 사이드바 닫기
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && sidebar.classList.contains('show')) {
-            window.closeSidebar();
-        }
+    document.getElementById('logout-btn').addEventListener('click', (e) => {
+        e.preventDefault();
+        performLogout();
     });
 
     // 네비게이션 메뉴 이벤트 리스너
@@ -174,32 +460,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 navLink.classList.remove('active');
             });
             link.classList.add('active');
-            
-            // 모바일에서 메뉴 클릭 시 사이드바 닫기
-            if (window.innerWidth < 992) {
-                window.closeSidebar();
-            }
         });
-    });
-
-    // 모바일 제목 클릭 시 메인페이지로 이동
-    document.getElementById('mobile-title-home').addEventListener('click', () => {
-        // 고객 목록 페이지로 이동
-        document.querySelectorAll('.page').forEach(page => {
-            page.classList.add('d-none');
-        });
-        document.getElementById('customer-list').classList.remove('d-none');
-        
-        // 활성 메뉴 표시
-        document.querySelectorAll('.nav-link').forEach(navLink => {
-            navLink.classList.remove('active');
-        });
-        document.querySelector('.nav-link[data-page="customer-list"]').classList.add('active');
-        
-        // 사이드바가 열려있으면 닫기
-        if (sidebar.classList.contains('show')) {
-            window.closeSidebar();
-        }
     });
 
     // 고객 검색 기능 이벤트 리스너
@@ -281,18 +542,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // 현재 보고 있는 고객 ID 가져오기
             const customerId = parseInt(document.querySelector('#customer-info-content').getAttribute('data-customer-id'));
             
-            // 모든 탭 푸터 숨기기
-            document.querySelectorAll('.tab-footer').forEach(footer => {
-                footer.classList.add('d-none');
-            });
-            
-            // 선택된 탭에 따라 해당 푸터 표시
-            const tabHref = tab.getAttribute('href');
-            if (tabHref === '#info-tab') {
-                document.getElementById('info-tab-footer').classList.remove('d-none');
-            } else if (tabHref === '#purchase-tab') {
-                document.getElementById('purchase-tab-footer').classList.remove('d-none');
+            if (tab.getAttribute('href') === '#purchase-tab') {
                 loadCustomerPurchases(customerId);
+            } else if (tab.getAttribute('href') === '#gift-tab') {
+                loadCustomerGifts(customerId);
+            } else if (tab.getAttribute('href') === '#visit-tab') {
+                loadCustomerVisits(customerId);
             }
         });
     });
@@ -312,6 +567,42 @@ document.addEventListener('DOMContentLoaded', () => {
         // 고객 삭제
         deleteCustomer(customerId);
     });
+
+    // 동기화 설정 버튼 이벤트 리스너 (안전하게 추가)
+    const syncSettingsBtn = document.getElementById('sync-settings-btn');
+    if (syncSettingsBtn) {
+        syncSettingsBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            openSyncSettingsModal();
+        });
+    }
+
+    // 동기화 설정 저장 버튼 이벤트 리스너 (안전하게 추가)
+    const saveSyncBtn = document.getElementById('save-sync-settings');
+    if (saveSyncBtn) {
+        saveSyncBtn.addEventListener('click', () => {
+            saveSyncSettings();
+        });
+    }
+
+    // 기본 설정 복원 버튼 이벤트 리스너 (안전하게 추가)
+    const resetSyncBtn = document.getElementById('reset-sync-settings');
+    if (resetSyncBtn) {
+        resetSyncBtn.addEventListener('click', () => {
+            resetSyncSettings();
+        });
+    }
+
+    // API Key 보기 체크박스 이벤트 리스너 (안전하게 추가)
+    const showApiKeyCheckbox = document.getElementById('show-api-key');
+    if (showApiKeyCheckbox) {
+        showApiKeyCheckbox.addEventListener('change', (e) => {
+            const apiKeyInput = document.getElementById('api-key');
+            if (apiKeyInput) {
+                apiKeyInput.type = e.target.checked ? 'text' : 'password';
+            }
+        });
+    }
 
     // 구매 기록 추가 버튼 이벤트 리스너
     document.getElementById('add-purchase-btn').addEventListener('click', () => {
@@ -445,12 +736,110 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('구매 기록이 추가되었습니다.');
     });
     
-
+    // 선물 기록 추가 버튼 이벤트 리스너
+    document.getElementById('add-customer-gift-btn').addEventListener('click', () => {
+        const customerId = parseInt(document.querySelector('#customer-info-content').getAttribute('data-customer-id'));
+        document.getElementById('gift-customer-id').value = customerId;
+        document.getElementById('gift-date').value = new Date().toISOString().split('T')[0];
+        document.getElementById('add-gift-form').reset();
+        
+        const giftModal = new bootstrap.Modal(document.getElementById('add-gift-modal'));
+        giftModal.show();
+    });
     
-
+    // 선물 기록 추가 폼 제출 이벤트 리스너
+    document.getElementById('add-gift-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const customerId = parseInt(document.getElementById('gift-customer-id').value);
+        const type = document.getElementById('gift-type').value;
+        const description = document.getElementById('gift-description').value;
+        const date = document.getElementById('gift-date').value;
+        const reason = document.getElementById('gift-reason').value;
+        
+        // 새 선물 기록 생성
+        const newGift = {
+            id: gifts.length > 0 ? Math.max(...gifts.map(g => g.id)) + 1 : 1,
+            customerId,
+            type,
+            description,
+            date,
+            reason
+        };
+        
+        // 선물 기록 추가
+        gifts.push(newGift);
+        
+        // 데이터 저장
+        saveDataToStorage();
+        
+        // 모달 닫기
+        const modal = bootstrap.Modal.getInstance(document.getElementById('add-gift-modal'));
+        modal.hide();
+        
+        // 선물 이력 다시 로드
+        loadCustomerGifts(customerId);
+        
+        // 알림 표시
+        alert('선물 기록이 추가되었습니다.');
+    });
     
-
-
+    // 방문 기록 추가 버튼 이벤트 리스너
+    document.getElementById('add-customer-visit-btn').addEventListener('click', () => {
+        const customerId = parseInt(document.querySelector('#customer-info-content').getAttribute('data-customer-id'));
+        document.getElementById('visit-customer-id').value = customerId;
+        document.getElementById('visit-date').value = new Date().toISOString().split('T')[0];
+        document.getElementById('add-visit-form').reset();
+        
+        const visitModal = new bootstrap.Modal(document.getElementById('add-visit-modal'));
+        visitModal.show();
+    });
+    
+    // 방문 기록 추가 폼 제출 이벤트 리스너
+    document.getElementById('add-visit-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const customerId = parseInt(document.getElementById('visit-customer-id').value);
+        const date = document.getElementById('visit-date').value;
+        const purpose = document.getElementById('visit-purpose').value;
+        const note = document.getElementById('visit-note').value;
+        
+        // 새 방문 기록 생성
+        const newVisit = {
+            id: visits.length > 0 ? Math.max(...visits.map(v => v.id)) + 1 : 1,
+            customerId,
+            date,
+            purpose,
+            note
+        };
+        
+        // 방문 기록 추가
+        visits.push(newVisit);
+        
+        // 고객 정보 업데이트 (최근 방문일)
+        const customer = customers.find(c => c.id === customerId);
+        if (customer) {
+            const visitDate = new Date(date);
+            const lastVisitDate = new Date(customer.lastVisit);
+            
+            if (visitDate > lastVisitDate) {
+                customer.lastVisit = date;
+            }
+        }
+        
+        // 데이터 저장
+        saveDataToStorage();
+        
+        // 모달 닫기
+        const modal = bootstrap.Modal.getInstance(document.getElementById('add-visit-modal'));
+        modal.hide();
+        
+        // 방문 이력 다시 로드
+        loadCustomerVisits(customerId);
+        
+        // 알림 표시
+        alert('방문 기록이 추가되었습니다.');
+    });
 
     // 로그인 상태 확인 함수
     function checkLoginStatus() {
@@ -458,15 +847,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const username = localStorage.getItem('username');
         
         if (isLoggedIn && username) {
-            // 인라인 스크립트에서 이미 화면 상태를 설정했으므로
-            // 데이터만 로드하면 됨
-            loadCustomerList();
-            loadBirthdayAlerts();
-            loadRankingCounts();
+            // 로그인 상태로 화면 표시 (강제 전환)
+            performLogin();
         } else {
-            // 로그인되지 않은 경우 확실히 로그인 폼 표시
-            document.getElementById('login-form').classList.remove('d-none');
-            document.getElementById('main-content').classList.add('d-none');
+            // 로그아웃 상태로 화면 표시 (강제 전환)
+            const loginForm = document.getElementById('login-form');
+            const mainContent = document.getElementById('main-content');
+            
+            if (mainContent) {
+                mainContent.style.display = 'none';
+                mainContent.classList.add('d-none');
+            }
+            
+            if (loginForm) {
+                loginForm.style.display = 'block';
+                loginForm.classList.remove('d-none');
+            }
         }
     }
 
@@ -475,14 +871,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 모든 고객의 등급을 새로운 기준으로 업데이트
     updateAllCustomerRanks();
-    
-    // 클라우드 동기화 시작
-    if (window.CloudSync) {
-        // 페이지 로드 후 약간의 지연을 두고 동기화 시작
-        setTimeout(() => {
-            window.CloudSync.startAutoSync();
-        }, 1000);
-    }
     
     // 모바일 고객 등록 버튼 이벤트 리스너
     document.getElementById('mobile-add-customer-btn').addEventListener('click', () => {
@@ -498,329 +886,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 엑셀 다운로드 버튼 이벤트 리스너
     document.getElementById('export-excel-btn').addEventListener('click', exportCustomersToExcel);
-    
-    // 데이터 동기화 버튼 이벤트 리스너
-    document.getElementById('backup-data-btn').addEventListener('click', exportAllData);
-    document.getElementById('import-data-btn').addEventListener('click', importAllData);
-    
-    // 등급 관리 검색 및 필터 이벤트 리스너
-    document.getElementById('ranking-search-btn').addEventListener('click', searchRankingList);
-    document.getElementById('ranking-search').addEventListener('input', searchRankingList);
-    document.getElementById('ranking-search').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            searchRankingList();
-        }
-    });
-    document.getElementById('ranking-grade-filter').addEventListener('change', searchRankingList);
-    document.getElementById('ranking-sort-filter').addEventListener('change', searchRankingList);
-    
-    // 필터 초기화 버튼 이벤트 리스너
-    document.getElementById('ranking-reset-btn').addEventListener('click', () => {
-        document.getElementById('ranking-search').value = '';
-        document.getElementById('ranking-grade-filter').value = '';
-        document.getElementById('ranking-sort-filter').value = 'totalAmount-desc';
-        searchRankingList();
-    });
-    
-    // 등급별 통계 카드 클릭 이벤트 리스너 (필터링 기능)
-    document.addEventListener('click', (e) => {
-        // VVIP 카드 클릭
-        if (e.target.closest('#vvip-count')?.parentNode?.parentNode?.classList.contains('bg-danger')) {
-            document.getElementById('ranking-grade-filter').value = 'VVIP';
-            document.getElementById('ranking-search').value = '';
-            searchRankingList();
-        }
-        // VIP 카드 클릭
-        else if (e.target.closest('#vip-count')?.parentNode?.parentNode?.classList.contains('bg-primary')) {
-            document.getElementById('ranking-grade-filter').value = 'VIP';
-            document.getElementById('ranking-search').value = '';
-            searchRankingList();
-        }
-        // 일반 카드 클릭
-        else if (e.target.closest('#regular-count')?.parentNode?.parentNode?.classList.contains('bg-secondary')) {
-            document.getElementById('ranking-grade-filter').value = '일반';
-            document.getElementById('ranking-search').value = '';
-            searchRankingList();
-        }
-    });
-    
-    // 동기화 상태 버튼 이벤트 리스너
-    document.getElementById('sync-status-btn').addEventListener('click', () => {
-        if (window.CloudSync) {
-            const lastSync = localStorage.getItem('lastCloudSync');
-            const deviceName = localStorage.getItem('deviceName') || '현재 기기';
-            const isOnline = window.CLOUD_SYNC.isOnline;
-            const isEnabled = window.CLOUD_SYNC.enabled;
-            
-            let message = `기기명: ${deviceName}\n`;
-            message += `네트워크 상태: ${isOnline ? '연결됨' : '연결 안됨'}\n`;
-            message += `동기화 상태: ${isEnabled ? '활성화' : '비활성화'}\n`;
-            
-            if (lastSync) {
-                const lastSyncDate = new Date(parseInt(lastSync));
-                message += `마지막 동기화: ${lastSyncDate.toLocaleString()}\n`;
-            } else {
-                message += '마지막 동기화: 없음\n';
-            }
-            
-            if (isEnabled) {
-                message += '\n동기화를 비활성화하시겠습니까?';
-                if (confirm(message)) {
-                    window.CLOUD_SYNC.enabled = false;
-                    alert('클라우드 동기화가 비활성화되었습니다.\n업로드 실패 알림이 더 이상 표시되지 않습니다.');
-                    updateSyncButton();
-                }
-            } else {
-                message += '\n동기화를 활성화하시겠습니까?';
-                if (confirm(message)) {
-                    window.CLOUD_SYNC.enabled = true;
-                    alert('클라우드 동기화가 활성화되었습니다.');
-                    updateSyncButton();
-                    // 즉시 동기화 시도
-                    setTimeout(() => {
-                        window.CloudSync.forceSyncToCloud();
-                    }, 1000);
-                }
-            }
-        }
-    });
-    
-    // 동기화 버튼 상태 업데이트 함수
-    function updateSyncButton() {
-        const syncBtn = document.getElementById('sync-status-btn');
-        const icon = syncBtn.querySelector('i');
-        
-        if (window.CLOUD_SYNC.enabled) {
-            syncBtn.className = 'btn btn-outline-info btn-sm me-1';
-            syncBtn.title = '동기화 활성화됨 - 클릭하여 설정';
-            icon.className = 'bi bi-cloud-check';
-        } else {
-            syncBtn.className = 'btn btn-outline-secondary btn-sm me-1';
-            syncBtn.title = '동기화 비활성화됨 - 클릭하여 활성화';
-            icon.className = 'bi bi-cloud-slash';
-        }
-    }
-    
-    // 페이지 로드 시 동기화 버튼 상태 설정
-    setTimeout(updateSyncButton, 1000);
-    
-    // DB 초기화 함수 존재 여부 확인 (디버깅용)
-    setTimeout(() => {
-        console.log('🔍 페이지 로드 완료 후 함수 존재 여부 확인:');
-        console.log('- window.resetDatabase:', typeof window.resetDatabase);
-        console.log('- window.testReset:', typeof window.testReset);
-        console.log('- resetDatabase (전역):', typeof resetDatabase);
-        
-        if (typeof window.resetDatabase !== 'function') {
-            console.error('⚠️ resetDatabase 함수가 정의되지 않았습니다!');
-        } else {
-            console.log('✅ resetDatabase 함수가 정상적으로 정의되었습니다.');
-        }
-    }, 3000);
-    
-    // 추가적인 DB 초기화 버튼 설정 (백업)
-    document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(() => {
-            const resetBtn = document.getElementById('reset-database');
-            if (resetBtn) {
-                console.log('DOMContentLoaded에서 DB 초기화 버튼 재설정');
-                resetBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    console.log('DOMContentLoaded 이벤트로 DB 초기화 클릭됨');
-                    if (window.resetDatabase) {
-                        window.resetDatabase();
-                    } else {
-                        alert('DB 초기화 함수를 찾을 수 없습니다.');
-                    }
-                });
-            }
-        }, 1000);
-    });
-    
-    // DB 초기화 버튼 이벤트 리스너 (지연 설정)
-    setTimeout(() => {
-        const resetBtn = document.getElementById('reset-database');
-        if (resetBtn) {
-            console.log('DB 초기화 버튼 찾음, 이벤트 리스너 연결 중...');
-            
-            // 새로운 핸들러 함수 생성 (백업용)
-            window.resetDatabaseHandler = async function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('🔥 DB 초기화 버튼 클릭됨 (addEventListener 핸들러)');
-                
-                try {
-                    if (typeof window.resetDatabase === 'function') {
-                        await window.resetDatabase();
-                    } else {
-                        console.error('resetDatabase 함수를 찾을 수 없습니다');
-                        alert('초기화 함수를 찾을 수 없습니다. 페이지를 새로고침 후 다시 시도해주세요.');
-                    }
-                } catch (error) {
-                    console.error('DB 초기화 중 오류:', error);
-                    alert('초기화 중 오류가 발생했습니다: ' + error.message);
-                }
-            };
-            
-            // 백업 이벤트 리스너 추가 (onclick이 작동하지 않을 경우를 대비)
-            resetBtn.addEventListener('click', window.resetDatabaseHandler);
-            
-            console.log('DB 초기화 버튼 백업 이벤트 리스너 등록 완료');
-            console.log('resetDatabase 함수 존재 여부:', typeof window.resetDatabase);
-        } else {
-            console.error('DB 초기화 버튼을 찾을 수 없습니다');
-        }
-    }, 2000); // 2초 지연으로 확실히 로드 후 설정
-
-    // 데이터 백업 함수
-    function exportAllData() {
-        const allData = {
-            customers: customers,
-            purchases: purchases,
-            gifts: gifts,
-            visits: visits,
-            rankHistory: JSON.parse(localStorage.getItem('rankHistory') || '[]'),
-            exportDate: new Date().toISOString(),
-            version: '1.0'
-        };
-        
-        const dataStr = JSON.stringify(allData, null, 2);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        
-        const today = new Date();
-        const dateStr = today.toISOString().split('T')[0];
-        const fileName = `고객관리_전체데이터_${dateStr}.json`;
-        
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(dataBlob);
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        alert(`전체 데이터가 백업되었습니다!\n파일명: ${fileName}\n\n이 파일을 다른 기기에서 가져오기하면 동일한 데이터를 사용할 수 있습니다.`);
-    }
-
-    // 데이터 복원 함수
-    function importAllData() {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json';
-        
-        input.onchange = function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const importedData = JSON.parse(e.target.result);
-                    
-                    // 데이터 유효성 검사
-                    if (!importedData.customers || !Array.isArray(importedData.customers)) {
-                        alert('올바른 데이터 파일이 아닙니다.');
-                        return;
-                    }
-                    
-                    // 기존 데이터 백업 확인
-                    if (customers.length > 0) {
-                        const confirmReplace = confirm(
-                            `기존 데이터가 있습니다.\n` +
-                            `현재 고객 수: ${customers.length}명\n` +
-                            `가져올 고객 수: ${importedData.customers.length}명\n\n` +
-                            `기존 데이터를 모두 교체하시겠습니까?\n` +
-                            `(기존 데이터는 복구할 수 없습니다)`
-                        );
-                        
-                        if (!confirmReplace) {
-                            return;
-                        }
-                    }
-                    
-                    // 데이터 복원
-                    customers.length = 0;
-                    purchases.length = 0;
-                    gifts.length = 0;
-                    visits.length = 0;
-                    
-                    customers.push(...importedData.customers);
-                    purchases.push(...(importedData.purchases || []));
-                    gifts.push(...(importedData.gifts || []));
-                    visits.push(...(importedData.visits || []));
-                    
-                    // 등급 변경 이력도 복원
-                    if (importedData.rankHistory) {
-                        localStorage.setItem('rankHistory', JSON.stringify(importedData.rankHistory));
-                    }
-                    
-                    // 데이터 저장
-                    saveDataToStorage();
-                    
-                    // 화면 새로고침
-                    location.reload();
-                    
-                } catch (error) {
-                    console.error('데이터 가져오기 오류:', error);
-                    alert('데이터 파일을 읽는 중 오류가 발생했습니다.\n파일이 손상되었거나 올바른 형식이 아닙니다.');
-                }
-            };
-            
-            reader.readAsText(file);
-        };
-        
-        input.click();
-    }
-
-    // QR 코드로 데이터 공유 함수 (선택사항)
-    function generateDataQR() {
-        const allData = {
-            customers: customers,
-            purchases: purchases,
-            gifts: gifts,
-            visits: visits,
-            exportDate: new Date().toISOString()
-        };
-        
-        const dataStr = JSON.stringify(allData);
-        const encodedData = btoa(encodeURIComponent(dataStr));
-        
-        // 데이터가 너무 클 경우 경고
-        if (encodedData.length > 2000) {
-            alert('데이터가 너무 커서 QR 코드로 공유할 수 없습니다.\nJSON 파일 다운로드 방식을 사용해주세요.');
-            return;
-        }
-        
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodedData}`;
-        
-        const modal = document.createElement('div');
-        modal.className = 'modal fade';
-        modal.innerHTML = `
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">데이터 QR 코드</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body text-center">
-                        <p>다른 기기에서 이 QR 코드를 스캔하여 데이터를 가져올 수 있습니다.</p>
-                        <img src="${qrUrl}" alt="데이터 QR 코드" class="img-fluid">
-                        <div class="mt-3">
-                            <small class="text-muted">QR 코드를 스캔 후 나타나는 텍스트를 복사하여 가져오기에서 사용하세요.</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-        const bootstrapModal = new bootstrap.Modal(modal);
-        bootstrapModal.show();
-        
-        modal.addEventListener('hidden.bs.modal', () => {
-            document.body.removeChild(modal);
-        });
-    }
 });
 
 // 고객 목록 렌더링 함수
@@ -888,8 +953,12 @@ function renderCustomerList(customerList) {
 function loadCustomerList() {
     // 검색창 초기화
     document.getElementById('search-input').value = '';
+    // 정렬 상태 초기화
+    currentSort = { field: null, order: 'asc' };
     // 전체 고객 목록 표시
     renderCustomerList(customers);
+    // 헤더 이벤트 리스너 재등록
+    attachSortListeners();
 }
 
 // 생일 알림 로드 함수
@@ -1024,68 +1093,21 @@ function loadRankingCounts() {
     document.getElementById('vip-count').textContent = vipCount;
     document.getElementById('regular-count').textContent = regularCount;
     
-    // 등급 목록 렌더링
-    renderRankingList(customers);
-}
-
-// 등급 목록 렌더링 함수 (검색 및 필터 적용)
-function renderRankingList(customerList, searchTerm = '', gradeFilter = '', sortOption = 'totalAmount-desc') {
-    let filteredCustomers = [...customerList];
-    
-    // 검색 필터 적용
-    if (searchTerm) {
-        filteredCustomers = filteredCustomers.filter(customer => 
-            customer.name.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }
-    
-    // 등급 필터 적용
-    if (gradeFilter) {
-        const gradeMap = {
-            'VVIP': 'vvip',
-            'VIP': 'vip',
-            '일반': 'regular'
-        };
-        filteredCustomers = filteredCustomers.filter(customer => 
-            customer.rank === gradeMap[gradeFilter]
-        );
-    }
-    
-    // 정렬 적용
-    filteredCustomers.sort((a, b) => {
-        switch (sortOption) {
-            case 'totalAmount-desc':
-                return (b.totalPurchase || 0) - (a.totalPurchase || 0);
-            case 'totalAmount-asc':
-                return (a.totalPurchase || 0) - (b.totalPurchase || 0);
-            case 'purchaseCount-desc':
-                return (b.purchaseCount || 0) - (a.purchaseCount || 0);
-            case 'purchaseCount-asc':
-                return (a.purchaseCount || 0) - (b.purchaseCount || 0);
-            case 'name-asc':
-                return a.name.localeCompare(b.name, 'ko');
-            default:
-                // 기본: 등급순 -> 구매액순
-                const rankOrder = { 'vvip': 3, 'vip': 2, 'regular': 1 };
-                if (rankOrder[a.rank] !== rankOrder[b.rank]) {
-                    return rankOrder[b.rank] - rankOrder[a.rank];
-                }
-                return (b.totalPurchase || 0) - (a.totalPurchase || 0);
-        }
-    });
-    
+    // 고객 등급 목록 렌더링 (등급순 정렬)
     const tbody = document.getElementById('ranking-list-body');
     tbody.innerHTML = '';
     
-    // 결과 건수 표시 업데이트
-    updateResultCount(filteredCustomers.length, customerList.length, searchTerm, gradeFilter);
+    // 등급 순서로 정렬 (VVIP > VIP > 일반)
+    const sortedCustomers = [...customers].sort((a, b) => {
+        const rankOrder = { 'vvip': 3, 'vip': 2, 'regular': 1 };
+        if (rankOrder[a.rank] !== rankOrder[b.rank]) {
+            return rankOrder[b.rank] - rankOrder[a.rank];
+        }
+        // 같은 등급 내에서는 총 구매액 순으로 정렬
+        return (b.totalPurchase || 0) - (a.totalPurchase || 0);
+    });
     
-    if (filteredCustomers.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">검색 결과가 없습니다.</td></tr>';
-        return;
-    }
-    
-    filteredCustomers.forEach((customer, index) => {
+    sortedCustomers.forEach((customer, index) => {
         const tr = document.createElement('tr');
         
         // 등급에 따른 배지 클래스 설정
@@ -1119,82 +1141,6 @@ function renderRankingList(customerList, searchTerm = '', gradeFilter = '', sort
             viewRankChangeHistory(customerId);
         });
     });
-}
-
-// 등급 관리 검색 함수 (개선됨)
-function searchRankingList() {
-    const searchTerm = document.getElementById('ranking-search').value;
-    const gradeFilter = document.getElementById('ranking-grade-filter').value;
-    const sortOption = document.getElementById('ranking-sort-filter').value;
-    
-    // 필터링된 결과로 테이블 렌더링
-    renderRankingList(customers, searchTerm, gradeFilter, sortOption);
-    
-    // 필터링된 결과에 따른 통계 업데이트
-    updateFilteredRankingStats(searchTerm, gradeFilter);
-}
-
-// 필터링된 결과에 따른 통계 업데이트 함수
-function updateFilteredRankingStats(searchTerm, gradeFilter) {
-    let filteredCustomers = [...customers];
-    
-    // 검색 필터 적용
-    if (searchTerm) {
-        filteredCustomers = filteredCustomers.filter(customer => 
-            customer.name.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }
-    
-    // 등급 필터가 적용된 경우에는 전체 통계를 유지, 아니면 필터링된 통계 표시
-    if (!gradeFilter && !searchTerm) {
-        // 필터가 없으면 원래 통계 표시
-        const vvipCount = customers.filter(c => c.rank === 'vvip').length;
-        const vipCount = customers.filter(c => c.rank === 'vip').length;
-        const regularCount = customers.filter(c => c.rank === 'regular').length;
-        
-        document.getElementById('vvip-count').textContent = vvipCount;
-        document.getElementById('vip-count').textContent = vipCount;
-        document.getElementById('regular-count').textContent = regularCount;
-    } else if (searchTerm && !gradeFilter) {
-        // 검색만 있는 경우 검색 결과의 등급별 통계 표시
-        const vvipCount = filteredCustomers.filter(c => c.rank === 'vvip').length;
-        const vipCount = filteredCustomers.filter(c => c.rank === 'vip').length;
-        const regularCount = filteredCustomers.filter(c => c.rank === 'regular').length;
-        
-        document.getElementById('vvip-count').textContent = vvipCount;
-        document.getElementById('vip-count').textContent = vipCount;
-        document.getElementById('regular-count').textContent = regularCount;
-    }
-    // 등급 필터가 선택된 경우에는 원래 통계를 유지 (전체 현황 보여주기)
-}
-
-// 검색 결과 건수 표시 함수
-function updateResultCount(filteredCount, totalCount, searchTerm, gradeFilter) {
-    // 결과 표시 영역이 없으면 생성
-    let resultCountDiv = document.getElementById('ranking-result-count');
-    if (!resultCountDiv) {
-        resultCountDiv = document.createElement('div');
-        resultCountDiv.id = 'ranking-result-count';
-        resultCountDiv.className = 'text-muted mb-2';
-        
-        // 테이블 위에 삽입
-        const tableContainer = document.querySelector('#customer-ranking .table-responsive');
-        tableContainer.parentNode.insertBefore(resultCountDiv, tableContainer);
-    }
-    
-    // 결과 메시지 생성
-    let message = '';
-    if (searchTerm || gradeFilter) {
-        const filterText = [];
-        if (searchTerm) filterText.push(`"${searchTerm}"`);
-        if (gradeFilter) filterText.push(`${gradeFilter} 등급`);
-        
-        message = `${filterText.join(', ')} 검색 결과: ${filteredCount}명 (전체 ${totalCount}명 중)`;
-    } else {
-        message = `전체 고객: ${totalCount}명`;
-    }
-    
-    resultCountDiv.innerHTML = `<small><i class="bi bi-info-circle"></i> ${message}</small>`;
 }
 
 // 선물 이력 렌더링 함수
@@ -1466,22 +1412,8 @@ function openCustomerDetails(customerId) {
         viewRankChangeHistory(customerId);
     });
     
-    // 모든 탭 푸터 숨기고 기본 정보 탭 푸터만 표시
-    document.querySelectorAll('.tab-footer').forEach(footer => {
-        footer.classList.add('d-none');
-    });
-    document.getElementById('info-tab-footer').classList.remove('d-none');
-    
-    // 첫 번째 탭을 기본 정보로 설정
-    document.querySelectorAll('#customerTabs .nav-link').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    document.querySelector('#customerTabs .nav-link[href="#info-tab"]').classList.add('active');
-    
-    document.querySelectorAll('.tab-pane').forEach(pane => {
-        pane.classList.remove('show', 'active');
-    });
-    document.getElementById('info-tab').classList.add('show', 'active');
+    // 첫 번째 탭 (구매 이력) 로드
+    loadCustomerPurchases(customerId);
     
     // 모달 표시
     const customerDetailsModal = new bootstrap.Modal(document.getElementById('customer-details-modal'));
@@ -1549,7 +1481,113 @@ function loadCustomerPurchases(customerId) {
     });
 }
 
+// 고객별 선물 이력 로드 함수
+function loadCustomerGifts(customerId) {
+    const customerGifts = gifts.filter(g => g.customerId === customerId);
+    const giftContent = document.getElementById('gift-history-content');
+    
+    if (customerGifts.length === 0) {
+        giftContent.innerHTML = '<p class="text-center">선물 이력이 없습니다.</p>';
+        return;
+    }
+    
+    let html = '<div class="table-responsive"><table class="table table-striped">';
+    html += '<thead><tr><th>날짜</th><th>선물 종류</th><th>선물 내용</th><th>제공 이유</th><th>관리</th></tr></thead><tbody>';
+    
+    customerGifts.forEach(gift => {
+        html += `<tr>
+            <td>${formatDate(gift.date)}</td>
+            <td>${gift.type}</td>
+            <td>${gift.description}</td>
+            <td>${gift.reason}</td>
+            <td>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary edit-gift" data-gift-id="${gift.id}">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-outline-danger delete-gift" data-gift-id="${gift.id}">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>`;
+    });
+    
+    html += '</tbody></table></div>';
+    giftContent.innerHTML = html;
+    
+    // 선물 이력 수정 버튼 이벤트 리스너
+    document.querySelectorAll('.edit-gift').forEach(button => {
+        button.addEventListener('click', () => {
+            const giftId = parseInt(button.getAttribute('data-gift-id'));
+            editGiftRecord(giftId, customerId);
+        });
+    });
+    
+    // 선물 이력 삭제 버튼 이벤트 리스너
+    document.querySelectorAll('.delete-gift').forEach(button => {
+        button.addEventListener('click', () => {
+            const giftId = parseInt(button.getAttribute('data-gift-id'));
+            deleteGiftRecord(giftId, customerId);
+        });
+    });
+}
 
+// 고객별 방문 이력 로드 함수
+function loadCustomerVisits(customerId) {
+    const customerVisits = visits.filter(v => v.customerId === customerId);
+    const visitContent = document.getElementById('visit-history-content');
+    
+    if (customerVisits.length === 0) {
+        visitContent.innerHTML = '<p class="text-center">방문 이력이 없습니다.</p>';
+        return;
+    }
+    
+    // 방문 날짜 기준으로 정렬 (최신순)
+    const sortedVisits = [...customerVisits].sort((a, b) => 
+        new Date(b.date) - new Date(a.date)
+    );
+    
+    let html = '<div class="table-responsive"><table class="table table-striped">';
+    html += '<thead><tr><th>날짜</th><th>방문 목적</th><th>메모</th><th>관리</th></tr></thead><tbody>';
+    
+    sortedVisits.forEach(visit => {
+        html += `<tr>
+            <td>${formatDate(visit.date)}</td>
+            <td>${visit.purpose}</td>
+            <td>${visit.note || '-'}</td>
+            <td>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary edit-visit" data-visit-id="${visit.id}">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-outline-danger delete-visit" data-visit-id="${visit.id}">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>`;
+    });
+    
+    html += '</tbody></table></div>';
+    visitContent.innerHTML = html;
+    
+    // 방문 이력 수정 버튼 이벤트 리스너
+    document.querySelectorAll('.edit-visit').forEach(button => {
+        button.addEventListener('click', () => {
+            const visitId = parseInt(button.getAttribute('data-visit-id'));
+            editVisitRecord(visitId, customerId);
+        });
+    });
+    
+    // 방문 이력 삭제 버튼 이벤트 리스너
+    document.querySelectorAll('.delete-visit').forEach(button => {
+        button.addEventListener('click', () => {
+            const visitId = parseInt(button.getAttribute('data-visit-id'));
+            deleteVisitRecord(visitId, customerId);
+        });
+    });
+}
 
 // 구매 이력 PDF 생성 함수
 function generatePurchasePDF(customerId) {
@@ -2188,40 +2226,309 @@ function deletePurchaseRecord(purchaseId, customerId) {
 }
 
 // 선물 기록 수정 함수
+function editGiftRecord(giftId, customerId) {
+    const gift = gifts.find(g => g.id === giftId);
+    if (!gift) return;
+    
+    // 선물 기록 수정 모달 생성
+    const editForm = `
+    <div class="modal fade" id="edit-gift-modal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">선물 기록 수정</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-gift-form">
+                        <input type="hidden" id="edit-gift-id" value="${gift.id}">
+                        <input type="hidden" id="edit-gift-customer-id" value="${gift.customerId}">
+                        <div class="mb-3">
+                            <label for="edit-gift-type" class="form-label">선물 종류</label>
+                            <select class="form-control" id="edit-gift-type" required>
+                                <option value="생일선물" ${gift.type === '생일선물' ? 'selected' : ''}>생일선물</option>
+                                <option value="연말선물" ${gift.type === '연말선물' ? 'selected' : ''}>연말선물</option>
+                                <option value="감사선물" ${gift.type === '감사선물' ? 'selected' : ''}>감사선물</option>
+                                <option value="기타" ${gift.type === '기타' ? 'selected' : ''}>기타</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-gift-description" class="form-label">선물 내용</label>
+                            <input type="text" class="form-control" id="edit-gift-description" value="${gift.description}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-gift-date" class="form-label">제공일</label>
+                            <input type="date" class="form-control" id="edit-gift-date" value="${gift.date}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-gift-reason" class="form-label">제공 이유</label>
+                            <input type="text" class="form-control" id="edit-gift-reason" value="${gift.reason}" required>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                            <button type="submit" class="btn btn-primary">저장</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+    
+    // 기존 모달이 있으면 제거
+    const existingModal = document.getElementById('edit-gift-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // 모달 추가 및 표시
+    document.body.insertAdjacentHTML('beforeend', editForm);
+    const editModal = new bootstrap.Modal(document.getElementById('edit-gift-modal'));
+    editModal.show();
+    
+    // 수정 폼 제출 이벤트 리스너
+    document.getElementById('edit-gift-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const giftId = parseInt(document.getElementById('edit-gift-id').value);
+        const customerId = parseInt(document.getElementById('edit-gift-customer-id').value);
+        const type = document.getElementById('edit-gift-type').value;
+        const description = document.getElementById('edit-gift-description').value;
+        const date = document.getElementById('edit-gift-date').value;
+        const reason = document.getElementById('edit-gift-reason').value;
+        
+        // 선물 기록 수정
+        const index = gifts.findIndex(g => g.id === giftId);
+        if (index !== -1) {
+            // 선물 기록 업데이트
+            gifts[index] = {
+                ...gifts[index],
+                type,
+                description,
+                date,
+                reason
+            };
+            
+            // 데이터 저장
+            saveDataToStorage();
+            
+            // 모달 닫기
+            editModal.hide();
+            
+            // 선물 이력 다시 로드
+            loadCustomerGifts(customerId);
+            
+            // 알림 표시
+            alert('선물 기록이 수정되었습니다.');
+        }
+    });
+}
 
+// 선물 기록 삭제 함수
+function deleteGiftRecord(giftId, customerId) {
+    const gift = gifts.find(g => g.id === giftId);
+    if (!gift) return;
+    
+    // 삭제 확인
+    if (confirm('정말로 이 선물 기록을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+        // 선물 기록 삭제
+        const index = gifts.findIndex(g => g.id === giftId);
+        if (index !== -1) {
+            gifts.splice(index, 1);
+            
+            // 데이터 저장
+            saveDataToStorage();
+            
+            // 선물 이력 다시 로드
+            loadCustomerGifts(customerId);
+            
+            // 알림 표시
+            alert('선물 기록이 삭제되었습니다.');
+        }
+    }
+}
+
+// 방문 기록 수정 함수
+function editVisitRecord(visitId, customerId) {
+    const visit = visits.find(v => v.id === visitId);
+    if (!visit) return;
+    
+    // 방문 기록 수정 모달 생성
+    const editForm = `
+    <div class="modal fade" id="edit-visit-modal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">방문 기록 수정</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-visit-form">
+                        <input type="hidden" id="edit-visit-id" value="${visit.id}">
+                        <input type="hidden" id="edit-visit-customer-id" value="${visit.customerId}">
+                        <div class="mb-3">
+                            <label for="edit-visit-date" class="form-label">방문일</label>
+                            <input type="date" class="form-control" id="edit-visit-date" value="${visit.date}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-visit-purpose" class="form-label">방문 목적</label>
+                            <input type="text" class="form-control" id="edit-visit-purpose" value="${visit.purpose}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-visit-note" class="form-label">메모</label>
+                            <textarea class="form-control" id="edit-visit-note" rows="3">${visit.note || ''}</textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                            <button type="submit" class="btn btn-primary">저장</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+    
+    // 기존 모달이 있으면 제거
+    const existingModal = document.getElementById('edit-visit-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // 모달 추가 및 표시
+    document.body.insertAdjacentHTML('beforeend', editForm);
+    const editModal = new bootstrap.Modal(document.getElementById('edit-visit-modal'));
+    editModal.show();
+    
+    // 수정 폼 제출 이벤트 리스너
+    document.getElementById('edit-visit-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const visitId = parseInt(document.getElementById('edit-visit-id').value);
+        const customerId = parseInt(document.getElementById('edit-visit-customer-id').value);
+        const date = document.getElementById('edit-visit-date').value;
+        const purpose = document.getElementById('edit-visit-purpose').value;
+        const note = document.getElementById('edit-visit-note').value;
+        
+        // 방문 기록 수정
+        const index = visits.findIndex(v => v.id === visitId);
+        if (index !== -1) {
+            // 방문 기록 업데이트
+            visits[index] = {
+                ...visits[index],
+                date,
+                purpose,
+                note
+            };
+            
+            // 데이터 저장
+            saveDataToStorage();
+            
+            // 고객 최근 방문일 업데이트
+            const customer = customers.find(c => c.id === customerId);
+            if (customer) {
+                // 모든 방문 날짜 확인하여 최근 방문일 업데이트
+                const customerVisits = visits.filter(v => v.customerId === customerId);
+                if (customerVisits.length > 0) {
+                    const sortedDates = customerVisits.map(v => v.date).sort((a, b) => 
+                        new Date(b) - new Date(a)
+                    );
+                    customer.lastVisit = sortedDates[0];
+                }
+            }
+            
+            // 모달 닫기
+            editModal.hide();
+            
+            // 방문 이력 다시 로드
+            loadCustomerVisits(customerId);
+            
+            // 고객 상세 정보 업데이트 (최근 방문일이 변경되었을 수 있음)
+            openCustomerDetails(customerId);
+            
+            // 알림 표시
+            alert('방문 기록이 수정되었습니다.');
+        }
+    });
+}
+
+// 방문 기록 삭제 함수
+function deleteVisitRecord(visitId, customerId) {
+    const visit = visits.find(v => v.id === visitId);
+    if (!visit) return;
+    
+    // 삭제 확인
+    if (confirm('정말로 이 방문 기록을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+        // 방문 기록 삭제
+        const index = visits.findIndex(v => v.id === visitId);
+        if (index !== -1) {
+            visits.splice(index, 1);
+            
+            // 데이터 저장
+            saveDataToStorage();
+            
+            // 고객 최근 방문일 업데이트
+            const customer = customers.find(c => c.id === customerId);
+            if (customer) {
+                // 모든 방문 날짜 확인하여 최근 방문일 업데이트
+                const customerVisits = visits.filter(v => v.customerId === customerId);
+                if (customerVisits.length > 0) {
+                    const sortedDates = customerVisits.map(v => v.date).sort((a, b) => 
+                        new Date(b) - new Date(a)
+                    );
+                    customer.lastVisit = sortedDates[0];
+                } else {
+                    // 방문 기록이 없으면 기본값으로 설정
+                    customer.lastVisit = new Date().toISOString().split('T')[0];
+                }
+            }
+            
+            // 방문 이력 다시 로드
+            loadCustomerVisits(customerId);
+            
+            // 고객 상세 정보 업데이트 (최근 방문일이 변경되었을 수 있음)
+            openCustomerDetails(customerId);
+            
+            // 알림 표시
+            alert('방문 기록이 삭제되었습니다.');
+        }
+    }
+}
 
 // 고객 검색 함수
 function searchCustomers() {
     const searchTerm = document.getElementById('search-input').value.trim().toLowerCase();
+    let displayedCustomers = customers;
     
-    // 검색창이 비어 있으면 전체 고객 목록을 표시
-    if (searchTerm === '') {
-        renderCustomerList(customers);
-        return;
+    // 검색창이 비어있지 않으면 필터링
+    if (searchTerm !== '') {
+        displayedCustomers = customers.filter(customer => {
+            // 기본 정보 검색
+            const nameMatch = customer.name.toLowerCase().includes(searchTerm);
+            const phoneMatch = customer.phone && customer.phone.toLowerCase().includes(searchTerm);
+            const storeMatch = customer.preferredStore && customer.preferredStore.toLowerCase().includes(searchTerm);
+            const notesMatch = customer.notes && customer.notes.toLowerCase().includes(searchTerm);
+            
+            // 등급 검색 (다양한 표현 지원)
+            let rankMatch = false;
+            if (customer.rank === 'vvip') {
+                rankMatch = searchTerm.includes('vvip') || searchTerm.includes('브이브이아이피') || searchTerm.includes('최고등급');
+            } else if (customer.rank === 'vip') {
+                rankMatch = searchTerm.includes('vip') || searchTerm.includes('브이아이피') || searchTerm.includes('우수등급');
+            } else if (customer.rank === 'regular') {
+                rankMatch = searchTerm.includes('일반') || searchTerm.includes('레귤러') || searchTerm.includes('regular') || searchTerm.includes('기본');
+            }
+            
+            return nameMatch || phoneMatch || storeMatch || notesMatch || rankMatch;
+        });
     }
     
-    // 검색어로 고객 필터링
-    const searchResults = customers.filter(customer => {
-        // 기본 정보 검색
-        const nameMatch = customer.name.toLowerCase().includes(searchTerm);
-        const phoneMatch = customer.phone && customer.phone.toLowerCase().includes(searchTerm);
-        const storeMatch = customer.preferredStore && customer.preferredStore.toLowerCase().includes(searchTerm);
-        const notesMatch = customer.notes && customer.notes.toLowerCase().includes(searchTerm);
-        
-        // 등급 검색 (다양한 표현 지원)
-        let rankMatch = false;
-        if (customer.rank === 'vvip') {
-            rankMatch = searchTerm.includes('vvip') || searchTerm.includes('브이브이아이피') || searchTerm.includes('최고등급');
-        } else if (customer.rank === 'vip') {
-            rankMatch = searchTerm.includes('vip') || searchTerm.includes('브이아이피') || searchTerm.includes('우수등급');
-        } else if (customer.rank === 'regular') {
-            rankMatch = searchTerm.includes('일반') || searchTerm.includes('레귤러') || searchTerm.includes('regular') || searchTerm.includes('기본');
-        }
-        
-        return nameMatch || phoneMatch || storeMatch || notesMatch || rankMatch;
-    });
+    // 현재 정렬 상태가 있으면 적용
+    if (currentSort.field) {
+        displayedCustomers = applySort(displayedCustomers, currentSort.field, currentSort.order);
+    }
     
-    renderCustomerList(searchResults);
+    renderCustomerList(displayedCustomers);
 }
 
 // 등급 변경 이력 보기 함수
@@ -3023,232 +3330,357 @@ function downloadExcelTemplate() {
     XLSX.writeFile(workbook, '고객관리_통합템플릿.xlsx');
 }
 
-// 간단한 테스트 함수 (개발용)
-window.testReset = function() {
-    alert('DB 초기화 버튼이 정상적으로 클릭되었습니다!');
-    console.log('테스트 함수 호출됨 - 실제 초기화를 원하면 resetDatabase() 함수를 호출하세요');
-};
-
-// 동기화 테스트 함수
-window.testSync = function() {
-    if (window.CloudSync) {
-        console.log('동기화 테스트 시작...');
-        window.CloudSync.forceSyncToCloud().then(success => {
-            if (success) {
-                alert('동기화 테스트 성공!');
-            } else {
-                alert('동기화 테스트 실패 - 네트워크나 설정을 확인해주세요.');
-            }
-        }).catch(error => {
-            console.error('동기화 테스트 오류:', error);
-            alert('동기화 테스트 오류: ' + error.message);
-        });
+// 고객 정렬 함수
+function sortCustomers(field) {
+    // 현재 정렬 상태 확인
+    if (currentSort.field === field) {
+        // 같은 필드를 클릭한 경우 정렬 순서 변경
+        currentSort.order = currentSort.order === 'asc' ? 'desc' : 'asc';
     } else {
-        alert('CloudSync 객체를 찾을 수 없습니다.');
-    }
-};
-
-// DB 초기화 직접 실행 함수 (콘솔에서 테스트용)
-window.forceResetDB = function() {
-    console.log('🔥 강제 DB 초기화 실행...');
-    if (typeof window.resetDatabase === 'function') {
-        window.resetDatabase();
-    } else {
-        console.error('resetDatabase 함수를 찾을 수 없습니다!');
-        alert('resetDatabase 함수를 찾을 수 없습니다!');
-    }
-};
-
-// DB 초기화 함수
-window.resetDatabase = async function resetDatabase() {
-    console.log('🔥 DB 초기화 함수 시작됨!');
-    
-    // 현재 데이터 현황 확인 (안전하게 접근)
-    const customerCount = (customers || []).length;
-    const purchaseCount = (purchases || []).length;
-    const giftCount = (gifts || []).length;
-    const visitCount = (visits || []).length;
-    
-    console.log('현재 데이터 현황:', { customerCount, purchaseCount, giftCount, visitCount });
-    
-    // 확인 메시지
-    const confirmMessage = `⚠️ 데이터베이스 초기화 ⚠️
-
-현재 저장된 데이터:
-• 고객 정보: ${customerCount}명
-• 구매 이력: ${purchaseCount}건  
-• 선물 이력: ${giftCount}건
-• 방문 이력: ${visitCount}건
-
-모든 데이터가 영구적으로 삭제됩니다.
-이 작업은 되돌릴 수 없습니다.
-
-정말로 초기화하시겠습니까?`;
-
-    // 첫 번째 확인
-    if (!confirm(confirmMessage)) {
-        return;
+        // 다른 필드를 클릭한 경우 새로운 필드로 오름차순 정렬
+        currentSort.field = field;
+        currentSort.order = 'asc';
     }
     
-    // 두 번째 확인 (안전장치)
-    const secondConfirm = prompt(`초기화를 진행하려면 '초기화'라고 입력하세요:`);
-    if (secondConfirm !== '초기화') {
-        alert('초기화가 취소되었습니다.');
-        return;
-    }
+    // 헤더 스타일 업데이트
+    updateSortHeaders();
     
-    try {
-        console.log('DB 초기화 시작...');
-        
-        // 1. 글로벌 변수 완전 초기화 (여러 방법으로 확실히)
-        window.customers = [];
-        window.purchases = [];
-        window.gifts = [];
-        window.visits = [];
-        
-        // 전역 스코프의 변수들도 초기화
-        if (typeof customers !== 'undefined') customers = [];
-        if (typeof purchases !== 'undefined') purchases = [];
-        if (typeof gifts !== 'undefined') gifts = [];
-        if (typeof visits !== 'undefined') visits = [];
-        if (typeof rankChanges !== 'undefined') rankChanges = [];
-        
-        console.log('글로벌 변수 초기화 완료');
-        
-        // 2. 로컬 스토리지 완전 삭제
-        const keysToRemove = [
-            'customers', 'purchases', 'gifts', 'visits', 
-            'rankHistory', 'rankChanges', 'lastUpdated', 'lastCloudSync'
-        ];
-        
-        keysToRemove.forEach(key => {
-            localStorage.removeItem(key);
-            console.log(`${key} 삭제 완료`);
+    // 현재 표시 중인 고객 목록 가져오기
+    const searchTerm = document.getElementById('search-input').value.toLowerCase();
+    let displayedCustomers = customers;
+    
+    // 검색 필터 적용
+    if (searchTerm) {
+        displayedCustomers = customers.filter(customer => {
+            return customer.name.toLowerCase().includes(searchTerm) ||
+                   customer.phone.includes(searchTerm) ||
+                   (customer.preferredStore && customer.preferredStore.toLowerCase().includes(searchTerm)) ||
+                   (customer.notes && customer.notes.toLowerCase().includes(searchTerm)) ||
+                   getRankText(customer.rank).toLowerCase().includes(searchTerm);
         });
-        
-        // 3. 빈 배열로 로컬 스토리지에 저장
-        const emptyData = {
-            customers: [],
-            purchases: [],
-            gifts: [],
-            visits: [],
-            rankHistory: [],
-            rankChanges: [],
-            lastUpdated: Date.now()
-        };
-        
-        Object.entries(emptyData).forEach(([key, value]) => {
-            localStorage.setItem(key, JSON.stringify(value));
-            console.log(`${key} 빈 데이터로 초기화 완료`);
-        });
-        
-        console.log('로컬 데이터 초기화 완료');
-        
-        // 4. 클라우드에도 빈 데이터 강제 업로드
-        if (window.CloudSync && window.CLOUD_SYNC.enabled) {
-            console.log('클라우드 데이터 초기화 중...');
-            try {
-                const success = await window.CloudSync.forceSyncToCloud();
-                if (success) {
-                    console.log('클라우드 데이터 초기화 완료');
+    }
+    
+    // 정렬 적용
+    displayedCustomers = applySort(displayedCustomers, field, currentSort.order);
+    
+    // 정렬된 목록 렌더링
+    renderCustomerList(displayedCustomers);
+}
+
+// 정렬 헤더 스타일 업데이트 함수
+function updateSortHeaders() {
+    // 모든 정렬 헤더 초기화
+    document.querySelectorAll('.sortable').forEach(header => {
+        header.classList.remove('sort-asc', 'sort-desc');
+        const icon = header.querySelector('.sort-icon');
+        if (icon) {
+            icon.className = 'bi bi-arrow-down-up sort-icon';
+        }
+    });
+    
+    // 현재 정렬 필드 표시
+    if (currentSort.field) {
+        const currentHeader = document.querySelector(`[data-sort="${currentSort.field}"]`);
+        if (currentHeader) {
+            currentHeader.classList.add(`sort-${currentSort.order}`);
+            const icon = currentHeader.querySelector('.sort-icon');
+            if (icon) {
+                if (currentSort.order === 'asc') {
+                    icon.className = 'bi bi-sort-up sort-icon';
                 } else {
-                    console.log('클라우드 초기화 실패 - 네트워크 상태 확인 필요');
+                    icon.className = 'bi bi-sort-down sort-icon';
                 }
-            } catch (error) {
-                console.error('클라우드 초기화 중 오류:', error);
             }
-        } else {
-            console.log('클라우드 동기화가 비활성화되어 있음');
+        }
+    }
+}
+
+// 등급 텍스트 변환 함수
+function getRankText(rank) {
+    switch (rank) {
+        case 'vvip': return 'VVIP';
+        case 'vip': return 'VIP';
+        case 'regular': return '일반';
+        default: return '일반';
+    }
+}
+
+// 정렬 이벤트 리스너 등록 함수
+function attachSortListeners() {
+    document.querySelectorAll('.sortable').forEach(header => {
+        // 기존 이벤트 리스너 제거 (중복 방지)
+        header.removeEventListener('click', sortHandler);
+        // 새 이벤트 리스너 추가
+        header.addEventListener('click', sortHandler);
+    });
+}
+
+// 정렬 이벤트 핸들러 함수
+function sortHandler(event) {
+    const sortField = event.currentTarget.getAttribute('data-sort');
+    sortCustomers(sortField);
+}
+
+// 배열에 정렬 적용하는 함수
+function applySort(customerArray, field, order) {
+    return customerArray.sort((a, b) => {
+        let aValue, bValue;
+        
+        switch (field) {
+            case 'name':
+                aValue = a.name || '';
+                bValue = b.name || '';
+                break;
+            case 'birthdate':
+                aValue = a.birthdate || '0';
+                bValue = b.birthdate || '0';
+                break;
+            case 'preferredStore':
+                aValue = a.preferredStore || '';
+                bValue = b.preferredStore || '';
+                break;
+            case 'rank':
+                // 등급 우선순위: vvip > vip > regular
+                const rankOrder = { 'vvip': 3, 'vip': 2, 'regular': 1 };
+                aValue = rankOrder[a.rank] || 0;
+                bValue = rankOrder[b.rank] || 0;
+                break;
+            case 'lastVisit':
+                aValue = a.lastVisit || '0';
+                bValue = b.lastVisit || '0';
+                break;
+            default:
+                return 0;
         }
         
-        // 5. 모든 테이블 UI 즉시 비우기
-        const customerTableBody = document.getElementById('customer-list-body');
-        if (customerTableBody) {
-            customerTableBody.innerHTML = '<tr><td colspan="8" class="text-center">등록된 고객이 없습니다.</td></tr>';
+        // 문자열 비교
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+            const comparison = aValue.localeCompare(bValue, 'ko');
+            return order === 'asc' ? comparison : -comparison;
         }
         
-        const giftTableBody = document.getElementById('gift-history-body');
-        if (giftTableBody) {
-            giftTableBody.innerHTML = '<tr><td colspan="7" class="text-center">선물 이력이 없습니다.</td></tr>';
+        // 숫자 비교
+        if (aValue < bValue) {
+            return order === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+            return order === 'asc' ? 1 : -1;
+        }
+        return 0;
+    });
+}
+
+// Firebase 동기화 설정 모달 열기 (항상 활성화 상태)
+function openSyncSettingsModal() {
+    const modalElement = document.getElementById('sync-settings-modal');
+    if (!modalElement) {
+        alert('Firebase 동기화 설정 모달을 찾을 수 없습니다. 페이지를 새로고침해주세요.');
+        return;
+    }
+    
+    const modal = new bootstrap.Modal(modalElement);
+    
+    // 사용자 지정 설정이 있으면 폼에 표시
+    const config = localStorage.getItem('firebaseSyncConfig');
+    if (config) {
+        try {
+            const parsedConfig = JSON.parse(config);
+            const databaseUrlInput = document.getElementById('database-url');
+            const apiKeyInput = document.getElementById('api-key');
+            
+            if (databaseUrlInput) databaseUrlInput.value = parsedConfig.databaseUrl || '';
+            if (apiKeyInput) apiKeyInput.value = parsedConfig.apiKey || '';
+        } catch (error) {
+            console.error('Firebase 설정 로드 오류:', error);
+        }
+    }
+    
+    modal.show();
+}
+
+// Firebase 사용자 지정 설정 저장 (선택사항)
+function saveSyncSettings() {
+    const databaseUrlInput = document.getElementById('database-url');
+    const apiKeyInput = document.getElementById('api-key');
+    
+    if (!databaseUrlInput || !apiKeyInput) {
+        alert('Firebase 설정 폼을 찾을 수 없습니다. 페이지를 새로고침해주세요.');
+        return;
+    }
+    
+    const databaseUrl = databaseUrlInput.value.trim();
+    const apiKey = apiKeyInput.value.trim();
+    
+    // 필수 입력값 확인
+    if (!databaseUrl || !apiKey) {
+        alert('Firebase Database URL과 Web API Key를 모두 입력해주세요.');
+        return;
+    }
+    
+    // Firebase URL 형식 검증
+    if (!databaseUrl.includes('firebaseio.com') && !databaseUrl.includes('firebase.com')) {
+        alert('올바른 Firebase Realtime Database URL 형식이 아닙니다.\n예: https://your-project-default-rtdb.firebaseio.com/');
+        return;
+    }
+    
+    // 사용자 지정 Firebase 동기화 설정 활성화
+    setupFirebaseSync(databaseUrl, apiKey);
+    
+    closeModal();
+}
+
+// 로컬 전용 모드로 변경
+function resetSyncSettings() {
+    if (confirm('로컬 전용 모드로 변경하시겠습니까?\nFirebase 동기화가 비활성화됩니다.')) {
+        // 로컬 스토리지에서 사용자 설정 제거
+        localStorage.removeItem('firebaseSyncConfig');
+        
+        // 동기화 비활성화 (로컬 전용)
+        window.FIREBASE_SYNC.enabled = false;
+        window.FIREBASE_SYNC.databaseUrl = '';
+        window.FIREBASE_SYNC.apiKey = '';
+        window.FIREBASE_SYNC.userPath = '';
+        
+        // 실시간 연결 종료
+        if (window.FIREBASE_SYNC.eventSource) {
+            window.FIREBASE_SYNC.eventSource.close();
+            window.FIREBASE_SYNC.eventSource = null;
         }
         
-        const visitTableBody = document.getElementById('visit-list-body');
-        if (visitTableBody) {
-            visitTableBody.innerHTML = '<tr><td colspan="7" class="text-center">방문 이력이 없습니다.</td></tr>';
+        // 정기 동기화 중지
+        if (window.FIREBASE_SYNC.syncIntervalId) {
+            clearInterval(window.FIREBASE_SYNC.syncIntervalId);
+            window.FIREBASE_SYNC.syncIntervalId = null;
         }
         
-        const rankingTableBody = document.getElementById('ranking-list-body');
-        if (rankingTableBody) {
-            rankingTableBody.innerHTML = '<tr><td colspan="6" class="text-center">등록된 고객이 없습니다.</td></tr>';
-        }
-        
-        // 6. 등급 카운트 초기화
-        const vvipCount = document.getElementById('vvip-count');
-        const vipCount = document.getElementById('vip-count');
-        const regularCount = document.getElementById('regular-count');
-        
-        if (vvipCount) vvipCount.textContent = '0';
-        if (vipCount) vipCount.textContent = '0';
-        if (regularCount) regularCount.textContent = '0';
-        
-        // 7. 생일 알림 초기화
-        const thisMonthBirthdays = document.getElementById('this-month-birthdays');
-        const nextMonthBirthdays = document.getElementById('next-month-birthdays');
-        
-        if (thisMonthBirthdays) {
-            thisMonthBirthdays.innerHTML = '<li class="list-group-item text-center">이번 달 생일인 고객이 없습니다.</li>';
-        }
-        if (nextMonthBirthdays) {
-            nextMonthBirthdays.innerHTML = '<li class="list-group-item text-center">다음 달 생일인 고객이 없습니다.</li>';
-        }
-        
-        // 8. 데이터 다시 로드하여 메모리와 동기화
-        if (typeof loadDataFromStorage === 'function') {
-            loadDataFromStorage();
-            console.log('데이터 다시 로드 완료');
-        }
-        
-        // 9. 모든 화면 새로고침
+        updateSyncStatus('offline', '로컬 전용');
+        alert('로컬 전용 모드로 변경되었습니다.');
+        closeModal();
+    }
+}
+
+// 모달 닫기 공통 함수
+function closeModal() {
+    const modalElement = document.getElementById('sync-settings-modal');
+    if (modalElement) {
+        const modal = bootstrap.Modal.getInstance(modalElement);
+        if (modal) modal.hide();
+    }
+    
+    // 폼 초기화
+    const formElement = document.getElementById('sync-config-form');
+    if (formElement) formElement.reset();
+    
+    const showApiKeyCheckbox = document.getElementById('show-api-key');
+    if (showApiKeyCheckbox) showApiKeyCheckbox.checked = false;
+    
+    const apiKeyInput = document.getElementById('api-key');
+    if (apiKeyInput) apiKeyInput.type = 'password';
+}
+
+// 삭제됨 - 더 이상 동기화 비활성화 기능 없음 (항상 활성화)
+
+// 로그인 수행 함수
+function performLogin() {
+    console.log('로그인 시작...');
+    
+    // 로그인 상태 저장
+    localStorage.setItem('isLoggedIn', 'true');
+    localStorage.setItem('username', 'admin');
+    
+    // DOM 요소 가져오기
+    const loginForm = document.getElementById('login-form');
+    const mainContent = document.getElementById('main-content');
+    
+    console.log('loginForm:', loginForm);
+    console.log('mainContent:', mainContent);
+    
+    // 즉시 페이지 전환 (여러 방법으로 강제)
+    if (loginForm) {
+        loginForm.style.display = 'none';
+        loginForm.style.visibility = 'hidden';
+        loginForm.classList.add('d-none', 'force-hide');
+        loginForm.classList.remove('force-show');
+    }
+    
+    if (mainContent) {
+        mainContent.style.display = 'block';
+        mainContent.style.visibility = 'visible';
+        mainContent.classList.remove('d-none', 'force-hide');
+        mainContent.classList.add('force-show');
+    }
+    
+    // 데이터 로드 (즉시)
+    try {
         if (typeof loadCustomerList === 'function') loadCustomerList();
         if (typeof loadBirthdayAlerts === 'function') loadBirthdayAlerts();
         if (typeof loadRankingCounts === 'function') loadRankingCounts();
-        if (typeof renderRankingList === 'function') renderRankingList([]);
-        
-        console.log('화면 새로고침 완료');
-        
-        // 10. 모바일에서 사이드바 닫기
-        if (window.innerWidth < 992 && window.closeSidebar) {
-            window.closeSidebar();
-        }
-        
-        // 11. 고객 목록 페이지로 이동
-        document.querySelectorAll('.page').forEach(page => {
-            page.classList.add('d-none');
-        });
-        const customerListPage = document.getElementById('customer-list');
-        if (customerListPage) {
-            customerListPage.classList.remove('d-none');
-        }
-        
-        // 12. 활성 메뉴 변경
-        document.querySelectorAll('.nav-link').forEach(navLink => {
-            navLink.classList.remove('active');
-        });
-        const customerListLink = document.querySelector('.nav-link[data-page="customer-list"]');
-        if (customerListLink) {
-            customerListLink.classList.add('active');
-        }
-        
-        console.log('DB 초기화 완료');
-        alert('✅ 데이터베이스가 성공적으로 초기화되었습니다.\n모든 고객 정보가 삭제되었습니다.\n\n페이지가 새로고침됩니다.');
-        
-        // 13. 페이지 새로고침으로 완전 초기화 확인
-        setTimeout(() => {
-            location.reload();
-        }, 1000);
-        
     } catch (error) {
-        console.error('DB 초기화 중 오류 발생:', error);
-        alert('❌ 초기화 중 오류가 발생했습니다. 페이지를 새로고침 후 다시 시도해주세요.');
+        console.error('데이터 로드 오류:', error);
     }
-};
+    
+    // 강제 리렌더링
+    requestAnimationFrame(() => {
+        if (mainContent) {
+            mainContent.style.opacity = '0';
+            requestAnimationFrame(() => {
+                mainContent.style.opacity = '1';
+            });
+        }
+    });
+    
+    console.log('로그인 완료');
+}
+
+// 로그아웃 수행 함수  
+function performLogout() {
+    console.log('로그아웃 시작...');
+    
+    // 로그인 상태 제거
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('username');
+    
+    // DOM 요소 가져오기
+    const loginForm = document.getElementById('login-form');
+    const mainContent = document.getElementById('main-content');
+    const passwordInput = document.getElementById('password');
+    
+    console.log('logout - loginForm:', loginForm);
+    console.log('logout - mainContent:', mainContent);
+    
+    // 즉시 페이지 전환 (여러 방법으로 강제)
+    if (mainContent) {
+        mainContent.style.display = 'none';
+        mainContent.style.visibility = 'hidden';
+        mainContent.classList.add('d-none', 'force-hide');
+        mainContent.classList.remove('force-show');
+    }
+    
+    if (loginForm) {
+        loginForm.style.display = 'block';
+        loginForm.style.visibility = 'visible';
+        loginForm.classList.remove('d-none', 'force-hide');
+        loginForm.classList.add('force-show');
+    }
+    
+    // 패스워드 입력창 초기화
+    if (passwordInput) {
+        passwordInput.value = '';
+        // 약간의 지연 후 포커스 (화면 전환 후)
+        setTimeout(() => {
+            passwordInput.focus();
+        }, 100);
+    }
+    
+    // 강제 리렌더링
+    requestAnimationFrame(() => {
+        if (loginForm) {
+            loginForm.style.opacity = '0';
+            requestAnimationFrame(() => {
+                loginForm.style.opacity = '1';
+            });
+        }
+    });
+    
+    console.log('로그아웃 완료');
+}

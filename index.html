@@ -11,148 +11,85 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
-    <!-- 페이지 깜빡임 방지를 위한 초기 로그인 상태 확인 -->
-    <script>
-        (function() {
-            // 로그인 상태 확인
-            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-            
-            // CSS 스타일을 동적으로 추가하여 초기 표시 상태 설정
-            const style = document.createElement('style');
-            if (isLoggedIn) {
-                // 로그인 된 상태: 로그인 폼 숨기고 메인 콘텐츠 표시
-                style.textContent = `
-                    #login-form { display: none !important; }
-                    #main-content { display: block !important; }
-                `;
-            } else {
-                // 로그인 안된 상태: 메인 콘텐츠 숨기고 로그인 폼 표시
-                style.textContent = `
-                    #login-form { display: block !important; }
-                    #main-content { display: none !important; }
-                `;
-            }
-            document.head.appendChild(style);
-        })();
-    </script>
 </head>
 <body>
     <div class="container">
-
+        <header class="my-4">
+            <h1 class="text-center">아서앤그레이스</h1>
+            <h2 class="text-center">고객관리 시스템</h2>
+        </header>
 
         <div id="login-form" class="card p-4 mx-auto" style="max-width: 500px;">
             <h3 class="text-center mb-4">로그인</h3>
             <form id="login">
                 <div class="mb-3">
                     <label for="password" class="form-label">비밀번호</label>
-                    <div class="input-group">
-                        <input type="password" class="form-control" id="password" required placeholder="비밀번호를 입력하세요">
-                        <button class="btn btn-outline-secondary" type="button" id="password-toggle">
-                            <i class="bi bi-eye" id="password-icon"></i>
-                        </button>
-                    </div>
+                    <input type="password" class="form-control" id="password" required>
                 </div>
                 <button type="submit" class="btn btn-primary w-100">로그인</button>
             </form>
         </div>
 
         <div id="main-content" class="d-none">
-            <!-- 모바일 상단 헤더 -->
-            <div class="mobile-header d-lg-none">
-                <div class="d-flex justify-content-between align-items-center p-3 bg-light">
-                    <button class="btn btn-outline-dark" id="sidebar-toggle">
-                        <i class="bi bi-list"></i>
+            <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+                <div class="container-fluid">
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                        <span class="navbar-toggler-icon"></span>
                     </button>
-                    <div class="mobile-title" id="mobile-title-home" style="cursor: pointer;">
-                        <div class="brand-name">아서앤그레이스</div>
-                        <div class="system-name">고객관리시스템</div>
+                    <div class="collapse navbar-collapse" id="navbarNav">
+                        <ul class="navbar-nav">
+                            <li class="nav-item">
+                                <a class="nav-link active" href="#" data-page="customer-list">고객 목록</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-page="add-customer">고객 등록</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-page="birthday-alerts">생일 알림</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-page="gift-history">선물 이력</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-page="customer-ranking">고객 등급</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-page="visit-tracking">방문 주기</a>
+                            </li>
+                        </ul>
+                        <ul class="navbar-nav ms-auto">
+                            <li class="nav-item">
+                                <span class="navbar-text me-3" id="sync-status">
+                                    <small class="text-muted">⚪ 동기화 대기 중</small>
+                                </span>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" id="sync-settings-btn">
+                                    <i class="bi bi-fire"></i> 동기화 설정
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" id="logout-btn">로그아웃</a>
+                            </li>
+                        </ul>
                     </div>
-                    <button class="btn btn-outline-info btn-sm me-1" id="sync-status-btn" title="동기화 상태">
-                        <i class="bi bi-cloud-check"></i>
-                    </button>
-                    <button class="btn btn-outline-danger btn-sm" id="mobile-logout-btn">
-                        <i class="bi bi-box-arrow-right"></i>
-                    </button>
                 </div>
-            </div>
-
-            <!-- 사이드바 -->
-            <div class="sidebar" id="sidebar">
-                <div class="sidebar-header">
-                    <h4>메뉴</h4>
-                    <button class="btn btn-sm btn-outline-light d-lg-none" id="sidebar-close">
-                        <i class="bi bi-x"></i>
-                    </button>
-                </div>
-                <ul class="sidebar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="#" data-page="customer-list">
-                            <i class="bi bi-people"></i> 고객 목록
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" data-page="add-customer">
-                            <i class="bi bi-person-plus"></i> 고객 등록
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" data-page="birthday-alerts">
-                            <i class="bi bi-calendar-heart"></i> 생일 알림
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" data-page="gift-history">
-                            <i class="bi bi-gift"></i> 선물 이력
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" data-page="customer-ranking">
-                            <i class="bi bi-trophy"></i> 고객 등급
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" data-page="visit-tracking">
-                            <i class="bi bi-calendar-check"></i> 방문 주기
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-danger" href="#" id="reset-database" onclick="if(window.resetDatabase) window.resetDatabase(); return false;">
-                            <i class="bi bi-trash3"></i> DB 초기화
-                        </a>
-                    </li>
-                </ul>
-                <div class="sidebar-footer d-none d-lg-block">
-                    <button class="btn btn-outline-light w-100" id="logout-btn">
-                        <i class="bi bi-box-arrow-right"></i> 로그아웃
-                    </button>
-                </div>
-            </div>
-
-            <!-- 사이드바 오버레이 (모바일용) -->
-            <div class="sidebar-overlay" id="sidebar-overlay"></div>
-
-            <!-- 메인 콘텐츠 영역 -->
-            <div class="main-content" id="main-content-area">
+            </nav>
 
             <!-- 고객 목록 페이지 -->
             <div id="customer-list" class="page">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h3 class="mb-0">고객 목록</h3>
-                    <button class="btn btn-success" id="export-excel-btn">
-                        <i class="bi bi-download"></i> 엑셀 다운로드
-                    </button>
-                </div>
-                
-                <!-- 검색창 고정 섹션 -->
-                <div class="search-section">
-                    <div class="row">
-                        <div class="col-12">
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="search-input" placeholder="이름, 전화번호, 매장, 등급, 메모로 검색">
-                                <button class="btn btn-primary" id="search-btn">검색</button>
-                            </div>
+                <h3 class="mb-3">고객 목록</h3>
+                <div class="row mb-3">
+                    <div class="col">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="search-input" placeholder="이름, 전화번호, 매장, 등급, 메모로 검색">
+                            <button class="btn btn-primary" id="search-btn">검색</button>
                         </div>
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-success" id="export-excel-btn">
+                            <i class="bi bi-download"></i> 엑셀 다운로드
+                        </button>
                     </div>
                 </div>
                 <div class="table-responsive">
@@ -160,12 +97,22 @@
                         <thead>
                             <tr>
                                 <th>번호</th>
-                                <th>이름</th>
+                                <th class="sortable" data-sort="name">
+                                    이름 <i class="bi bi-arrow-down-up sort-icon"></i>
+                                </th>
                                 <th>전화번호</th>
-                                <th class="mobile-hide">생년월일</th>
-                                <th class="mobile-hide">주방문매장</th>
-                                <th>등급</th>
-                                <th class="mobile-hide">최근 방문일</th>
+                                <th class="mobile-hide sortable" data-sort="birthdate">
+                                    생년월일 <i class="bi bi-arrow-down-up sort-icon"></i>
+                                </th>
+                                <th class="mobile-hide sortable" data-sort="preferredStore">
+                                    주방문매장 <i class="bi bi-arrow-down-up sort-icon"></i>
+                                </th>
+                                <th class="sortable" data-sort="rank">
+                                    등급 <i class="bi bi-arrow-down-up sort-icon"></i>
+                                </th>
+                                <th class="mobile-hide sortable" data-sort="lastVisit">
+                                    최근 방문일 <i class="bi bi-arrow-down-up sort-icon"></i>
+                                </th>
                                 <th>상세</th>
                             </tr>
                         </thead>
@@ -187,8 +134,37 @@
             <div id="add-customer" class="page d-none">
                 <h3 class="mb-3">고객 등록</h3>
                 
-                <!-- 개별 고객 등록 -->
+                <!-- 엑셀 업로드 섹션 -->
                 <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">엑셀 파일 업로드</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="excel-file" class="form-label">엑셀 파일 선택 (.xlsx, .xls)</label>
+                            <input type="file" class="form-control" id="excel-file" accept=".xlsx,.xls">
+                        </div>
+                        <button type="button" class="btn btn-success" id="upload-excel-btn">
+                            <i class="bi bi-upload"></i> 엑셀 데이터 업로드
+                        </button>
+                        <button type="button" class="btn btn-info ms-2" id="download-template-btn">
+                            <i class="bi bi-download"></i> 템플릿 다운로드
+                        </button>
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <strong>엑셀 파일 형식:</strong><br>
+                                • <strong>고객정보 시트:</strong> 이름, 성별, 전화번호, 생년월일, 주소, 주방문매장, 이메일, 메모<br>
+                                • <strong>구매이력 시트:</strong> 고객전화번호, 구매일, 상품명, <strong style="color:red;">가격</strong>, 주문장번호, 구매매장, 담당셀러, 결제방법, 메모<br>
+                                • <strong style="color:blue;">중요:</strong> 구매이력의 고객전화번호는 고객정보의 전화번호와 정확히 일치해야 합니다<br>
+                                • <strong style="color:blue;">가격 형식:</strong> 숫자만 입력 (예: 280000, 2800000) - 콤마나 '원' 문자는 자동 제거됩니다<br>
+                                • 단일 시트는 고객정보로 처리됩니다. 템플릿 다운로드를 권장합니다.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+                <div class="card">
                     <div class="card-header">
                         <h5 class="mb-0">개별 고객 등록</h5>
                     </div>
@@ -244,43 +220,6 @@
                         </form>
                     </div>
                 </div>
-
-                <hr class="my-4">
-                
-                <!-- 엑셀 업로드 섹션 -->
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">엑셀 파일 업로드</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label for="excel-file" class="form-label">엑셀 파일 선택 (.xlsx, .xls)</label>
-                            <input type="file" class="form-control" id="excel-file" accept=".xlsx,.xls">
-                        </div>
-                        <button type="button" class="btn btn-success" id="upload-excel-btn">
-                            <i class="bi bi-upload"></i> 엑셀 데이터 업로드
-                        </button>
-                        <button type="button" class="btn btn-info ms-2" id="download-template-btn">
-                            <i class="bi bi-download"></i> 템플릿 다운로드
-                        </button>
-                    </div>
-                </div>
-
-                <!-- 엑셀 파일 업로드 안내 -->
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <div class="mt-3">
-                            <small class="text-muted">
-                                <strong>엑셀 파일 형식:</strong><br>
-                                • <strong>고객정보 시트:</strong> 이름, 성별, 전화번호, 생년월일, 주소, 주방문매장, 이메일, 메모<br>
-                                • <strong>구매이력 시트:</strong> 고객전화번호, 구매일, 상품명, <strong style="color:red;">가격</strong>, 주문장번호, 구매매장, 담당셀러, 결제방법, 메모<br>
-                                • <strong style="color:blue;">중요:</strong> 구매이력의 고객전화번호는 고객정보의 전화번호와 정확히 일치해야 합니다<br>
-                                • <strong style="color:blue;">가격 형식:</strong> 숫자만 입력 (예: 280000, 2800000) - 콤마나 '원' 문자는 자동 제거됩니다<br>
-                                • 단일 시트는 고객정보로 처리됩니다. 템플릿 다운로드를 권장합니다.
-                            </small>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <!-- 생일 알림 페이지 -->
@@ -288,7 +227,7 @@
                 <h3 class="mb-3">생일 알림</h3>
                 <div class="card mb-3">
                     <div class="card-header">
-                        <i class="bi bi-calendar-event"></i> 이번 달 생일
+                        이번 달 생일
                     </div>
                     <div class="card-body">
                         <ul id="this-month-birthdays" class="list-group">
@@ -298,7 +237,7 @@
                 </div>
                 <div class="card">
                     <div class="card-header">
-                        <i class="bi bi-calendar-plus"></i> 다음 달 생일
+                        다음 달 생일
                     </div>
                     <div class="card-body">
                         <ul id="next-month-birthdays" class="list-group">
@@ -346,66 +285,28 @@
             <!-- 고객 등급 페이지 -->
             <div id="customer-ranking" class="page d-none">
                 <h3 class="mb-3">고객 등급 관리</h3>
-                
-                <!-- 검색 및 필터 섹션 -->
-                <div class="row mb-4">
-                    <div class="col-12 col-md-6">
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="ranking-search" placeholder="고객 이름으로 검색">
-                            <button class="btn btn-primary" id="ranking-search-btn">검색</button>
-                            <button class="btn btn-outline-secondary" id="ranking-reset-btn" title="필터 초기화">
-                                <i class="bi bi-arrow-clockwise"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="col-12 col-md-6 mt-2 mt-md-0">
-                        <div class="row g-2">
-                            <div class="col-6">
-                                <select class="form-select" id="ranking-grade-filter">
-                                    <option value="">모든 등급</option>
-                                    <option value="VVIP">VVIP</option>
-                                    <option value="VIP">VIP</option>
-                                    <option value="일반">일반</option>
-                                </select>
-                            </div>
-                            <div class="col-6">
-                                <select class="form-select" id="ranking-sort-filter">
-                                    <option value="totalAmount-desc">구매액 높은순</option>
-                                    <option value="totalAmount-asc">구매액 낮은순</option>
-                                    <option value="purchaseCount-desc">구매횟수 많은순</option>
-                                    <option value="purchaseCount-asc">구매횟수 적은순</option>
-                                    <option value="name-asc">이름 가나다순</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="row row-cols-3 mb-4 g-2 g-md-4">
+                <div class="row row-cols-1 row-cols-md-3 mb-4 g-4">
                     <div class="col">
                         <div class="card h-100 text-white bg-danger">
-                            <div class="card-body p-2 p-md-3">
-                                <h6 class="card-title mb-1 d-md-none">VVIP</h6>
-                                <h5 class="card-title mb-2 d-none d-md-block">VVIP 고객</h5>
-                                <p id="vvip-count" class="card-text display-6 display-md-4 mb-0">0</p>
+                            <div class="card-body">
+                                <h5 class="card-title">VVIP 고객</h5>
+                                <p id="vvip-count" class="card-text display-4">0</p>
                             </div>
                         </div>
                     </div>
                     <div class="col">
                         <div class="card h-100 text-white bg-primary">
-                            <div class="card-body p-2 p-md-3">
-                                <h6 class="card-title mb-1 d-md-none">VIP</h6>
-                                <h5 class="card-title mb-2 d-none d-md-block">VIP 고객</h5>
-                                <p id="vip-count" class="card-text display-6 display-md-4 mb-0">0</p>
+                            <div class="card-body">
+                                <h5 class="card-title">VIP 고객</h5>
+                                <p id="vip-count" class="card-text display-4">0</p>
                             </div>
                         </div>
                     </div>
                     <div class="col">
                         <div class="card h-100 text-white bg-secondary">
-                            <div class="card-body p-2 p-md-3">
-                                <h6 class="card-title mb-1 d-md-none">일반</h6>
-                                <h5 class="card-title mb-2 d-none d-md-block">일반 고객</h5>
-                                <p id="regular-count" class="card-text display-6 display-md-4 mb-0">0</p>
+                            <div class="card-body">
+                                <h5 class="card-title">일반 고객</h5>
+                                <p id="regular-count" class="card-text display-4">0</p>
                             </div>
                         </div>
                     </div>
@@ -474,7 +375,7 @@
 
             <!-- 고객 상세 정보 모달 -->
             <div class="modal fade" id="customer-details-modal" tabindex="-1">
-                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-dialog modal-lg">
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5 class="modal-title">고객 상세 정보</h5>
@@ -488,31 +389,47 @@
                                 <li class="nav-item">
                                     <a class="nav-link" data-bs-toggle="tab" href="#purchase-tab">구매 이력</a>
                                 </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" data-bs-toggle="tab" href="#gift-tab">선물 이력</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" data-bs-toggle="tab" href="#visit-tab">방문 이력</a>
+                                </li>
                             </ul>
                             <div class="tab-content mt-3">
                                 <div class="tab-pane fade show active" id="info-tab">
                                     <div id="customer-info-content">
                                         <!-- 고객 기본 정보가 여기에 삽입됩니다 -->
                                     </div>
-                                </div>
-                                <div class="tab-pane fade" id="purchase-tab">
-                                    <div class="tab-content-scrollable">
-                                        <div id="purchase-history-content">
-                                            <!-- 구매 이력이 여기에 삽입됩니다 -->
-                                        </div>
+                                    <div class="mt-3">
+                                        <button id="edit-customer-btn" class="btn btn-primary">수정</button>
+                                        <button id="delete-customer-btn" class="btn btn-danger">삭제</button>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <div class="w-100">
-                                <div id="info-tab-footer" class="tab-footer">
-                                    <button id="edit-customer-btn" class="btn btn-primary">수정</button>
-                                    <button id="delete-customer-btn" class="btn btn-danger">삭제</button>
+                                <div class="tab-pane fade" id="purchase-tab">
+                                    <div id="purchase-history-content">
+                                        <!-- 구매 이력이 여기에 삽입됩니다 -->
+                                    </div>
+                                    <div class="mt-3">
+                                        <button id="add-purchase-btn" class="btn btn-success">+ 구매 기록 추가</button>
+                                        <button id="download-purchase-pdf" class="btn btn-info">PDF 다운로드</button>
+                                    </div>
                                 </div>
-                                <div id="purchase-tab-footer" class="tab-footer d-none">
-                                    <button id="add-purchase-btn" class="btn btn-success">+ 구매 기록 추가</button>
-                                    <button id="download-purchase-pdf" class="btn btn-info">PDF 다운로드</button>
+                                <div class="tab-pane fade" id="gift-tab">
+                                    <div id="gift-history-content">
+                                        <!-- 선물 이력이 여기에 삽입됩니다 -->
+                                    </div>
+                                    <div class="mt-3">
+                                        <button id="add-customer-gift-btn" class="btn btn-success">+ 선물 기록 추가</button>
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="visit-tab">
+                                    <div id="visit-history-content">
+                                        <!-- 방문 이력이 여기에 삽입됩니다 -->
+                                    </div>
+                                    <div class="mt-3">
+                                        <button id="add-customer-visit-btn" class="btn btn-success">+ 방문 기록 추가</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -607,560 +524,184 @@
                 </div>
             </div>
 
+            <!-- 선물 기록 추가 모달 -->
+            <div class="modal fade" id="add-gift-modal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">선물 기록 추가</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="add-gift-form">
+                                <input type="hidden" id="gift-customer-id">
+                                
+                                <div class="mb-3">
+                                    <label for="gift-type" class="form-label">선물 종류 *</label>
+                                    <select class="form-select" id="gift-type" required>
+                                        <option value="">선물 종류를 선택하세요</option>
+                                        <option value="생일선물">생일선물</option>
+                                        <option value="연말선물">연말선물</option>
+                                        <option value="감사선물">감사선물</option>
+                                        <option value="기타">기타</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="gift-description" class="form-label">선물 내용 *</label>
+                                    <input type="text" class="form-control" id="gift-description" required placeholder="제공한 선물의 구체적인 내용을 입력하세요">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="gift-date" class="form-label">제공일 *</label>
+                                    <input type="date" class="form-control" id="gift-date" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="gift-reason" class="form-label">제공 이유 *</label>
+                                    <input type="text" class="form-control" id="gift-reason" required placeholder="선물을 제공한 이유나 계기를 입력하세요">
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                            <button type="submit" form="add-gift-form" class="btn btn-primary">
+                                <i class="bi bi-gift"></i> 저장
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-            </div> <!-- main-content-area 닫기 -->
+            <!-- 방문 기록 추가 모달 -->
+            <div class="modal fade" id="add-visit-modal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">방문 기록 추가</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="add-visit-form">
+                                <input type="hidden" id="visit-customer-id">
+                                
+                                <div class="mb-3">
+                                    <label for="visit-date" class="form-label">방문일 *</label>
+                                    <input type="date" class="form-control" id="visit-date" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="visit-purpose" class="form-label">방문 목적 *</label>
+                                    <input type="text" class="form-control" id="visit-purpose" required placeholder="방문 목적을 입력하세요 (예: 상담, 구매, 문의 등)">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="visit-note" class="form-label">메모</label>
+                                    <textarea class="form-control" id="visit-note" rows="3" placeholder="방문 관련 추가 메모사항 (선택사항)"></textarea>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                            <button type="submit" form="add-visit-form" class="btn btn-primary">
+                                <i class="bi bi-calendar-check"></i> 저장
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase 실시간 동기화 설정 모달 -->
+    <div class="modal fade" id="sync-settings-modal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-fire"></i> Firebase 실시간 동기화 설정
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-shield-exclamation"></i>
+                        <strong>보안 강화된 로컬 우선 모드</strong><br>
+                        현재 로컬 전용으로 작동 중입니다. 실시간 동기화를 원하면 개인 Firebase 프로젝트를 설정하세요.
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>개인 Firebase 프로젝트 설정</strong><br>
+                        보안을 위해 개인 Firebase 프로젝트만 사용할 수 있습니다.
+                        설정하면 사용자별 독립된 데이터 공간이 생성됩니다.
+                    </div>
+                    
+                    <form id="sync-config-form">
+                        <div class="mb-3">
+                            <label for="database-url" class="form-label">Firebase Realtime Database URL *</label>
+                            <input type="url" class="form-control" id="database-url" 
+                                   placeholder="https://your-project-default-rtdb.firebaseio.com" required>
+                            <div class="form-text">
+                                개인 Firebase 프로젝트의 Realtime Database URL
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="api-key" class="form-label">Web API Key *</label>
+                            <input type="password" class="form-control" id="api-key" 
+                                   placeholder="AIzaSy..." required>
+                            <div class="form-text">
+                                개인 Firebase 프로젝트의 Web API Key
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="show-api-key">
+                                <label class="form-check-label" for="show-api-key">
+                                    API Key 보기
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <hr>
+                    
+                    <h6>🔥 Firebase 설정 가이드</h6>
+                    <ol class="small">
+                        <li><a href="https://console.firebase.google.com" target="_blank">Firebase Console</a>에서 프로젝트 생성</li>
+                        <li>Realtime Database 활성화 (테스트 모드로 시작)</li>
+                        <li>프로젝트 설정 → 일반 → Web API Key 복사</li>
+                        <li>Realtime Database → 데이터베이스 URL 복사</li>
+                        <li>위에 Database URL과 API Key 입력</li>
+                    </ol>
+                    
+                    <div class="alert alert-success small">
+                        <i class="bi bi-shield-check"></i>
+                        Firebase는 Google의 보안 인프라를 사용하여 데이터를 안전하게 보호합니다.
+                    </div>
+                    
+                    <div class="alert alert-warning small">
+                        <i class="bi bi-shield-exclamation"></i>
+                        API Key는 안전하게 보관하고 타인과 공유하지 마세요.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                    <button type="button" class="btn btn-success" id="save-sync-settings">
+                        <i class="bi bi-fire"></i> 사용자 지정 설정 적용
+                    </button>
+                    <button type="button" class="btn btn-warning" id="reset-sync-settings">
+                        <i class="bi bi-arrow-clockwise"></i> 로컬 전용으로 변경
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    
-    <!-- 개선된 클라우드 동기화 스크립트 -->
-    <script>
-        // 완전 자동화된 클라우드 동기화 설정
-        window.CLOUD_SYNC = {
-            enabled: true, // 동기화 활성화
-            apiUrl: 'https://api.jsonbin.io/v3/b/67685b98ad19ca34f8d27c0a', // JSONBin API URL
-            apiKey: '$2a$10$Yj/wJ8WRLu.P0zG5dkjK4.vKwPKDqw8Y1JOKqU8F4zq5XiKvYmLdO', // JSONBin API Key
-            syncInterval: 15000, // 15초마다 동기화 (더 빠른 동기화)
-            rapidSyncInterval: 3000, // 데이터 변경 후 3초 내 빠른 동기화
-            lastSyncTime: 0,
-            isOnline: navigator.onLine,
-            syncInProgress: false,
-            autoSyncEnabled: true,
-            maxRetries: 3,
-            retryDelay: 2000
-        };
-        
-        // 네트워크 상태 모니터링
-        window.addEventListener('online', () => {
-            window.CLOUD_SYNC.isOnline = true;
-            console.log('네트워크 연결됨 - 동기화 재시작');
-            window.CloudSync.forceSyncToCloud();
-        });
-        
-        window.addEventListener('offline', () => {
-            window.CLOUD_SYNC.isOnline = false;
-            console.log('네트워크 연결 끊김 - 로컬에서만 작업');
-        });
-        
-        // 완전 자동화된 클라우드 동기화 함수들
-        window.CloudSync = {
-            // 클라우드에서 데이터 가져오기 (재시도 로직 포함)
-            async fetchFromCloud(retries = 0) {
-                if (!window.CLOUD_SYNC.enabled || !window.CLOUD_SYNC.isOnline) return null;
-                
-                try {
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃
-                    
-                    const response = await fetch(window.CLOUD_SYNC.apiUrl, {
-                        method: 'GET',
-                        headers: {
-                            'X-Master-Key': window.CLOUD_SYNC.apiKey,
-                            'Content-Type': 'application/json'
-                        },
-                        signal: controller.signal
-                    });
-                    
-                    clearTimeout(timeoutId);
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        return data.record;
-                    } else if (response.status === 429 && retries < window.CLOUD_SYNC.maxRetries) {
-                        // Rate limit 오류 시 재시도
-                        await new Promise(resolve => setTimeout(resolve, window.CLOUD_SYNC.retryDelay * (retries + 1)));
-                        return this.fetchFromCloud(retries + 1);
-                    } else {
-                        console.log('클라우드 데이터 가져오기 HTTP 오류:', response.status);
-                    }
-                } catch (error) {
-                    if (error.name === 'AbortError') {
-                        console.log('클라우드 데이터 가져오기 타임아웃');
-                    } else if (retries < window.CLOUD_SYNC.maxRetries) {
-                        // 네트워크 오류 시 재시도
-                        await new Promise(resolve => setTimeout(resolve, window.CLOUD_SYNC.retryDelay));
-                        return this.fetchFromCloud(retries + 1);
-                    } else {
-                        console.log('클라우드 데이터 가져오기 네트워크 오류:', error);
-                    }
-                }
-                return null;
-            },
-            
-            // 클라우드에 데이터 저장하기 (재시도 및 최적화 로직 포함)
-            async saveToCloud(data, retries = 0) {
-                if (!window.CLOUD_SYNC.enabled || !window.CLOUD_SYNC.isOnline || window.CLOUD_SYNC.syncInProgress) return false;
-                
-                window.CLOUD_SYNC.syncInProgress = true;
-                
-                try {
-                    const payload = {
-                        customers: data.customers || [],
-                        purchases: data.purchases || [],
-                        gifts: data.gifts || [],
-                        visits: data.visits || [],
-                        rankHistory: data.rankHistory || [],
-                        lastUpdated: Date.now(),
-                        deviceId: this.getDeviceId(),
-                        deviceName: this.getDeviceName(),
-                        syncVersion: '3.0', // 버전 업그레이드
-                        userAgent: navigator.userAgent.substring(0, 100) // 디버깅용
-                    };
-                    
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15초 타임아웃
-                    
-                    const response = await fetch(window.CLOUD_SYNC.apiUrl, {
-                        method: 'PUT',
-                        headers: {
-                            'X-Master-Key': window.CLOUD_SYNC.apiKey,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(payload),
-                        signal: controller.signal
-                    });
-                    
-                    clearTimeout(timeoutId);
-                    
-                    if (response.ok) {
-                        window.CLOUD_SYNC.lastSyncTime = Date.now();
-                        localStorage.setItem('lastCloudSync', window.CLOUD_SYNC.lastSyncTime.toString());
-                        this.showSyncStatus('✓ 동기화 완료', 'success');
-                        console.log('클라우드 동기화 성공');
-                        return true;
-                    } else if (response.status === 429 && retries < window.CLOUD_SYNC.maxRetries) {
-                        // Rate limit 오류 시 재시도
-                        await new Promise(resolve => setTimeout(resolve, window.CLOUD_SYNC.retryDelay * (retries + 1)));
-                        return this.saveToCloud(data, retries + 1);
-                    } else {
-                        console.log('클라우드 데이터 저장 HTTP 오류:', response.status);
-                        this.showSyncStatus('⚠ 동기화 실패', 'error');
-                    }
-                } catch (error) {
-                    if (error.name === 'AbortError') {
-                        console.log('클라우드 데이터 저장 타임아웃');
-                        this.showSyncStatus('⏱ 동기화 타임아웃', 'error');
-                    } else if (retries < window.CLOUD_SYNC.maxRetries) {
-                        // 네트워크 오류 시 재시도
-                        await new Promise(resolve => setTimeout(resolve, window.CLOUD_SYNC.retryDelay));
-                        return this.saveToCloud(data, retries + 1);
-                    } else {
-                        console.log('클라우드 데이터 저장 네트워크 오류:', error);
-                        this.showSyncStatus('🌐 네트워크 오류', 'error');
-                    }
-                } finally {
-                    window.CLOUD_SYNC.syncInProgress = false;
-                }
-                return false;
-            },
-            
-            // 기기 고유 ID 생성
-            getDeviceId() {
-                let deviceId = localStorage.getItem('deviceId');
-                if (!deviceId) {
-                    deviceId = 'device_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
-                    localStorage.setItem('deviceId', deviceId);
-                }
-                return deviceId;
-            },
-            
-            // 기기 이름 생성
-            getDeviceName() {
-                let deviceName = localStorage.getItem('deviceName');
-                if (!deviceName) {
-                    const userAgent = navigator.userAgent;
-                    if (/Android/i.test(userAgent)) {
-                        deviceName = 'Android 기기';
-                    } else if (/iPhone|iPad|iPod/i.test(userAgent)) {
-                        deviceName = 'iOS 기기';
-                    } else if (/Windows/i.test(userAgent)) {
-                        deviceName = 'Windows PC';
-                    } else if (/Mac/i.test(userAgent)) {
-                        deviceName = 'Mac';
-                    } else {
-                        deviceName = '기타 기기';
-                    }
-                    deviceName += '_' + Date.now().toString().slice(-4);
-                    localStorage.setItem('deviceName', deviceName);
-                }
-                return deviceName;
-            },
-            
-            // 향상된 동기화 상태 표시
-            showSyncStatus(message, type = 'info', duration = 3000) {
-                const statusDiv = document.getElementById('sync-status') || this.createSyncStatusDiv();
-                statusDiv.className = `sync-status ${type}`;
-                statusDiv.textContent = message;
-                statusDiv.style.display = 'block';
-                
-                // 상단 버튼 상태도 업데이트
-                if (window.updateSyncStatus) {
-                    window.updateSyncStatus(type === 'info' ? 'syncing' : type);
-                }
-                
-                setTimeout(() => {
-                    statusDiv.style.display = 'none';
-                    if (window.updateSyncStatus && type !== 'error') {
-                        window.updateSyncStatus();
-                    }
-                }, duration);
-            },
-            
-            // 동기화 상태 div 생성
-            createSyncStatusDiv() {
-                const statusDiv = document.createElement('div');
-                statusDiv.id = 'sync-status';
-                statusDiv.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    padding: 10px 15px;
-                    border-radius: 5px;
-                    color: white;
-                    font-size: 14px;
-                    z-index: 9999;
-                    display: none;
-                `;
-                document.body.appendChild(statusDiv);
-                return statusDiv;
-            },
-            
-            // 완전 자동화된 동기화 시작
-            startAutoSync() {
-                if (!window.CLOUD_SYNC.enabled) return;
-                
-                console.log('🚀 완전 자동화 동기화 시작');
-                this.showSyncStatus('🔄 동기화 시작', 'info');
-                
-                // 즉시 동기화 시작 (페이지 로드 시)
-                setTimeout(() => {
-                    this.syncFromCloud();
-                }, 1000);
-                
-                // 빠른 주기로 정기 동기화 (15초마다)
-                setInterval(() => {
-                    if (window.CLOUD_SYNC.isOnline && window.CLOUD_SYNC.autoSyncEnabled) {
-                        this.syncFromCloud();
-                    }
-                }, window.CLOUD_SYNC.syncInterval);
-                
-                // 데이터 변경 감지 및 즉시 동기화
-                this.watchDataChanges();
-                
-                // 페이지 포커스 시 동기화
-                window.addEventListener('focus', () => {
-                    if (window.CLOUD_SYNC.isOnline) {
-                        console.log('페이지 포커스 - 동기화 실행');
-                        this.syncFromCloud();
-                    }
-                });
-                
-                // 페이지 언로드 시 강제 동기화
-                window.addEventListener('beforeunload', () => {
-                    if (window.CLOUD_SYNC.isOnline) {
-                        navigator.sendBeacon && this.beaconSync();
-                        this.syncToCloud();
-                    }
-                });
-                
-                // 온라인 상태 복원 시 즉시 동기화
-                window.addEventListener('online', () => {
-                    setTimeout(() => this.syncFromCloud(), 500);
-                });
-                
-                // 가시성 변경 시 동기화
-                document.addEventListener('visibilitychange', () => {
-                    if (!document.hidden && window.CLOUD_SYNC.isOnline) {
-                        this.syncFromCloud();
-                    }
-                });
-            },
-            
-            // 향상된 데이터 변경 감지 및 즉시 동기화
-            watchDataChanges() {
-                const originalSave = window.saveDataToStorage;
-                if (originalSave) {
-                    let rapidSyncTimeout;
-                    let normalSyncTimeout;
-                    
-                    window.saveDataToStorage = () => {
-                        originalSave();
-                        
-                        // 기존 타이머들 취소
-                        if (rapidSyncTimeout) clearTimeout(rapidSyncTimeout);
-                        if (normalSyncTimeout) clearTimeout(normalSyncTimeout);
-                        
-                        console.log('데이터 변경 감지 - 동기화 예약');
-                        
-                        // 3초 후 빠른 동기화 (사용자 경험 향상)
-                        rapidSyncTimeout = setTimeout(() => {
-                            if (window.CLOUD_SYNC.enabled && window.CLOUD_SYNC.isOnline) {
-                                console.log('빠른 동기화 실행');
-                                this.forceSyncToCloud();
-                            }
-                        }, window.CLOUD_SYNC.rapidSyncInterval);
-                        
-                        // 15초 후 정상 동기화 (안전망)
-                        normalSyncTimeout = setTimeout(() => {
-                            if (window.CLOUD_SYNC.enabled && window.CLOUD_SYNC.isOnline) {
-                                console.log('안전망 동기화 실행');
-                                this.forceSyncToCloud();
-                            }
-                        }, window.CLOUD_SYNC.syncInterval);
-                    };
-                }
-                
-                // 로컬스토리지 변경 감지 (다른 탭에서의 변경사항)
-                window.addEventListener('storage', (e) => {
-                    if (e.key && ['customers', 'purchases', 'gifts', 'visits'].includes(e.key)) {
-                        console.log('다른 탭에서 데이터 변경 감지');
-                        setTimeout(() => {
-                            if (typeof loadCustomerList === 'function') loadCustomerList();
-                            if (typeof loadBirthdayAlerts === 'function') loadBirthdayAlerts();
-                            if (typeof loadRankingCounts === 'function') loadRankingCounts();
-                        }, 1000);
-                    }
-                });
-            },
-            
-            // Beacon API를 이용한 페이지 언로드 시 동기화
-            beaconSync() {
-                try {
-                    const data = {
-                        customers: JSON.parse(localStorage.getItem('customers') || '[]'),
-                        purchases: JSON.parse(localStorage.getItem('purchases') || '[]'),
-                        gifts: JSON.parse(localStorage.getItem('gifts') || '[]'),
-                        visits: JSON.parse(localStorage.getItem('visits') || '[]'),
-                        rankHistory: JSON.parse(localStorage.getItem('rankHistory') || '[]'),
-                        lastUpdated: Date.now(),
-                        deviceId: this.getDeviceId(),
-                        deviceName: this.getDeviceName(),
-                        syncVersion: '3.0'
-                    };
-                    
-                    const payload = JSON.stringify(data);
-                    const blob = new Blob([payload], { type: 'application/json' });
-                    
-                    navigator.sendBeacon(window.CLOUD_SYNC.apiUrl, blob);
-                    console.log('Beacon 동기화 전송');
-                } catch (error) {
-                    console.log('Beacon 동기화 오류:', error);
-                }
-            },
-            
-            // 향상된 클라우드에서 로컬로 동기화
-            async syncFromCloud() {
-                if (window.CLOUD_SYNC.syncInProgress) return;
-                
-                const cloudData = await this.fetchFromCloud();
-                if (!cloudData) {
-                    // 첫 접속 시 로컬 데이터를 클라우드에 업로드
-                    const hasLocalData = localStorage.getItem('customers') && 
-                                        JSON.parse(localStorage.getItem('customers')).length > 0;
-                    if (hasLocalData) {
-                        console.log('로컬 데이터 발견 - 클라우드에 업로드');
-                        this.forceSyncToCloud();
-                    }
-                    return;
-                }
-                
-                // 클라우드 데이터가 더 최신인지 확인
-                const localLastUpdated = parseInt(localStorage.getItem('lastUpdated') || '0');
-                const cloudLastUpdated = cloudData.lastUpdated || 0;
-                const currentDeviceId = this.getDeviceId();
-                
-                console.log('동기화 확인:', {
-                    local: new Date(localLastUpdated).toLocaleString(),
-                    cloud: new Date(cloudLastUpdated).toLocaleString(),
-                    fromDevice: cloudData.deviceName,
-                    isNewer: cloudLastUpdated > localLastUpdated,
-                    isDifferentDevice: cloudData.deviceId !== currentDeviceId
-                });
-                
-                if (cloudLastUpdated > localLastUpdated && cloudData.deviceId !== currentDeviceId) {
-                    console.log(`🔄 데이터 업데이트 적용: ${cloudData.deviceName || '다른 기기'}에서 ${new Date(cloudLastUpdated).toLocaleString()}`);
-                    
-                    // 데이터 업데이트 (안전한 업데이트)
-                    this.updateLocalData('customers', cloudData.customers);
-                    this.updateLocalData('purchases', cloudData.purchases);
-                    this.updateLocalData('gifts', cloudData.gifts);
-                    this.updateLocalData('visits', cloudData.visits);
-                    this.updateLocalData('rankHistory', cloudData.rankHistory);
-                    
-                    localStorage.setItem('lastUpdated', cloudLastUpdated.toString());
-                    
-                    // 화면 새로고침 (안전하게)
-                    this.refreshUI();
-                    
-                    this.showSyncStatus(`📱 ${cloudData.deviceName || '다른 기기'}에서 동기화`, 'success');
-                } else if (cloudLastUpdated <= localLastUpdated && cloudData.deviceId !== currentDeviceId) {
-                    // 로컬 데이터가 더 최신이면 클라우드에 업로드
-                    console.log('로컬 데이터가 더 최신 - 클라우드 업데이트');
-                    setTimeout(() => this.forceSyncToCloud(), 2000);
-                }
-            },
-            
-            // 안전한 로컬 데이터 업데이트
-            updateLocalData(key, data) {
-                if (!data) return;
-                
-                try {
-                    localStorage.setItem(key, JSON.stringify(data));
-                    
-                    // 전역 변수 안전 업데이트
-                    if (typeof window[key] !== 'undefined') {
-                        window[key] = data;
-                    }
-                    if (typeof window[key.slice(0, -1)] !== 'undefined') { // customers -> customer 형태도 체크
-                        const singular = key.slice(0, -1);
-                        if (typeof window[singular] !== 'undefined') {
-                            window[singular] = data;
-                        }
-                    }
-                    
-                    console.log(`${key} 데이터 업데이트 완료 (${data.length}개 항목)`);
-                } catch (error) {
-                    console.error(`${key} 데이터 업데이트 오류:`, error);
-                }
-            },
-            
-            // 안전한 UI 새로고침
-            refreshUI() {
-                try {
-                    setTimeout(() => {
-                        if (typeof loadCustomerList === 'function') {
-                            loadCustomerList();
-                            console.log('고객 목록 새로고침 완료');
-                        }
-                        if (typeof loadBirthdayAlerts === 'function') {
-                            loadBirthdayAlerts();
-                            console.log('생일 알림 새로고침 완료');
-                        }
-                        if (typeof loadRankingCounts === 'function') {
-                            loadRankingCounts();
-                            console.log('등급 통계 새로고침 완료');
-                        }
-                        if (typeof loadGiftHistory === 'function') {
-                            loadGiftHistory();
-                        }
-                        if (typeof loadVisitTracking === 'function') {
-                            loadVisitTracking();
-                        }
-                    }, 500);
-                } catch (error) {
-                    console.error('UI 새로고침 오류:', error);
-                }
-            },
-            
-            // 강제로 클라우드에 업로드
-            async forceSyncToCloud() {
-                // 로컬스토리지에서 직접 가져와서 동기화 (더 안전함)
-                const data = {
-                    customers: JSON.parse(localStorage.getItem('customers') || '[]'),
-                    purchases: JSON.parse(localStorage.getItem('purchases') || '[]'),
-                    gifts: JSON.parse(localStorage.getItem('gifts') || '[]'),
-                    visits: JSON.parse(localStorage.getItem('visits') || '[]'),
-                    rankHistory: JSON.parse(localStorage.getItem('rankHistory') || '[]')
-                };
-                
-                console.log('클라우드 동기화 데이터:', {
-                    customers: data.customers.length,
-                    purchases: data.purchases.length,
-                    gifts: data.gifts.length,
-                    visits: data.visits.length
-                });
-                
-                const success = await this.saveToCloud(data);
-                if (success) {
-                    console.log('강제 클라우드 동기화 완료');
-                    localStorage.setItem('lastUpdated', Date.now().toString());
-                    this.showSyncStatus('클라우드 동기화 완료', 'success');
-                } else {
-                    console.log('클라우드 동기화 실패');
-                }
-                return success;
-            },
-            
-            // 로컬에서 클라우드로 동기화 (호환성)
-            async syncToCloud() {
-                return this.forceSyncToCloud();
-            }
-        };
-        
-        // 개선된 CSS 스타일 추가
-        const style = document.createElement('style');
-        style.textContent = `
-            .sync-status {
-                transition: all 0.3s ease;
-                font-weight: 500;
-                border-radius: 8px;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-                border: none;
-            }
-            .sync-status.success {
-                background: linear-gradient(45deg, #28a745, #20c997);
-                animation: pulse-success 2s ease-in-out;
-            }
-            .sync-status.error {
-                background: linear-gradient(45deg, #dc3545, #fd7e14);
-                animation: shake 0.5s ease-in-out;
-            }
-            .sync-status.info {
-                background: linear-gradient(45deg, #17a2b8, #6f42c1);
-                animation: fade-in 0.3s ease-in-out;
-            }
-            @keyframes pulse-success {
-                0%, 100% { transform: scale(1); }
-                50% { transform: scale(1.05); }
-            }
-            @keyframes shake {
-                0%, 100% { transform: translateX(0); }
-                25% { transform: translateX(-5px); }
-                75% { transform: translateX(5px); }
-            }
-            @keyframes fade-in {
-                0% { opacity: 0; transform: translateY(-10px); }
-                100% { opacity: 1; transform: translateY(0); }
-            }
-            
-            /* 동기화 상태 표시기 */
-            #sync-status-btn {
-                transition: all 0.3s ease;
-            }
-            #sync-status-btn.syncing {
-                animation: spin 1s linear infinite;
-                color: #17a2b8 !important;
-            }
-            #sync-status-btn.success {
-                color: #28a745 !important;
-            }
-            #sync-status-btn.error {
-                color: #dc3545 !important;
-            }
-            @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-        `;
-        document.head.appendChild(style);
-        
-        // 동기화 상태 버튼 업데이트
-        function updateSyncButton(status) {
-            const syncBtn = document.getElementById('sync-status-btn');
-            if (syncBtn) {
-                syncBtn.className = syncBtn.className.replace(/\b(syncing|success|error)\b/g, '');
-                if (status) {
-                    syncBtn.classList.add(status);
-                }
-            }
-        }
-        
-        // 전역 동기화 상태 업데이트 함수
-        window.updateSyncStatus = updateSyncButton;
-    </script>
-    
     <script src="app.js"></script>
 </body>
 </html> 
