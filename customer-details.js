@@ -33,12 +33,12 @@ function formatPhoneNumber(phone) {
     }
 }
 
-// 서버 전용 모드: 메인 창에서 데이터 가져오기 (강화된 버전)
-function loadDataFromStorage() {
-    console.log('🔥 고객상세페이지: 서버 전용 모드 - 메인 창에서 데이터 동기화');
+// 서버 전용 모드: 메인 창에서 데이터 가져오기 + 직접 Firebase 로드 (강화된 버전)
+async function loadDataFromStorage() {
+    console.log('🔥 고객상세페이지: 서버 전용 모드 - 데이터 동기화 시작');
     
     try {
-        // 메인 창(opener)에서 데이터 가져오기
+        // 1단계: 메인 창(opener)에서 데이터 가져오기 시도
         if (window.opener && !window.opener.closed) {
             // 메인 창의 데이터 상태 확인
             const openerCustomers = window.opener.customers || [];
@@ -46,47 +46,99 @@ function loadDataFromStorage() {
             const openerGifts = window.opener.gifts || [];
             const openerVisits = window.opener.visits || [];
             
-            // 데이터 복사 (참조가 아닌 복사본 생성)
-            customers.length = 0;
-            purchases.length = 0;
-            gifts.length = 0;
-            visits.length = 0;
+            console.log(`📊 메인 창 데이터 상태: 고객 ${openerCustomers.length}명, 구매 ${openerPurchases.length}건`);
             
-            customers.push(...openerCustomers);
-            purchases.push(...openerPurchases);
-            gifts.push(...openerGifts);
-            visits.push(...openerVisits);
-            
-            console.log('✅ 메인 창에서 데이터 동기화 완료:', {
-                customers: customers.length,
-                purchases: purchases.length,
-                gifts: gifts.length,
-                visits: visits.length
-            });
-            
-            // 메인 창의 Firebase 초기화 상태도 확인
-            if (window.opener.FirebaseData && window.opener.FirebaseData.isInitialized) {
-                console.log('🔥 메인 창 Firebase 연결 상태: 정상');
-            } else {
-                console.warn('⚠️ 메인 창 Firebase 초기화 대기 중...');
+            // 메인 창에 데이터가 있으면 복사
+            if (openerCustomers.length > 0) {
+                customers.length = 0;
+                purchases.length = 0;
+                gifts.length = 0;
+                visits.length = 0;
+                
+                customers.push(...openerCustomers);
+                purchases.push(...openerPurchases);
+                gifts.push(...openerGifts);
+                visits.push(...openerVisits);
+                
+                console.log('✅ 메인 창에서 데이터 동기화 완료:', {
+                    customers: customers.length,
+                    purchases: purchases.length,
+                    gifts: gifts.length,
+                    visits: visits.length
+                });
+                
+                return true; // 성공
             }
             
-        } else {
-            console.warn('⚠️ 메인 창을 찾을 수 없음 - 빈 데이터로 시작');
-            customers.length = 0;
-            purchases.length = 0;
-            gifts.length = 0;
-            visits.length = 0;
+            // 메인 창에 데이터가 없으면 Firebase에서 직접 로드 시도
+            console.log('⚠️ 메인 창에 데이터 없음 - Firebase에서 직접 로드 시도');
+            
+            if (window.opener.FirebaseData && window.opener.FirebaseData.isInitialized) {
+                console.log('🔥 메인 창 Firebase 연결됨 - 서버 데이터 직접 로드');
+                
+                try {
+                    const firebaseData = await window.opener.FirebaseData.loadFromFirebase();
+                    
+                    if (firebaseData && (firebaseData.customers || []).length > 0) {
+                        console.log('✅ Firebase에서 직접 데이터 로드 성공');
+                        
+                        // 데이터 초기화 및 로드
+                        customers.length = 0;
+                        purchases.length = 0;
+                        gifts.length = 0;
+                        visits.length = 0;
+                        
+                        customers.push(...(firebaseData.customers || []));
+                        purchases.push(...(firebaseData.purchases || []));
+                        gifts.push(...(firebaseData.gifts || []));
+                        visits.push(...(firebaseData.visits || []));
+                        
+                        // 메인 창 데이터도 업데이트
+                        window.opener.customers.length = 0;
+                        window.opener.purchases.length = 0;
+                        window.opener.gifts.length = 0;
+                        window.opener.visits.length = 0;
+                        
+                        window.opener.customers.push(...customers);
+                        window.opener.purchases.push(...purchases);
+                        window.opener.gifts.push(...gifts);
+                        window.opener.visits.push(...visits);
+                        
+                        // 메인 창 UI 새로고침
+                        if (typeof window.opener.refreshAllUI === 'function') {
+                            window.opener.refreshAllUI();
+                        }
+                        
+                        console.log('✅ Firebase 직접 로드 및 메인 창 동기화 완료:', {
+                            customers: customers.length,
+                            purchases: purchases.length
+                        });
+                        
+                        return true; // 성공
+                    }
+                } catch (firebaseError) {
+                    console.error('❌ Firebase 직접 로드 실패:', firebaseError);
+                }
+            }
         }
-    } catch (error) {
-        console.error('❌ 메인 창 데이터 동기화 실패:', error);
+        
+        // 모든 시도 실패 시 빈 데이터로 초기화
+        console.warn('⚠️ 모든 데이터 로드 시도 실패 - 빈 데이터로 초기화');
         customers.length = 0;
         purchases.length = 0;
         gifts.length = 0;
         visits.length = 0;
+        
+        return false; // 실패
+        
+    } catch (error) {
+        console.error('❌ 데이터 로드 중 오류:', error);
+        customers.length = 0;
+        purchases.length = 0;
+        gifts.length = 0;
+        visits.length = 0;
+        return false;
     }
-    
-    return customers.length > 0; // 데이터 로드 성공 여부 반환
 }
 
 // 로컬 스토리지에 데이터 저장
@@ -205,104 +257,120 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
     
-    // 데이터 로드 후 고객 정보 표시
-    function initializeCustomerDetails() {
+    // 데이터 로드 후 고객 정보 표시 (async/await 개선 버전)
+    async function initializeCustomerDetails() {
         console.log('🔄 고객상세페이지 데이터 초기화 시작...');
-        
-        // 서버 전용 모드: 메인 창에서 데이터 동기화
-        loadDataFromStorage();
         
         // 데이터 로드 확인 및 재시도 (강화된 버전)
         let retryCount = 0;
-        const maxRetries = 20; // 재시도 횟수 증가
+        const maxRetries = 15; // 재시도 횟수
         
-        const checkDataAndLoad = () => {
+        const checkDataAndLoad = async () => {
             retryCount++;
             console.log(`📊 데이터 로드 확인 시도 ${retryCount}/${maxRetries}`);
             
-            // 데이터 로드 시도
-            const dataLoaded = loadDataFromStorage();
-            
-            if (dataLoaded && customers.length > 0) {
-                // 데이터가 있으면 고객 정보 로드
-                console.log(`✅ 데이터 로드 완료 - 고객 ${customers.length}명 발견`);
+            try {
+                // 데이터 로드 시도 (async 함수)
+                const dataLoaded = await loadDataFromStorage();
                 
-                // 요청한 고객이 존재하는지 확인
-                const targetCustomer = customers.find(c => c.id === customerId);
-                if (targetCustomer) {
-                    console.log(`👤 대상 고객 발견: ${targetCustomer.name} (ID: ${customerId})`);
-                    loadCustomerDetails(customerId);
-                } else {
-                    console.warn(`⚠️ 고객 ID ${customerId}를 찾을 수 없음`);
-                    alert(`고객 정보를 찾을 수 없습니다. (ID: ${customerId})\n\n고객 목록으로 이동합니다.`);
+                if (dataLoaded && customers.length > 0) {
+                    // 데이터가 있으면 고객 정보 로드
+                    console.log(`✅ 데이터 로드 완료 - 고객 ${customers.length}명 발견`);
                     
+                    // 요청한 고객이 존재하는지 확인
+                    const targetCustomer = customers.find(c => c.id === customerId);
+                    if (targetCustomer) {
+                        console.log(`👤 대상 고객 발견: ${targetCustomer.name} (ID: ${customerId})`);
+                        loadCustomerDetails(customerId);
+                        return; // 성공 시 종료
+                    } else {
+                        console.warn(`⚠️ 고객 ID ${customerId}를 찾을 수 없음`);
+                        alert(`고객 정보를 찾을 수 없습니다. (ID: ${customerId})\n\n고객 목록으로 이동합니다.`);
+                        
+                        if (window.opener && !window.opener.closed) {
+                            window.close();
+                        } else {
+                            window.location.href = 'index.html';
+                        }
+                        return;
+                    }
+                }
+                
+                // 데이터가 없는 경우 재시도 로직
+                if (retryCount < maxRetries) {
+                    console.log(`⏳ 데이터 로드 대기 중... (${retryCount}/${maxRetries})`);
+                    
+                    // 메인 창의 상태 확인 및 Firebase 데이터 로드 시도
+                    if (window.opener && !window.opener.closed) {
+                        try {
+                            const openerDataCount = (window.opener.customers || []).length;
+                            const openerFirebaseReady = window.opener.FirebaseData && window.opener.FirebaseData.isInitialized;
+                            
+                            console.log(`📊 메인 창 상태: 고객 ${openerDataCount}명, Firebase: ${openerFirebaseReady ? '연결됨' : '대기중'}`);
+                            
+                            // 메인 창에 데이터가 있는데 로드가 안되는 경우
+                            if (openerDataCount > 0) {
+                                console.log('🔄 메인 창에 데이터 존재 - 즉시 재시도');
+                                setTimeout(checkDataAndLoad, 100);
+                                return;
+                            }
+                            
+                            // 메인 창의 Firebase가 준비되었지만 데이터가 없는 경우
+                            if (openerFirebaseReady && openerDataCount === 0) {
+                                console.log('🔥 메인 창 Firebase 연결됨 - 서버 데이터 로드 요청');
+                                
+                                try {
+                                    // 메인 창에서 서버 데이터 강제 로드
+                                    await window.opener.FirebaseData.forceSyncWithFirebase(false);
+                                    console.log('✅ 메인 창 서버 데이터 로드 완료 - 재시도');
+                                    setTimeout(checkDataAndLoad, 300);
+                                } catch (error) {
+                                    console.warn('메인 창 서버 데이터 로드 실패:', error);
+                                    setTimeout(checkDataAndLoad, 800);
+                                }
+                                return;
+                            }
+                            
+                        } catch (error) {
+                            console.warn('메인 창 상태 확인 실패:', error);
+                        }
+                    }
+                    
+                    // 일반적인 재시도 (간격을 점진적으로 증가)
+                    const retryDelay = Math.min(500 + (retryCount * 200), 2000);
+                    setTimeout(checkDataAndLoad, retryDelay);
+                    
+                } else {
+                    // 최대 재시도 횟수 초과
+                    console.error('❌ 데이터 로드 최종 실패');
+                    alert('⚠️ 고객 데이터를 불러올 수 없습니다.\n\n메인 페이지에서 데이터가 로드된 후 다시 시도해주세요.');
+                    
+                    // 메인 페이지로 이동
                     if (window.opener && !window.opener.closed) {
                         window.close();
                     } else {
                         window.location.href = 'index.html';
                     }
                 }
-            } else if (retryCount < maxRetries) {
-                // 데이터가 없으면 재시도
-                console.log(`⏳ 데이터 로드 대기 중... (${retryCount}/${maxRetries})`);
                 
-                // 메인 창의 상태 확인 및 Firebase 데이터 로드 시도
-                if (window.opener && !window.opener.closed) {
-                    try {
-                        const openerDataCount = (window.opener.customers || []).length;
-                        const openerFirebaseReady = window.opener.FirebaseData && window.opener.FirebaseData.isInitialized;
-                        
-                        console.log(`📊 메인 창 상태: 고객 ${openerDataCount}명, Firebase: ${openerFirebaseReady ? '연결됨' : '대기중'}`);
-                        
-                        // 메인 창에 데이터가 있는데 로드가 안되는 경우
-                        if (openerDataCount > 0) {
-                            console.log('🔄 메인 창에 데이터 존재 - 즉시 재시도');
-                            setTimeout(checkDataAndLoad, 100);
-                            return;
-                        }
-                        
-                        // 메인 창의 Firebase가 준비되었지만 데이터가 없는 경우
-                        if (openerFirebaseReady && openerDataCount === 0) {
-                            console.log('🔥 메인 창 Firebase 연결됨 - 서버 데이터 로드 요청');
-                            
-                            // 메인 창에서 서버 데이터 강제 로드
-                            window.opener.FirebaseData.forceSyncWithFirebase(false)
-                                .then(() => {
-                                    console.log('✅ 메인 창 서버 데이터 로드 완료 - 재시도');
-                                    setTimeout(checkDataAndLoad, 300);
-                                })
-                                .catch(error => {
-                                    console.warn('메인 창 서버 데이터 로드 실패:', error);
-                                    setTimeout(checkDataAndLoad, 800);
-                                });
-                            return;
-                        }
-                        
-                    } catch (error) {
-                        console.warn('메인 창 상태 확인 실패:', error);
-                    }
-                }
+            } catch (error) {
+                console.error('❌ 데이터 로드 중 오류:', error);
                 
-                // 일반적인 재시도 (간격을 점진적으로 증가)
-                const retryDelay = Math.min(500 + (retryCount * 200), 2000);
-                setTimeout(checkDataAndLoad, retryDelay);
-                
-            } else {
-                // 최대 재시도 횟수 초과
-                console.error('❌ 데이터 로드 최종 실패');
-                alert('⚠️ 고객 데이터를 불러올 수 없습니다.\n\n메인 페이지에서 데이터가 로드된 후 다시 시도해주세요.');
-                
-                // 메인 페이지로 이동
-                if (window.opener && !window.opener.closed) {
-                    window.close();
+                if (retryCount < maxRetries) {
+                    setTimeout(checkDataAndLoad, 2000); // 오류 시 2초 대기
                 } else {
-                    window.location.href = 'index.html';
+                    alert('⚠️ 시스템 오류가 발생했습니다.\n\n메인 페이지로 이동합니다.');
+                    if (window.opener && !window.opener.closed) {
+                        window.close();
+                    } else {
+                        window.location.href = 'index.html';
+                    }
                 }
             }
         };
         
-        // 즉시 확인 시작
-        checkDataAndLoad();
+        // 초기 데이터 로드 시도
+        await checkDataAndLoad();
     }
     
     // 초기화 시작
