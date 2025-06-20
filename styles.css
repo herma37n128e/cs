@@ -501,7 +501,8 @@ header h2 {
     .customer-action-buttons #edit-customer-btn,
     .customer-action-buttons #delete-customer-btn {
         flex: 1;
-        min-height: 44px;
+        height: 48px; /* 정확한 높이 지정 */
+        min-height: 48px;
         font-size: 0.9rem;
         padding: 0.5rem 0.75rem;
         border-radius: 8px;
@@ -509,10 +510,30 @@ header h2 {
         display: flex;
         align-items: center;
         justify-content: center;
+        line-height: 1.2; /* 텍스트 정렬 개선 */
     }
     
     .customer-action-buttons #delete-customer-btn {
         margin-left: auto;
+    }
+    
+    /* 모바일에서 고객정보수정 모달 버튼 스타일 */
+    #edit-customer-modal .modal-body .text-end .btn {
+        height: 48px; /* 취소/저장 버튼 높이 통일 */
+        min-height: 48px;
+        font-size: 1rem; /* 기본 크기의 10% 증가 (0.9rem → 1rem) */
+        padding: 0.6rem 1rem; /* 패딩 10% 증가 */
+        border-radius: 8px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1.2;
+        margin-left: 8px; /* 버튼 간격 */
+    }
+    
+    #edit-customer-modal .modal-body .text-end .btn:first-child {
+        margin-left: 0; /* 첫 번째 버튼은 왼쪽 마진 제거 */
     }
     
     /* 모바일에서 모달 개선 */
@@ -771,17 +792,74 @@ header h2 {
     }
 }
 
-/* 로그인 폼 스타일 */
-#login-form {
-    background-color: #fff;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+/* 로그인 모달 스타일 */
+#login-modal .modal-content {
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     border: none;
-    margin-top: 50px;
 }
 
-#login-form h3 {
+#login-modal .modal-header {
+    background: linear-gradient(135deg, #343a40 0%, #495057 100%);
+    color: white;
+    border-radius: 15px 15px 0 0;
+    border-bottom: none;
+}
+
+#login-modal .modal-title {
+    font-weight: 600;
+    font-size: 1.2rem;
+}
+
+#login-modal .modal-body {
+    padding: 2rem;
+}
+
+#login-modal h4 {
     color: #343a40;
     font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+#login-modal .text-muted {
+    margin-bottom: 2rem;
+}
+
+#login-modal .form-control {
+    border-radius: 10px;
+    border: 2px solid #e9ecef;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+#login-modal .form-control:focus {
+    border-color: #343a40;
+    box-shadow: 0 0 0 0.2rem rgba(52, 58, 64, 0.25);
+}
+
+#login-modal .btn-primary {
+    background: linear-gradient(135deg, #343a40 0%, #495057 100%);
+    border: none;
+    border-radius: 10px;
+    padding: 0.75rem;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+}
+
+#login-modal .btn-primary:hover {
+    background: linear-gradient(135deg, #23272b 0%, #343a40 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+#login-modal .alert-danger {
+    border-radius: 10px;
+    border: none;
+    background-color: #f8d7da;
+    color: #721c24;
+    font-weight: 500;
 }
 
 /* 검색 입력란 스타일 */
@@ -994,4 +1072,97 @@ header h2 {
     #customer-list .search-section {
         top: 70px; /* 모바일 헤더 높이만큼 조정 */
     }
+}
+
+/* 구매기록수정 모달 버튼 스타일 개선 */
+#edit-purchase-modal .modal-footer .btn {
+    min-width: 110px; /* 기본 100px에서 10% 증가 */
+    height: 42px; /* 높이 통일 */
+    font-size: 15px; /* 폰트 크기 약간 증가 */
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+#edit-purchase-modal .modal-footer .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+/* 구매이력 관리 컬럼 버튼 스타일 개선 */
+.edit-purchase, .delete-purchase {
+    min-width: 44px !important; /* 기본 40px에서 10% 증가 */
+    height: 38px !important; /* 높이 통일 */
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 5px !important;
+    font-size: 14px !important;
+    transition: all 0.2s ease !important;
+    margin: 0 1px !important;
+}
+
+.edit-purchase:hover, .delete-purchase:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15) !important;
+}
+
+/* 구매이력 테이블의 관리 칼럼 버튼 그룹 */
+.btn-group-sm .btn {
+    padding: 0.25rem 0.5rem !important;
+}
+
+/* 모바일 환경에서 버튼 크기 조정 */
+@media (max-width: 768px) {
+    #edit-purchase-modal .modal-footer .btn {
+        min-width: 100px;
+        height: 40px;
+        font-size: 14px;
+    }
+    
+    .edit-purchase, .delete-purchase {
+        min-width: 40px !important;
+        height: 36px !important;
+        font-size: 13px !important;
+    }
+}
+
+/* 구매기록 모달 내 상품 삭제 버튼도 통일 */
+#edit-purchase-items .remove-item-btn {
+    height: 38px !important;
+    min-width: 120px !important;
+    font-size: 14px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    border-radius: 5px !important;
+    transition: all 0.2s ease !important;
+}
+
+#edit-purchase-items .remove-item-btn:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 3px 6px rgba(220, 53, 69, 0.2) !important;
+}
+
+/* 상품 추가 버튼 스타일 개선 */
+#edit-add-item-btn {
+    height: 42px !important;
+    min-width: 130px !important;
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    border-radius: 6px !important;
+    transition: all 0.2s ease !important;
+}
+
+#edit-add-item-btn:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 8px rgba(25, 135, 84, 0.2) !important;
 } 

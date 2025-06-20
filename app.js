@@ -205,6 +205,88 @@ let visits = [];
 
 // DOM이 로드된 후 실행
 document.addEventListener('DOMContentLoaded', () => {
+    // 로그인 상태 확인
+    checkLoginStatus();
+});
+
+// 로그인 상태 확인 함수
+function checkLoginStatus() {
+    const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+    
+    if (isLoggedIn === 'true') {
+        // 로그인된 상태면 메인 시스템 초기화
+        initializeMainSystem();
+    } else {
+        // 로그인되지 않은 상태면 로그인 모달 표시
+        showLoginModal();
+    }
+}
+
+// 로그인 모달 표시
+function showLoginModal() {
+    const loginModal = new bootstrap.Modal(document.getElementById('login-modal'));
+    loginModal.show();
+    
+    // 로그인 폼 이벤트 리스너
+    document.getElementById('login-form').addEventListener('submit', handleLogin);
+    
+    // 엔터키 지원
+    document.getElementById('login-id').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            document.getElementById('login-password').focus();
+        }
+    });
+    
+    document.getElementById('login-password').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            handleLogin(e);
+        }
+    });
+    
+    // 로그인 아이디 필드에 포커스
+    setTimeout(() => {
+        document.getElementById('login-id').focus();
+    }, 500);
+}
+
+// 로그인 처리
+function handleLogin(e) {
+    e.preventDefault();
+    
+    const loginId = document.getElementById('login-id').value.trim();
+    const loginPassword = document.getElementById('login-password').value.trim();
+    const errorDiv = document.getElementById('login-error');
+    
+    // 로그인 인증 (admin / grace1)
+    if (loginId === 'admin' && loginPassword === 'grace1') {
+        // 로그인 성공
+        sessionStorage.setItem('isLoggedIn', 'true');
+        errorDiv.classList.add('d-none');
+        
+        // 로그인 모달 닫기
+        const loginModal = bootstrap.Modal.getInstance(document.getElementById('login-modal'));
+        loginModal.hide();
+        
+        // 메인 시스템 초기화
+        initializeMainSystem();
+        
+        // 로그인 성공 후 고객목록 페이지로 이동
+        setTimeout(() => {
+            showPage('customer-list');
+            localStorage.setItem('currentPage', 'customer-list');
+        }, 100);
+        
+    } else {
+        // 로그인 실패
+        errorDiv.classList.remove('d-none');
+        document.getElementById('login-id').value = '';
+        document.getElementById('login-password').value = '';
+        document.getElementById('login-id').focus();
+    }
+}
+
+// 메인 시스템 초기화
+function initializeMainSystem() {
     // 데이터 로드
     loadDataFromStorage();
 
@@ -362,7 +444,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 나머지 이벤트 리스너들...
     setupEventListeners();
-});
+}
 
 // 페이지 전환 함수 (페이지 상태 관리)
 function showPage(targetPage) {
