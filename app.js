@@ -441,6 +441,10 @@ function setupEventListeners() {
             searchCustomers();
         }
     });
+    // 검색창 내용 변경 시 실시간 검색 (빈 검색창일 때 전체 목록 표시)
+    document.getElementById('search-input').addEventListener('input', () => {
+        searchCustomers();
+    });
 
     // 엑셀 다운로드
     document.getElementById('export-excel-btn').addEventListener('click', exportCustomersToExcel);
@@ -486,6 +490,10 @@ function setupEventListeners() {
         if (e.key === 'Enter') {
             searchRankingList();
         }
+    });
+    // 고객등급 페이지 검색창 실시간 검색 (빈 검색창일 때 전체 목록 표시)
+    document.getElementById('ranking-search-input').addEventListener('input', () => {
+        searchRankingList();
     });
     
     // 등급 필터 변경 시 즉시 검색

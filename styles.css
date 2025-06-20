@@ -483,12 +483,36 @@ header h2 {
     /* 모바일에서 남은 버튼들 크기 조정 */
     .btn-sm.view-customer-details,
     .btn-sm.view-visit-details,
-    .btn-sm.view-rank-history,
-    #delete-customer-btn {
+    .btn-sm.view-rank-history {
         padding: 0.45rem 0.825rem;
         font-size: 0.81rem;
         min-height: 39.6px;
         min-width: 60px;
+    }
+    
+    /* 모바일에서 고객 상세정보 페이지 액션 버튼 스타일 */
+    .customer-action-buttons {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .customer-action-buttons #edit-customer-btn,
+    .customer-action-buttons #delete-customer-btn {
+        flex: 1;
+        min-height: 44px;
+        font-size: 0.9rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .customer-action-buttons #delete-customer-btn {
+        margin-left: auto;
     }
     
     /* 모바일에서 모달 개선 */
@@ -521,6 +545,24 @@ header h2 {
         font-size: 1rem;
         padding: 0.75rem;
         border-radius: 8px;
+    }
+    
+    /* 모바일에서 검색창과 버튼 높이 통일 */
+    .input-group .form-control {
+        height: calc(2.5rem + 2px);
+        font-size: 1rem;
+        padding: 0.75rem;
+        border-radius: 8px 0 0 8px;
+    }
+    
+    .input-group .btn {
+        height: calc(2.5rem + 2px);
+        font-size: 1rem;
+        padding: 0.75rem 1rem;
+        border-radius: 0 8px 8px 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     
     /* 모바일에서 라벨 스타일링 개선 */
@@ -643,11 +685,16 @@ header h2 {
     
     .input-group .form-control {
         border-radius: 8px 0 0 8px;
+        height: calc(2.5rem + 2px);
     }
     
     .input-group .btn {
         border-radius: 0 8px 8px 0;
         padding: 0.75rem 1rem;
+        height: calc(2.5rem + 2px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     
     /* 텍스트 영역 개선 */
