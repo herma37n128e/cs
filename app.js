@@ -567,41 +567,7 @@ document.addEventListener('DOMContentLoaded', () => {
         deleteCustomer(customerId);
     });
 
-    // 동기화 설정 버튼 이벤트 리스너 (안전하게 추가)
-    const syncSettingsBtn = document.getElementById('sync-settings-btn');
-    if (syncSettingsBtn) {
-        syncSettingsBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            openSyncSettingsModal();
-        });
-    }
 
-    // 동기화 설정 저장 버튼 이벤트 리스너 (안전하게 추가)
-    const saveSyncBtn = document.getElementById('save-sync-settings');
-    if (saveSyncBtn) {
-        saveSyncBtn.addEventListener('click', () => {
-            saveSyncSettings();
-        });
-    }
-
-    // 기본 설정 복원 버튼 이벤트 리스너 (안전하게 추가)
-    const resetSyncBtn = document.getElementById('reset-sync-settings');
-    if (resetSyncBtn) {
-        resetSyncBtn.addEventListener('click', () => {
-            resetSyncSettings();
-        });
-    }
-
-    // API Key 보기 체크박스 이벤트 리스너 (안전하게 추가)
-    const showApiKeyCheckbox = document.getElementById('show-api-key');
-    if (showApiKeyCheckbox) {
-        showApiKeyCheckbox.addEventListener('change', (e) => {
-            const apiKeyInput = document.getElementById('api-key');
-            if (apiKeyInput) {
-                apiKeyInput.type = e.target.checked ? 'text' : 'password';
-            }
-        });
-    }
 
     // 구매 기록 추가 버튼 이벤트 리스너
     document.getElementById('add-purchase-btn').addEventListener('click', () => {
@@ -3469,113 +3435,7 @@ function applySort(customerArray, field, order) {
     });
 }
 
-// Firebase 동기화 설정 모달 열기 (항상 활성화 상태)
-function openSyncSettingsModal() {
-    const modalElement = document.getElementById('sync-settings-modal');
-    if (!modalElement) {
-        alert('Firebase 동기화 설정 모달을 찾을 수 없습니다. 페이지를 새로고침해주세요.');
-        return;
-    }
-    
-    const modal = new bootstrap.Modal(modalElement);
-    
-    // 사용자 지정 설정이 있으면 폼에 표시
-    const config = localStorage.getItem('firebaseSyncConfig');
-    if (config) {
-        try {
-            const parsedConfig = JSON.parse(config);
-            const databaseUrlInput = document.getElementById('database-url');
-            const apiKeyInput = document.getElementById('api-key');
-            
-            if (databaseUrlInput) databaseUrlInput.value = parsedConfig.databaseUrl || '';
-            if (apiKeyInput) apiKeyInput.value = parsedConfig.apiKey || '';
-        } catch (error) {
-            console.error('Firebase 설정 로드 오류:', error);
-        }
-    }
-    
-    modal.show();
-}
 
-// Firebase 사용자 지정 설정 저장 (선택사항)
-function saveSyncSettings() {
-    const databaseUrlInput = document.getElementById('database-url');
-    const apiKeyInput = document.getElementById('api-key');
-    
-    if (!databaseUrlInput || !apiKeyInput) {
-        alert('Firebase 설정 폼을 찾을 수 없습니다. 페이지를 새로고침해주세요.');
-        return;
-    }
-    
-    const databaseUrl = databaseUrlInput.value.trim();
-    const apiKey = apiKeyInput.value.trim();
-    
-    // 필수 입력값 확인
-    if (!databaseUrl || !apiKey) {
-        alert('Firebase Database URL과 Web API Key를 모두 입력해주세요.');
-        return;
-    }
-    
-    // Firebase URL 형식 검증
-    if (!databaseUrl.includes('firebaseio.com') && !databaseUrl.includes('firebase.com')) {
-        alert('올바른 Firebase Realtime Database URL 형식이 아닙니다.\n예: https://your-project-default-rtdb.firebaseio.com/');
-        return;
-    }
-    
-    // 사용자 지정 Firebase 동기화 설정 활성화
-    setupFirebaseSync(databaseUrl, apiKey);
-    
-    closeModal();
-}
-
-// 로컬 전용 모드로 변경
-function resetSyncSettings() {
-    if (confirm('로컬 전용 모드로 변경하시겠습니까?\nFirebase 동기화가 비활성화됩니다.')) {
-        // 로컬 스토리지에서 사용자 설정 제거
-        localStorage.removeItem('firebaseSyncConfig');
-        
-        // 동기화 비활성화 (로컬 전용)
-        window.FIREBASE_SYNC.enabled = false;
-        window.FIREBASE_SYNC.databaseUrl = '';
-        window.FIREBASE_SYNC.apiKey = '';
-        window.FIREBASE_SYNC.userPath = '';
-        
-        // 실시간 연결 종료
-        if (window.FIREBASE_SYNC.eventSource) {
-            window.FIREBASE_SYNC.eventSource.close();
-            window.FIREBASE_SYNC.eventSource = null;
-        }
-        
-        // 정기 동기화 중지
-        if (window.FIREBASE_SYNC.syncIntervalId) {
-            clearInterval(window.FIREBASE_SYNC.syncIntervalId);
-            window.FIREBASE_SYNC.syncIntervalId = null;
-        }
-        
-        updateSyncStatus('offline', '로컬 전용');
-        alert('로컬 전용 모드로 변경되었습니다.');
-        closeModal();
-    }
-}
-
-// 모달 닫기 공통 함수
-function closeModal() {
-    const modalElement = document.getElementById('sync-settings-modal');
-    if (modalElement) {
-        const modal = bootstrap.Modal.getInstance(modalElement);
-        if (modal) modal.hide();
-    }
-    
-    // 폼 초기화
-    const formElement = document.getElementById('sync-config-form');
-    if (formElement) formElement.reset();
-    
-    const showApiKeyCheckbox = document.getElementById('show-api-key');
-    if (showApiKeyCheckbox) showApiKeyCheckbox.checked = false;
-    
-    const apiKeyInput = document.getElementById('api-key');
-    if (apiKeyInput) apiKeyInput.type = 'password';
-}
 
 // 삭제됨 - 더 이상 동기화 비활성화 기능 없음 (항상 활성화)
 
