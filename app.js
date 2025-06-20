@@ -281,12 +281,18 @@ document.addEventListener('DOMContentLoaded', () => {
             // 현재 보고 있는 고객 ID 가져오기
             const customerId = parseInt(document.querySelector('#customer-info-content').getAttribute('data-customer-id'));
             
-            if (tab.getAttribute('href') === '#purchase-tab') {
+            // 모든 탭 푸터 숨기기
+            document.querySelectorAll('.tab-footer').forEach(footer => {
+                footer.classList.add('d-none');
+            });
+            
+            // 선택된 탭에 따라 해당 푸터 표시
+            const tabHref = tab.getAttribute('href');
+            if (tabHref === '#info-tab') {
+                document.getElementById('info-tab-footer').classList.remove('d-none');
+            } else if (tabHref === '#purchase-tab') {
+                document.getElementById('purchase-tab-footer').classList.remove('d-none');
                 loadCustomerPurchases(customerId);
-            } else if (tab.getAttribute('href') === '#gift-tab') {
-                loadCustomerGifts(customerId);
-            } else if (tab.getAttribute('href') === '#visit-tab') {
-                loadCustomerVisits(customerId);
             }
         });
     });
@@ -439,16 +445,7 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('구매 기록이 추가되었습니다.');
     });
     
-    // 선물 기록 추가 버튼 이벤트 리스너
-    document.getElementById('add-customer-gift-btn').addEventListener('click', () => {
-        const customerId = parseInt(document.querySelector('#customer-info-content').getAttribute('data-customer-id'));
-        document.getElementById('gift-customer-id').value = customerId;
-        document.getElementById('gift-date').value = new Date().toISOString().split('T')[0];
-        document.getElementById('add-gift-form').reset();
-        
-        const giftModal = new bootstrap.Modal(document.getElementById('add-gift-modal'));
-        giftModal.show();
-    });
+
     
     // 선물 기록 추가 폼 제출 이벤트 리스너
     document.getElementById('add-gift-form').addEventListener('submit', (e) => {
@@ -487,16 +484,7 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('선물 기록이 추가되었습니다.');
     });
     
-    // 방문 기록 추가 버튼 이벤트 리스너
-    document.getElementById('add-customer-visit-btn').addEventListener('click', () => {
-        const customerId = parseInt(document.querySelector('#customer-info-content').getAttribute('data-customer-id'));
-        document.getElementById('visit-customer-id').value = customerId;
-        document.getElementById('visit-date').value = new Date().toISOString().split('T')[0];
-        document.getElementById('add-visit-form').reset();
-        
-        const visitModal = new bootstrap.Modal(document.getElementById('add-visit-modal'));
-        visitModal.show();
-    });
+
     
     // 방문 기록 추가 폼 제출 이벤트 리스너
     document.getElementById('add-visit-form').addEventListener('submit', (e) => {
@@ -661,6 +649,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // 페이지 로드 시 동기화 버튼 상태 설정
     setTimeout(updateSyncButton, 1000);
     
+    // DB 초기화 함수 존재 여부 확인 (디버깅용)
+    setTimeout(() => {
+        console.log('🔍 페이지 로드 완료 후 함수 존재 여부 확인:');
+        console.log('- window.resetDatabase:', typeof window.resetDatabase);
+        console.log('- window.testReset:', typeof window.testReset);
+        console.log('- resetDatabase (전역):', typeof resetDatabase);
+        
+        if (typeof window.resetDatabase !== 'function') {
+            console.error('⚠️ resetDatabase 함수가 정의되지 않았습니다!');
+        } else {
+            console.log('✅ resetDatabase 함수가 정상적으로 정의되었습니다.');
+        }
+    }, 3000);
+    
     // 추가적인 DB 초기화 버튼 설정 (백업)
     document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => {
@@ -686,36 +688,34 @@ document.addEventListener('DOMContentLoaded', () => {
         if (resetBtn) {
             console.log('DB 초기화 버튼 찾음, 이벤트 리스너 연결 중...');
             
-            // 기존 이벤트 리스너 제거 후 새로 추가
-            resetBtn.onclick = null;
-            resetBtn.removeEventListener('click', window.resetDatabaseHandler);
-            
-            // 새로운 핸들러 함수 생성
+            // 새로운 핸들러 함수 생성 (백업용)
             window.resetDatabaseHandler = async function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('DB 초기화 버튼 클릭됨');
+                console.log('🔥 DB 초기화 버튼 클릭됨 (addEventListener 핸들러)');
                 
                 try {
-                    // 직접 함수 호출
-                    await window.resetDatabase();
+                    if (typeof window.resetDatabase === 'function') {
+                        await window.resetDatabase();
+                    } else {
+                        console.error('resetDatabase 함수를 찾을 수 없습니다');
+                        alert('초기화 함수를 찾을 수 없습니다. 페이지를 새로고침 후 다시 시도해주세요.');
+                    }
                 } catch (error) {
-                    console.error('DB 초기화 오류:', error);
-                    alert('DB 초기화 중 오류가 발생했습니다: ' + error.message);
+                    console.error('DB 초기화 중 오류:', error);
+                    alert('초기화 중 오류가 발생했습니다: ' + error.message);
                 }
             };
             
-            // 이벤트 리스너 추가
+            // 백업 이벤트 리스너 추가 (onclick이 작동하지 않을 경우를 대비)
             resetBtn.addEventListener('click', window.resetDatabaseHandler);
             
-            // onclick 속성도 설정 (백업)
-            resetBtn.onclick = window.resetDatabaseHandler;
-            
-            console.log('DB 초기화 버튼 이벤트 리스너 연결 완료');
+            console.log('DB 초기화 버튼 백업 이벤트 리스너 등록 완료');
+            console.log('resetDatabase 함수 존재 여부:', typeof window.resetDatabase);
         } else {
-            console.error('DB 초기화 버튼을 찾을 수 없습니다!');
+            console.error('DB 초기화 버튼을 찾을 수 없습니다');
         }
-    }, 2000); // 2초 지연
+    }, 2000); // 2초 지연으로 확실히 로드 후 설정
 
     // 데이터 백업 함수
     function exportAllData() {
@@ -1440,8 +1440,22 @@ function openCustomerDetails(customerId) {
         viewRankChangeHistory(customerId);
     });
     
-    // 첫 번째 탭 (구매 이력) 로드
-    loadCustomerPurchases(customerId);
+    // 모든 탭 푸터 숨기고 기본 정보 탭 푸터만 표시
+    document.querySelectorAll('.tab-footer').forEach(footer => {
+        footer.classList.add('d-none');
+    });
+    document.getElementById('info-tab-footer').classList.remove('d-none');
+    
+    // 첫 번째 탭을 기본 정보로 설정
+    document.querySelectorAll('#customerTabs .nav-link').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelector('#customerTabs .nav-link[href="#info-tab"]').classList.add('active');
+    
+    document.querySelectorAll('.tab-pane').forEach(pane => {
+        pane.classList.remove('show', 'active');
+    });
+    document.getElementById('info-tab').classList.add('show', 'active');
     
     // 모달 표시
     const customerDetailsModal = new bootstrap.Modal(document.getElementById('customer-details-modal'));
@@ -3356,19 +3370,53 @@ function downloadExcelTemplate() {
     XLSX.writeFile(workbook, '고객관리_통합템플릿.xlsx');
 }
 
-// 간단한 테스트 함수
+// 간단한 테스트 함수 (개발용)
 window.testReset = function() {
     alert('DB 초기화 버튼이 정상적으로 클릭되었습니다!');
-    console.log('테스트 함수 호출됨');
+    console.log('테스트 함수 호출됨 - 실제 초기화를 원하면 resetDatabase() 함수를 호출하세요');
+};
+
+// 동기화 테스트 함수
+window.testSync = function() {
+    if (window.CloudSync) {
+        console.log('동기화 테스트 시작...');
+        window.CloudSync.forceSyncToCloud().then(success => {
+            if (success) {
+                alert('동기화 테스트 성공!');
+            } else {
+                alert('동기화 테스트 실패 - 네트워크나 설정을 확인해주세요.');
+            }
+        }).catch(error => {
+            console.error('동기화 테스트 오류:', error);
+            alert('동기화 테스트 오류: ' + error.message);
+        });
+    } else {
+        alert('CloudSync 객체를 찾을 수 없습니다.');
+    }
+};
+
+// DB 초기화 직접 실행 함수 (콘솔에서 테스트용)
+window.forceResetDB = function() {
+    console.log('🔥 강제 DB 초기화 실행...');
+    if (typeof window.resetDatabase === 'function') {
+        window.resetDatabase();
+    } else {
+        console.error('resetDatabase 함수를 찾을 수 없습니다!');
+        alert('resetDatabase 함수를 찾을 수 없습니다!');
+    }
 };
 
 // DB 초기화 함수
 window.resetDatabase = async function resetDatabase() {
-    // 현재 데이터 현황 확인
-    const customerCount = customers.length;
-    const purchaseCount = purchases.length;
-    const giftCount = gifts.length;
-    const visitCount = visits.length;
+    console.log('🔥 DB 초기화 함수 시작됨!');
+    
+    // 현재 데이터 현황 확인 (안전하게 접근)
+    const customerCount = (customers || []).length;
+    const purchaseCount = (purchases || []).length;
+    const giftCount = (gifts || []).length;
+    const visitCount = (visits || []).length;
+    
+    console.log('현재 데이터 현황:', { customerCount, purchaseCount, giftCount, visitCount });
     
     // 확인 메시지
     const confirmMessage = `⚠️ 데이터베이스 초기화 ⚠️
@@ -3399,36 +3447,65 @@ window.resetDatabase = async function resetDatabase() {
     try {
         console.log('DB 초기화 시작...');
         
-        // 1. 글로벌 변수 완전 초기화
+        // 1. 글로벌 변수 완전 초기화 (여러 방법으로 확실히)
         window.customers = [];
         window.purchases = [];
         window.gifts = [];
         window.visits = [];
         
+        // 전역 스코프의 변수들도 초기화
+        if (typeof customers !== 'undefined') customers = [];
+        if (typeof purchases !== 'undefined') purchases = [];
+        if (typeof gifts !== 'undefined') gifts = [];
+        if (typeof visits !== 'undefined') visits = [];
+        if (typeof rankChanges !== 'undefined') rankChanges = [];
+        
+        console.log('글로벌 변수 초기화 완료');
+        
         // 2. 로컬 스토리지 완전 삭제
-        localStorage.removeItem('customers');
-        localStorage.removeItem('purchases');
-        localStorage.removeItem('gifts');
-        localStorage.removeItem('visits');
-        localStorage.removeItem('rankHistory');
-        localStorage.removeItem('lastUpdated');
-        localStorage.removeItem('lastCloudSync');
+        const keysToRemove = [
+            'customers', 'purchases', 'gifts', 'visits', 
+            'rankHistory', 'rankChanges', 'lastUpdated', 'lastCloudSync'
+        ];
+        
+        keysToRemove.forEach(key => {
+            localStorage.removeItem(key);
+            console.log(`${key} 삭제 완료`);
+        });
         
         // 3. 빈 배열로 로컬 스토리지에 저장
-        localStorage.setItem('customers', JSON.stringify([]));
-        localStorage.setItem('purchases', JSON.stringify([]));
-        localStorage.setItem('gifts', JSON.stringify([]));
-        localStorage.setItem('visits', JSON.stringify([]));
-        localStorage.setItem('rankHistory', JSON.stringify([]));
-        localStorage.setItem('lastUpdated', Date.now().toString());
+        const emptyData = {
+            customers: [],
+            purchases: [],
+            gifts: [],
+            visits: [],
+            rankHistory: [],
+            rankChanges: [],
+            lastUpdated: Date.now()
+        };
+        
+        Object.entries(emptyData).forEach(([key, value]) => {
+            localStorage.setItem(key, JSON.stringify(value));
+            console.log(`${key} 빈 데이터로 초기화 완료`);
+        });
         
         console.log('로컬 데이터 초기화 완료');
         
         // 4. 클라우드에도 빈 데이터 강제 업로드
-        if (window.CloudSync && window.CLOUD_SYNC.isOnline) {
+        if (window.CloudSync && window.CLOUD_SYNC.enabled) {
             console.log('클라우드 데이터 초기화 중...');
-            await window.CloudSync.forceSyncToCloud();
-            console.log('클라우드 데이터 초기화 완료');
+            try {
+                const success = await window.CloudSync.forceSyncToCloud();
+                if (success) {
+                    console.log('클라우드 데이터 초기화 완료');
+                } else {
+                    console.log('클라우드 초기화 실패 - 네트워크 상태 확인 필요');
+                }
+            } catch (error) {
+                console.error('클라우드 초기화 중 오류:', error);
+            }
+        } else {
+            console.log('클라우드 동기화가 비활성화되어 있음');
         }
         
         // 5. 모든 테이블 UI 즉시 비우기
@@ -3472,25 +3549,50 @@ window.resetDatabase = async function resetDatabase() {
             nextMonthBirthdays.innerHTML = '<li class="list-group-item text-center">다음 달 생일인 고객이 없습니다.</li>';
         }
         
-        // 8. 모바일에서 사이드바 닫기
-        if (window.innerWidth < 992) {
+        // 8. 데이터 다시 로드하여 메모리와 동기화
+        if (typeof loadDataFromStorage === 'function') {
+            loadDataFromStorage();
+            console.log('데이터 다시 로드 완료');
+        }
+        
+        // 9. 모든 화면 새로고침
+        if (typeof loadCustomerList === 'function') loadCustomerList();
+        if (typeof loadBirthdayAlerts === 'function') loadBirthdayAlerts();
+        if (typeof loadRankingCounts === 'function') loadRankingCounts();
+        if (typeof renderRankingList === 'function') renderRankingList([]);
+        
+        console.log('화면 새로고침 완료');
+        
+        // 10. 모바일에서 사이드바 닫기
+        if (window.innerWidth < 992 && window.closeSidebar) {
             window.closeSidebar();
         }
         
-        // 9. 고객 목록 페이지로 이동
+        // 11. 고객 목록 페이지로 이동
         document.querySelectorAll('.page').forEach(page => {
             page.classList.add('d-none');
         });
-        document.getElementById('customer-list').classList.remove('d-none');
+        const customerListPage = document.getElementById('customer-list');
+        if (customerListPage) {
+            customerListPage.classList.remove('d-none');
+        }
         
-        // 10. 활성 메뉴 변경
+        // 12. 활성 메뉴 변경
         document.querySelectorAll('.nav-link').forEach(navLink => {
             navLink.classList.remove('active');
         });
-        document.querySelector('.nav-link[data-page="customer-list"]').classList.add('active');
+        const customerListLink = document.querySelector('.nav-link[data-page="customer-list"]');
+        if (customerListLink) {
+            customerListLink.classList.add('active');
+        }
         
         console.log('DB 초기화 완료');
-        alert('✅ 데이터베이스가 성공적으로 초기화되었습니다.\n모든 고객 정보가 삭제되었습니다.');
+        alert('✅ 데이터베이스가 성공적으로 초기화되었습니다.\n모든 고객 정보가 삭제되었습니다.\n\n페이지가 새로고침됩니다.');
+        
+        // 13. 페이지 새로고침으로 완전 초기화 확인
+        setTimeout(() => {
+            location.reload();
+        }, 1000);
         
     } catch (error) {
         console.error('DB 초기화 중 오류 발생:', error);

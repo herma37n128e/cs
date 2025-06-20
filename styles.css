@@ -173,6 +173,98 @@ header h2 {
     overflow-y: auto;
 }
 
+/* 고객 상세 정보 모달 스크롤 스타일 */
+#customer-details-modal .modal-dialog {
+    max-height: 90vh;
+    margin: 1.75rem auto;
+}
+
+#customer-details-modal .modal-content {
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+#customer-details-modal .modal-body {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+#customer-details-modal .tab-content {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+#customer-details-modal .tab-pane {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+#customer-details-modal .tab-pane.active {
+    display: flex !important;
+}
+
+.tab-content-scrollable {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 50vh;
+    padding-right: 5px;
+}
+
+/* 스크롤바 스타일 개선 */
+.tab-content-scrollable::-webkit-scrollbar {
+    width: 6px;
+}
+
+.tab-content-scrollable::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.tab-content-scrollable::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.tab-content-scrollable::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* 탭 푸터 스타일 */
+.tab-footer {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+}
+
+/* 모바일에서 모달 높이 조정 */
+@media (max-width: 768px) {
+    #customer-details-modal .modal-dialog {
+        max-height: 95vh;
+        margin: 0.5rem;
+    }
+    
+    .tab-content-scrollable {
+        max-height: 40vh;
+    }
+    
+    .tab-footer {
+        justify-content: center;
+    }
+    
+    .tab-footer .btn {
+        flex: 1;
+        min-width: 120px;
+    }
+}
+
 /* 고객 상세 정보 헤더 스타일 */
 .customer-detail-header {
     border-bottom: 1px solid #dee2e6;
