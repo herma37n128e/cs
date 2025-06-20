@@ -108,6 +108,42 @@ header h2 {
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
+/* 등급별 통계 카드 클릭 가능 스타일 */
+#customer-ranking .card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#customer-ranking .card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+#customer-ranking .card:active {
+    transform: translateY(-2px);
+    transition: transform 0.1s ease;
+}
+
+/* 등급별 통계 카드에 클릭 힌트 추가 */
+#customer-ranking .card::after {
+    content: "클릭하여 필터링";
+    position: absolute;
+    bottom: 5px;
+    right: 10px;
+    font-size: 0.7rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+#customer-ranking .card:hover::after {
+    opacity: 1;
+}
+
+#customer-ranking .card {
+    position: relative;
+}
+
 /* 모달 스타일 */
 .modal-header {
     background-color: #f8f9fa;

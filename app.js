@@ -506,8 +506,44 @@ document.addEventListener('DOMContentLoaded', () => {
     // 등급 관리 검색 및 필터 이벤트 리스너
     document.getElementById('ranking-search-btn').addEventListener('click', searchRankingList);
     document.getElementById('ranking-search').addEventListener('input', searchRankingList);
+    document.getElementById('ranking-search').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            searchRankingList();
+        }
+    });
     document.getElementById('ranking-grade-filter').addEventListener('change', searchRankingList);
     document.getElementById('ranking-sort-filter').addEventListener('change', searchRankingList);
+    
+    // 필터 초기화 버튼 이벤트 리스너
+    document.getElementById('ranking-reset-btn').addEventListener('click', () => {
+        document.getElementById('ranking-search').value = '';
+        document.getElementById('ranking-grade-filter').value = '';
+        document.getElementById('ranking-sort-filter').value = 'totalAmount-desc';
+        searchRankingList();
+    });
+    
+    // 등급별 통계 카드 클릭 이벤트 리스너 (필터링 기능)
+    document.addEventListener('click', (e) => {
+        // VVIP 카드 클릭
+        if (e.target.closest('#vvip-count')?.parentNode?.parentNode?.classList.contains('bg-danger')) {
+            document.getElementById('ranking-grade-filter').value = 'VVIP';
+            document.getElementById('ranking-search').value = '';
+            searchRankingList();
+        }
+        // VIP 카드 클릭
+        else if (e.target.closest('#vip-count')?.parentNode?.parentNode?.classList.contains('bg-primary')) {
+            document.getElementById('ranking-grade-filter').value = 'VIP';
+            document.getElementById('ranking-search').value = '';
+            searchRankingList();
+        }
+        // 일반 카드 클릭
+        else if (e.target.closest('#regular-count')?.parentNode?.parentNode?.classList.contains('bg-secondary')) {
+            document.getElementById('ranking-grade-filter').value = '일반';
+            document.getElementById('ranking-search').value = '';
+            searchRankingList();
+        }
+    });
     
     // 동기화 상태 버튼 이벤트 리스너
     document.getElementById('sync-status-btn').addEventListener('click', () => {
@@ -1041,8 +1077,11 @@ function renderRankingList(customerList, searchTerm = '', gradeFilter = '', sort
     const tbody = document.getElementById('ranking-list-body');
     tbody.innerHTML = '';
     
+    // 결과 건수 표시 업데이트
+    updateResultCount(filteredCustomers.length, customerList.length, searchTerm, gradeFilter);
+    
     if (filteredCustomers.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center">검색 결과가 없습니다.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">검색 결과가 없습니다.</td></tr>';
         return;
     }
     
@@ -1082,13 +1121,80 @@ function renderRankingList(customerList, searchTerm = '', gradeFilter = '', sort
     });
 }
 
-// 등급 관리 검색 함수
+// 등급 관리 검색 함수 (개선됨)
 function searchRankingList() {
     const searchTerm = document.getElementById('ranking-search').value;
     const gradeFilter = document.getElementById('ranking-grade-filter').value;
     const sortOption = document.getElementById('ranking-sort-filter').value;
     
+    // 필터링된 결과로 테이블 렌더링
     renderRankingList(customers, searchTerm, gradeFilter, sortOption);
+    
+    // 필터링된 결과에 따른 통계 업데이트
+    updateFilteredRankingStats(searchTerm, gradeFilter);
+}
+
+// 필터링된 결과에 따른 통계 업데이트 함수
+function updateFilteredRankingStats(searchTerm, gradeFilter) {
+    let filteredCustomers = [...customers];
+    
+    // 검색 필터 적용
+    if (searchTerm) {
+        filteredCustomers = filteredCustomers.filter(customer => 
+            customer.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }
+    
+    // 등급 필터가 적용된 경우에는 전체 통계를 유지, 아니면 필터링된 통계 표시
+    if (!gradeFilter && !searchTerm) {
+        // 필터가 없으면 원래 통계 표시
+        const vvipCount = customers.filter(c => c.rank === 'vvip').length;
+        const vipCount = customers.filter(c => c.rank === 'vip').length;
+        const regularCount = customers.filter(c => c.rank === 'regular').length;
+        
+        document.getElementById('vvip-count').textContent = vvipCount;
+        document.getElementById('vip-count').textContent = vipCount;
+        document.getElementById('regular-count').textContent = regularCount;
+    } else if (searchTerm && !gradeFilter) {
+        // 검색만 있는 경우 검색 결과의 등급별 통계 표시
+        const vvipCount = filteredCustomers.filter(c => c.rank === 'vvip').length;
+        const vipCount = filteredCustomers.filter(c => c.rank === 'vip').length;
+        const regularCount = filteredCustomers.filter(c => c.rank === 'regular').length;
+        
+        document.getElementById('vvip-count').textContent = vvipCount;
+        document.getElementById('vip-count').textContent = vipCount;
+        document.getElementById('regular-count').textContent = regularCount;
+    }
+    // 등급 필터가 선택된 경우에는 원래 통계를 유지 (전체 현황 보여주기)
+}
+
+// 검색 결과 건수 표시 함수
+function updateResultCount(filteredCount, totalCount, searchTerm, gradeFilter) {
+    // 결과 표시 영역이 없으면 생성
+    let resultCountDiv = document.getElementById('ranking-result-count');
+    if (!resultCountDiv) {
+        resultCountDiv = document.createElement('div');
+        resultCountDiv.id = 'ranking-result-count';
+        resultCountDiv.className = 'text-muted mb-2';
+        
+        // 테이블 위에 삽입
+        const tableContainer = document.querySelector('#customer-ranking .table-responsive');
+        tableContainer.parentNode.insertBefore(resultCountDiv, tableContainer);
+    }
+    
+    // 결과 메시지 생성
+    let message = '';
+    if (searchTerm || gradeFilter) {
+        const filterText = [];
+        if (searchTerm) filterText.push(`"${searchTerm}"`);
+        if (gradeFilter) filterText.push(`${gradeFilter} 등급`);
+        
+        message = `${filterText.join(', ')} 검색 결과: ${filteredCount}명 (전체 ${totalCount}명 중)`;
+    } else {
+        message = `전체 고객: ${totalCount}명`;
+    }
+    
+    resultCountDiv.innerHTML = `<small><i class="bi bi-info-circle"></i> ${message}</small>`;
 }
 
 // 선물 이력 렌더링 함수
