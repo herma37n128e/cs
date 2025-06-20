@@ -212,9 +212,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // 서버 전용 모드: 메인 창에서 데이터 동기화
         loadDataFromStorage();
         
-        // 데이터 로드 확인 및 재시도
+        // 데이터 로드 확인 및 재시도 (강화된 버전)
         let retryCount = 0;
-        const maxRetries = 10;
+        const maxRetries = 20; // 재시도 횟수 증가
         
         const checkDataAndLoad = () => {
             retryCount++;
@@ -246,11 +246,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 데이터가 없으면 재시도
                 console.log(`⏳ 데이터 로드 대기 중... (${retryCount}/${maxRetries})`);
                 
-                // 메인 창의 상태 확인
+                // 메인 창의 상태 확인 및 Firebase 데이터 로드 시도
                 if (window.opener && !window.opener.closed) {
                     try {
                         const openerDataCount = (window.opener.customers || []).length;
-                        console.log(`📊 메인 창 데이터 상태: 고객 ${openerDataCount}명`);
+                        const openerFirebaseReady = window.opener.FirebaseData && window.opener.FirebaseData.isInitialized;
+                        
+                        console.log(`📊 메인 창 상태: 고객 ${openerDataCount}명, Firebase: ${openerFirebaseReady ? '연결됨' : '대기중'}`);
                         
                         // 메인 창에 데이터가 있는데 로드가 안되는 경우
                         if (openerDataCount > 0) {
@@ -258,12 +260,33 @@ document.addEventListener('DOMContentLoaded', () => {
                             setTimeout(checkDataAndLoad, 100);
                             return;
                         }
+                        
+                        // 메인 창의 Firebase가 준비되었지만 데이터가 없는 경우
+                        if (openerFirebaseReady && openerDataCount === 0) {
+                            console.log('🔥 메인 창 Firebase 연결됨 - 서버 데이터 로드 요청');
+                            
+                            // 메인 창에서 서버 데이터 강제 로드
+                            window.opener.FirebaseData.forceSyncWithFirebase(false)
+                                .then(() => {
+                                    console.log('✅ 메인 창 서버 데이터 로드 완료 - 재시도');
+                                    setTimeout(checkDataAndLoad, 300);
+                                })
+                                .catch(error => {
+                                    console.warn('메인 창 서버 데이터 로드 실패:', error);
+                                    setTimeout(checkDataAndLoad, 800);
+                                });
+                            return;
+                        }
+                        
                     } catch (error) {
                         console.warn('메인 창 상태 확인 실패:', error);
                     }
                 }
                 
-                setTimeout(checkDataAndLoad, 500);
+                // 일반적인 재시도 (간격을 점진적으로 증가)
+                const retryDelay = Math.min(500 + (retryCount * 200), 2000);
+                setTimeout(checkDataAndLoad, retryDelay);
+                
             } else {
                 // 최대 재시도 횟수 초과
                 console.error('❌ 데이터 로드 최종 실패');

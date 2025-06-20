@@ -35,14 +35,32 @@ header h2 {
     font-weight: 300;
 }
 
-/* 페이지 전환 */
+/* 페이지 전환 - 깜빡임 방지 최적화 */
 .page {
-    animation: fadeIn 0.3s ease-in-out;
+    transition: opacity 0.15s ease-out;
+    opacity: 1;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+/* 페이지 로드 시 즉시 표시 (깜빡임 방지) */
+.page:not(.d-none) {
+    opacity: 1;
+    animation: none; /* 애니메이션 제거로 즉시 표시 */
+}
+
+/* 페이지 전환 시에만 부드러운 효과 */
+.page.transitioning {
+    animation: smoothFadeIn 0.2s ease-out;
+}
+
+@keyframes smoothFadeIn {
+    from { 
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* 테이블 스타일 */

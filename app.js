@@ -592,28 +592,27 @@ function initializeMainSystem() {
         }
     });
 
-    // 페이지 로드 시 마지막 페이지 복원 및 데이터 로드 (모바일 환경 최적화)
+    // 데이터 로드 및 UI 초기화 (페이지 복원은 HTML에서 이미 완료됨)
     setTimeout(async () => {
-        console.log('🎯 UI 초기화 시작...');
+        console.log('🎯 데이터 로드 및 UI 초기화 시작...');
         
         try {
-            // 저장된 페이지 복원 (새로고침 시 현재 페이지 유지)
-            const savedPage = localStorage.getItem('currentPage') || 'customer-list';
-            console.log(`🔄 저장된 페이지 복원: ${savedPage}`);
-            showPage(savedPage);
+            // 현재 표시된 페이지 확인 (HTML에서 이미 복원됨)
+            const currentPage = localStorage.getItem('currentPage') || 'customer-list';
+            console.log(`📄 현재 페이지: ${currentPage} (이미 표시됨)`);
             
-            // 모바일 환경에서 더 빠른 UI 로드를 위해 로컬 데이터 먼저 표시
+            // 초기 데이터 로드 (서버 전용 모드)
             loadCustomerList();
             loadBirthdayAlerts();
             loadRankingCounts();
             
-            console.log('✅ UI 초기화 완료 (로컬 데이터)');
+            console.log('✅ 초기 UI 로드 완료');
             
             // 모바일 환경 감지
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
                            window.innerWidth <= 768;
             
-            // 모바일/데스크톱 환경에서 서버 데이터 추가 로드
+            // Firebase 데이터 동기화
             setTimeout(() => {
                 if (window.FirebaseData && window.FirebaseData.isInitialized) {
                     console.log('🔥 Firebase 영구저장 시스템 활성화됨');
@@ -636,7 +635,7 @@ function initializeMainSystem() {
                         });
                     
                 } else {
-                    console.warn('⚠ Firebase 초기화 대기 중 - 로컬 데이터만 사용');
+                    console.warn('⚠ Firebase 초기화 대기 중 - 서버 데이터 대기');
                     
                     // Firebase 초기화 재시도 (모바일 환경에서는 더 적극적)
                     let mobileRetryCount = 0;
@@ -681,12 +680,12 @@ function initializeMainSystem() {
                         }
                     }, mobileRetryInterval);
                 }
-            }, isMobile ? 500 : 1000); // 모바일에서는 더 빨리 시작
+            }, isMobile ? 200 : 500); // 모바일에서는 더 빨리 시작
             
         } catch (error) {
             console.error('❌ UI 초기화 중 오류:', error);
         }
-    }, 300);
+    }, 50); // 지연 시간을 대폭 단축 (300ms → 50ms)
 
     // 나머지 이벤트 리스너들...
     setupEventListeners();
@@ -698,23 +697,45 @@ function initializeMainSystem() {
     setupMobileAutoRefresh();
 }
 
-// 페이지 전환 함수 (페이지 상태 관리)
+// 페이지 전환 함수 (페이지 상태 관리) - 깜빡임 방지 최적화
 function showPage(targetPage) {
     try {
+        // 현재 표시된 페이지와 같으면 전환하지 않음 (불필요한 깜빡임 방지)
+        const currentVisiblePage = document.querySelector('.page:not(.d-none)');
+        if (currentVisiblePage && currentVisiblePage.id === targetPage) {
+            console.log(`🔄 이미 표시된 페이지: ${targetPage} (전환 생략)`);
+            return;
+        }
+        
         // 모든 페이지 숨기기
         document.querySelectorAll('.page').forEach(page => {
             page.classList.add('d-none');
         });
         
-        // 선택된 페이지 표시
+        // 선택된 페이지 표시 (부드러운 전환 효과)
         const targetElement = document.getElementById(targetPage);
         if (targetElement) {
             targetElement.classList.remove('d-none');
+            targetElement.classList.add('transitioning');
+            
+            // 전환 애니메이션 완료 후 클래스 제거
+            setTimeout(() => {
+                targetElement.classList.remove('transitioning');
+            }, 200);
+            
             console.log(`✅ 페이지 전환 완료: ${targetPage}`);
         } else {
             console.warn(`⚠️ 페이지를 찾을 수 없음: ${targetPage}, 기본 페이지로 이동`);
-            document.getElementById('customer-list').classList.remove('d-none');
+            const defaultPage = document.getElementById('customer-list');
+            defaultPage.classList.remove('d-none');
+            defaultPage.classList.add('transitioning');
+            
+            setTimeout(() => {
+                defaultPage.classList.remove('transitioning');
+            }, 200);
+            
             localStorage.setItem('currentPage', 'customer-list');
+            targetPage = 'customer-list'; // 실제 표시된 페이지로 업데이트
         }
         
         // 활성 메뉴 표시
@@ -971,7 +992,7 @@ function renderCustomerList(customerList) {
             // 단순한 터치 피드백 후 페이지 이동
             // 로그인 상태 공유 후 고객 상세 페이지 열기
             localStorage.setItem('mainWindowLoggedIn', 'true');
-            window.open(`customer-details.html?id=${customer.id}`, `customer_${customer.id}`, 'width=1200,height=900,scrollbars=yes,resizable=yes');
+            openCustomerDetailsWindow(customer.id);
         });
         
         tbody.appendChild(tr);
@@ -1338,7 +1359,7 @@ function renderGiftHistory(giftList) {
             // 새 창에서 고객 상세 정보 페이지 열기 (선물 탭 활성화)
             // 로그인 상태 공유 후 고객 상세 페이지 열기
         localStorage.setItem('mainWindowLoggedIn', 'true');
-        window.open(`customer-details.html?id=${customerId}#gift-tab`, `customer_${customerId}`, 'width=1200,height=900,scrollbars=yes,resizable=yes');
+        openCustomerDetailsWindow(customerId);
         });
     });
 }
@@ -1438,18 +1459,55 @@ function renderVisitTracking(summaryList) {
             // 새 창에서 고객 상세 정보 페이지 열기 (방문 탭 활성화)
             // 로그인 상태 공유 후 고객 상세 페이지 열기
         localStorage.setItem('mainWindowLoggedIn', 'true');
-        window.open(`customer-details.html?id=${customerId}#visit-tab`, `customer_${customerId}`, 'width=1200,height=900,scrollbars=yes,resizable=yes');
+        openCustomerDetailsWindow(customerId);
         });
     });
 }
 
-// 고객 상세 정보 새 창으로 열기
+// 고객 상세 정보 새 창으로 열기 (데이터 확인 강화)
 function openCustomerDetails(customerId) {
     // 로그인 상태 확인
     if (localStorage.getItem('isLoggedIn') !== 'true') {
         alert('로그인이 필요합니다.');
         return;
     }
+    
+    // 고객 데이터 존재 여부 확인
+    const targetCustomer = customers.find(c => c.id === customerId);
+    if (!targetCustomer) {
+        console.warn(`⚠️ 고객 ID ${customerId}를 찾을 수 없음 - 데이터 로드 대기`);
+        
+        // 데이터가 없으면 잠시 대기 후 재시도
+        if (window.FirebaseData && window.FirebaseData.isInitialized) {
+            // Firebase에서 데이터 강제 로드 시도
+            window.FirebaseData.forceSyncWithFirebase(false)
+                .then(() => {
+                    console.log('🔄 데이터 새로고침 후 고객상세페이지 재시도');
+                    // 데이터 로드 후 다시 고객 확인
+                    const retryCustomer = customers.find(c => c.id === customerId);
+                    if (retryCustomer) {
+                        openCustomerDetailsWindow(customerId);
+                    } else {
+                        alert(`고객 정보를 찾을 수 없습니다. (ID: ${customerId})\n\n데이터를 새로고침 후 다시 시도해주세요.`);
+                    }
+                })
+                .catch(error => {
+                    console.error('데이터 로드 실패:', error);
+                    alert('데이터를 불러오는 중 오류가 발생했습니다.\n\n페이지를 새로고침 후 다시 시도해주세요.');
+                });
+        } else {
+            alert('데이터가 아직 로드되지 않았습니다.\n\n잠시 후 다시 시도해주세요.');
+        }
+        return;
+    }
+    
+    // 데이터가 있으면 바로 창 열기
+    openCustomerDetailsWindow(customerId);
+}
+
+// 고객상세페이지 창 열기 (실제 실행 함수)
+function openCustomerDetailsWindow(customerId) {
+    console.log(`👤 고객상세페이지 열기: ${customerId} (총 고객 ${customers.length}명)`);
     
     // 고객상세페이지와 로그인 상태 공유를 위해 localStorage 업데이트
     localStorage.setItem('mainWindowLoggedIn', 'true');
