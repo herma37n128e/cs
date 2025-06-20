@@ -10,43 +10,128 @@ let rankChanges = []; // 등급 변경 이력
 // Firebase에서 데이터 로드
 async function loadDataFromStorage() {
     try {
-        // 먼저 로컬스토리지에서 로드 (빠른 로딩)
-        customers = JSON.parse(localStorage.getItem('customers')) || [];
-        purchases = JSON.parse(localStorage.getItem('purchases')) || [];
-        gifts = JSON.parse(localStorage.getItem('gifts')) || [];
-        visits = JSON.parse(localStorage.getItem('visits')) || [];
-        rankChanges = JSON.parse(localStorage.getItem('rankChanges')) || [];
-
-        // Firebase에서 최신 데이터 확인 및 로드
+        console.log('데이터 로드 시작...');
+        
+        // 1단계: 로컬스토리지에서 빠른 로딩
+        const localCustomers = JSON.parse(localStorage.getItem('customers') || '[]');
+        const localPurchases = JSON.parse(localStorage.getItem('purchases') || '[]');
+        const localGifts = JSON.parse(localStorage.getItem('gifts') || '[]');
+        const localVisits = JSON.parse(localStorage.getItem('visits') || '[]');
+        const localRankChanges = JSON.parse(localStorage.getItem('rankChanges') || '[]');
+        const localLastUpdated = parseInt(localStorage.getItem('lastUpdated') || '0');
+        
+        // 로컬 데이터를 먼저 화면에 표시 (사용자 경험 향상)
+        customers.length = 0;
+        purchases.length = 0;
+        gifts.length = 0;
+        visits.length = 0;
+        rankChanges.length = 0;
+        
+        customers.push(...localCustomers);
+        purchases.push(...localPurchases);
+        gifts.push(...localGifts);
+        visits.push(...localVisits);
+        rankChanges.push(...localRankChanges);
+        
+        console.log('로컬 데이터 로드 완료:', {
+            customers: customers.length,
+            purchases: purchases.length,
+            gifts: gifts.length,
+            visits: visits.length
+        });
+        
+        // 2단계: Firebase에서 최신 데이터 확인 및 동기화
         if (window.FirebaseData) {
-            const firebaseData = await window.FirebaseData.loadFromFirebase();
-            if (firebaseData) {
-                customers = firebaseData.customers || [];
-                purchases = firebaseData.purchases || [];
-                gifts = firebaseData.gifts || [];
-                visits = firebaseData.visits || [];
-                rankChanges = firebaseData.rankChanges || [];
-
-                // 로컬스토리지도 업데이트
-                localStorage.setItem('customers', JSON.stringify(customers));
-                localStorage.setItem('purchases', JSON.stringify(purchases));
-                localStorage.setItem('gifts', JSON.stringify(gifts));
-                localStorage.setItem('visits', JSON.stringify(visits));
-                localStorage.setItem('rankChanges', JSON.stringify(rankChanges));
-                localStorage.setItem('lastUpdated', firebaseData.lastUpdated?.toString() || Date.now().toString());
-
-                console.log('Firebase에서 데이터 로드 완료');
+            try {
+                const firebaseData = await window.FirebaseData.loadFromFirebase();
+                
+                if (firebaseData) {
+                    const firebaseLastUpdated = firebaseData.lastUpdated || 0;
+                    
+                    // Firebase 데이터가 더 최신인 경우 동기화
+                    if (firebaseLastUpdated > localLastUpdated) {
+                        console.log('Firebase에 더 최신 데이터 발견, 동기화 중...');
+                        
+                        customers.length = 0;
+                        purchases.length = 0;
+                        gifts.length = 0;
+                        visits.length = 0;
+                        rankChanges.length = 0;
+                        
+                        customers.push(...(firebaseData.customers || []));
+                        purchases.push(...(firebaseData.purchases || []));
+                        gifts.push(...(firebaseData.gifts || []));
+                        visits.push(...(firebaseData.visits || []));
+                        rankChanges.push(...(firebaseData.rankChanges || []));
+                        
+                        // 로컬스토리지도 업데이트
+                        localStorage.setItem('customers', JSON.stringify(customers));
+                        localStorage.setItem('purchases', JSON.stringify(purchases));
+                        localStorage.setItem('gifts', JSON.stringify(gifts));
+                        localStorage.setItem('visits', JSON.stringify(visits));
+                        localStorage.setItem('rankChanges', JSON.stringify(rankChanges));
+                        localStorage.setItem('lastUpdated', firebaseLastUpdated.toString());
+                        
+                        if (window.FirebaseData) {
+                            window.FirebaseData.showSaveStatus('🔄 최신 데이터로 동기화됨', 'success');
+                        }
+                        
+                        console.log('Firebase 동기화 완료:', {
+                            customers: customers.length,
+                            purchases: purchases.length,
+                            lastUpdated: new Date(firebaseLastUpdated).toLocaleString()
+                        });
+                    } else {
+                        console.log('로컬 데이터가 최신 상태입니다.');
+                        if (window.FirebaseData) {
+                            window.FirebaseData.showSaveStatus('✓ 데이터 최신 상태', 'success', 2000);
+                        }
+                    }
+                } else {
+                    console.log('Firebase 데이터 없음, 로컬 데이터 사용');
+                    // Firebase에 로컬 데이터 백업
+                    if (customers.length > 0 || purchases.length > 0 || gifts.length > 0) {
+                        console.log('로컬 데이터를 Firebase에 백업 중...');
+                        await saveDataToStorage();
+                    }
+                }
+            } catch (firebaseError) {
+                console.warn('Firebase 로드 실패, 로컬 데이터 사용:', firebaseError);
+                if (window.FirebaseData) {
+                    window.FirebaseData.showSaveStatus('⚠ 오프라인 모드', 'info', 3000);
+                }
             }
         }
+        
+        return true;
     } catch (error) {
         console.error('데이터 로드 오류:', error);
+        
+        // 초기화 실패 시 빈 배열로 초기화
+        customers.length = 0;
+        purchases.length = 0;
+        gifts.length = 0;
+        visits.length = 0;
+        rankChanges.length = 0;
+        
+        customers.push([]);
+        purchases.push([]);
+        gifts.push([]);
+        visits.push([]);
+        rankChanges.push([]);
+        
+        if (window.FirebaseData) {
+            window.FirebaseData.showSaveStatus('❌ 데이터 로드 실패', 'error');
+        }
+        
+        return false;
     }
 }
 
 // Firebase에 데이터 저장
 async function saveDataToStorage() {
     try {
-        // 로컬스토리지에 저장 (즉시 반영)
+        // 로컬스토리지에 즉시 저장 (빠른 응답)
         localStorage.setItem('customers', JSON.stringify(customers));
         localStorage.setItem('purchases', JSON.stringify(purchases));
         localStorage.setItem('gifts', JSON.stringify(gifts));
@@ -54,19 +139,55 @@ async function saveDataToStorage() {
         localStorage.setItem('rankChanges', JSON.stringify(rankChanges));
         localStorage.setItem('lastUpdated', Date.now().toString());
         
-        // Firebase에 저장 (비동기)
+        console.log('로컬스토리지 저장 완료, Firebase 저장 시작...');
+        
+        // Firebase에 영구저장 (재시도 로직 포함)
         if (window.FirebaseData) {
-            const data = {
-                customers,
-                purchases,
-                gifts,
-                visits,
-                rankChanges
+            const saveData = {
+                customers: customers || [],
+                purchases: purchases || [],  
+                gifts: gifts || [],
+                visits: visits || [],
+                rankChanges: rankChanges || []
             };
-            await window.FirebaseData.saveToFirebase(data);
+            
+            // 중요: Firebase 저장 성공까지 대기
+            const success = await window.FirebaseData.saveToFirebase(saveData);
+            
+            if (!success) {
+                console.warn('Firebase 저장 실패, 로컬 데이터는 유지됨');
+                // 로컬스토리지에는 저장되었으므로 데이터 손실은 없음
+                return false;
+            }
+            
+            console.log('데이터 영구저장 완료 (로컬 + Firebase)');
+            return true;
+        } else {
+            console.warn('Firebase 초기화 전, 로컬스토리지만 저장됨');
+            return false;
         }
     } catch (error) {
         console.error('데이터 저장 오류:', error);
+        
+        // 중요한 오류 시 사용자에게 알림
+        if (window.FirebaseData) {
+            window.FirebaseData.showSaveStatus('❌ 데이터 저장 실패', 'error', 5000);
+        }
+        
+        // 최소한 로컬스토리지라도 저장 시도
+        try {
+            localStorage.setItem('customers', JSON.stringify(customers));
+            localStorage.setItem('purchases', JSON.stringify(purchases));
+            localStorage.setItem('gifts', JSON.stringify(gifts));
+            localStorage.setItem('visits', JSON.stringify(visits));
+            localStorage.setItem('rankChanges', JSON.stringify(rankChanges));
+            console.log('로컬스토리지 백업 저장 완료');
+        } catch (localError) {
+            console.error('로컬스토리지 저장도 실패:', localError);
+            alert('⚠️ 데이터 저장에 실패했습니다!\n브라우저 저장소를 확인해주세요.');
+        }
+        
+        return false;
     }
 }
 
@@ -167,11 +288,84 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 페이지 로드 시 기본 페이지 표시 및 데이터 로드
-    setTimeout(() => {
-        loadCustomerList();
-        loadBirthdayAlerts();
-        loadRankingCounts();
+    // 페이지 로드 시 기본 페이지 표시 및 데이터 로드 (영구저장 시스템 초기화)
+    setTimeout(async () => {
+        console.log('🎯 UI 초기화 시작...');
+        
+        try {
+            loadCustomerList();
+            loadBirthdayAlerts();
+            loadRankingCounts();
+            
+            console.log('✅ UI 초기화 완료');
+            
+            // 영구저장 시스템 상태 확인 및 자동화 설정
+            setTimeout(() => {
+                if (window.FirebaseData && window.FirebaseData.isInitialized) {
+                    console.log('🔥 Firebase 영구저장 시스템 활성화됨');
+                    
+                    // 5분마다 자동 백업 실행
+                    setInterval(async () => {
+                        if (navigator.onLine && window.FirebaseData) {
+                            console.log('⚡ 자동 백업 실행...');
+                            const backupSuccess = await saveDataToStorage();
+                            if (backupSuccess) {
+                                console.log('✅ 자동 백업 완료');
+                            } else {
+                                console.warn('⚠ 자동 백업 실패');
+                            }
+                        }
+                    }, 5 * 60 * 1000); // 5분마다
+                    
+                    // 데이터 무결성 검증 (UI 로드 후 2초 뒤)
+                    setTimeout(async () => {
+                        try {
+                            console.log('🔍 데이터 무결성 검증 시작...');
+                            
+                            const currentData = {
+                                customers: customers || [],
+                                purchases: purchases || [],
+                                gifts: gifts || [],
+                                visits: visits || [],
+                                rankChanges: rankChanges || []
+                            };
+                            
+                            const firebaseData = await window.FirebaseData.loadFromFirebase();
+                            
+                            if (firebaseData) {
+                                const localCount = currentData.customers.length + currentData.purchases.length;
+                                const firebaseCount = (firebaseData.customers?.length || 0) + (firebaseData.purchases?.length || 0);
+                                
+                                if (Math.abs(localCount - firebaseCount) > 5) { // 5개 이상 차이 시
+                                    console.log('🔄 데이터 불일치 감지, 강제 동기화 실행...');
+                                    await window.FirebaseData.forceSyncWithFirebase();
+                                    
+                                    // UI 새로고침
+                                    loadCustomerList();
+                                    loadBirthdayAlerts();
+                                    loadRankingCounts();
+                                } else {
+                                    console.log('✅ 데이터 무결성 확인 완료');
+                                }
+                            }
+                        } catch (error) {
+                            console.warn('데이터 무결성 검증 중 오류:', error);
+                        }
+                    }, 2000);
+                    
+                } else {
+                    console.warn('⚠ Firebase 초기화 실패, 로컬 저장소만 사용');
+                    setTimeout(() => {
+                        if (window.FirebaseData) {
+                            window.FirebaseData.showSaveStatus('📱 로컬 모드', 'info', 3000);
+                        }
+                    }, 1000);
+                }
+            }, 1500);
+            
+        } catch (error) {
+            console.error('❌ UI 초기화 중 오류:', error);
+        }
     }, 500);
 
     // 나머지 이벤트 리스너들...
@@ -221,8 +415,8 @@ function setupEventListeners() {
     // 기타 이벤트 리스너들...
 }
 
-// 고객 추가 함수
-function addCustomer() {
+// 고객 추가 함수 (영구저장 보장)
+async function addCustomer() {
     const name = document.getElementById('name').value.trim();
     const phone = document.getElementById('phone').value.trim();
     const gender = document.getElementById('gender').value;
@@ -260,8 +454,26 @@ function addCustomer() {
         createdAt: new Date().toISOString()
     };
 
+    // 저장 상태 표시
+    if (window.FirebaseData) {
+        window.FirebaseData.showSaveStatus('💾 고객 정보 저장 중...', 'info');
+    }
+
+    // 임시로 고객 추가
     customers.push(newCustomer);
-    saveDataToStorage();
+    
+    // 영구저장 시도 및 확인
+    const saveSuccess = await saveDataToStorage();
+    
+    if (!saveSuccess) {
+        // 저장 실패 시 고객 제거하고 사용자에게 알림
+        customers.pop();
+        alert('⚠️ 고객 정보 저장에 실패했습니다.\n\n인터넷 연결을 확인하고 다시 시도해주세요.\n데이터 손실 방지를 위해 등록이 취소되었습니다.');
+        return;
+    }
+    
+    // 저장 성공 확인
+    console.log(`고객 "${name}" 영구저장 완료 (ID: ${newCustomer.id})`);
     
     // 폼 초기화
     document.getElementById('customer-form').reset();
@@ -270,10 +482,10 @@ function addCustomer() {
     loadCustomerList();
     loadRankingCounts();
     
-    alert('고객이 성공적으로 등록되었습니다.');
+    alert(`✅ 고객 "${name}"님이 성공적으로 등록되었습니다.\n영구저장이 완료되었습니다.`);
 }
 
-// 고객 목록 렌더링 함수
+// 고객 목록 렌더링 함수 (모바일 스크롤 문제 해결)
 function renderCustomerList(customerList) {
     const tbody = document.getElementById('customer-list-body');
     tbody.innerHTML = '';
@@ -293,15 +505,19 @@ function renderCustomerList(customerList) {
         else if (customer.rank === 'vip') rankText = 'VIP';
         else rankText = '일반';
 
+        // 마지막 항목인지 확인하여 여유 공간 추가
+        const isLastItem = index === customerList.length - 1;
+        const lastItemClass = isLastItem ? 'last-customer-item' : '';
+
         tr.innerHTML = `
-            <td>${index + 1}</td>
-            <td>${customer.name}</td>
-            <td>${formatPhoneNumber(customer.phone)}</td>
-            <td class="mobile-hide">${formatDate(customer.birthdate)}</td>
-            <td class="mobile-hide">${customer.preferredStore || '-'}</td>
-            <td><span class="badge ${rankBadgeClass}">${rankText}</span></td>
-            <td class="mobile-hide">${formatDate(customer.lastVisit)}</td>
-            <td>
+            <td class="${lastItemClass}">${index + 1}</td>
+            <td class="${lastItemClass}">${customer.name}</td>
+            <td class="${lastItemClass}">${formatPhoneNumber(customer.phone)}</td>
+            <td class="mobile-hide ${lastItemClass}">${formatDate(customer.birthdate)}</td>
+            <td class="mobile-hide ${lastItemClass}">${customer.preferredStore || '-'}</td>
+            <td class="${lastItemClass}"><span class="badge ${rankBadgeClass}">${rankText}</span></td>
+            <td class="mobile-hide ${lastItemClass}">${formatDate(customer.lastVisit)}</td>
+            <td class="${lastItemClass}">
                 <div class="btn-group">
                     <button class="btn btn-sm btn-outline-primary view-details" data-customer-id="${customer.id}" title="상세보기">
                         <i class="bi bi-eye"></i>
@@ -1326,13 +1542,30 @@ function updateAllCustomerRanks() {
     }
 }
 
-// 고객 삭제 함수
-function deleteCustomer(customerId) {
+// 고객 삭제 함수 (영구 삭제 보장)
+async function deleteCustomer(customerId) {
     const customer = customers.find(c => c.id === customerId);
     if (!customer) return;
     
     // 삭제 확인
-    if (confirm(`정말로 ${customer.name} 고객의 정보를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) {
+    if (!confirm(`정말로 ${customer.name} 고객의 정보를 삭제하시겠습니까?\n\n⚠️ 이 작업은 되돌릴 수 없으며, 관련된 모든 구매/선물/방문 이력도 함께 삭제됩니다.\n\n영구삭제를 진행하시겠습니까?`)) {
+        return;
+    }
+    
+    // 삭제 상태 표시
+    if (window.FirebaseData) {
+        window.FirebaseData.showSaveStatus('🗑️ 고객 정보 삭제 중...', 'info');
+    }
+    
+    // 삭제할 데이터 백업 (복원용)
+    const backupData = {
+        customer: { ...customer },
+        purchases: purchases.filter(p => p.customerId === customerId).map(p => ({ ...p })),
+        gifts: gifts.filter(g => g.customerId === customerId).map(g => ({ ...g })),
+        visits: visits.filter(v => v.customerId === customerId).map(v => ({ ...v }))
+    };
+    
+    try {
         // 관련된 구매 이력, 선물 이력, 방문 이력도 함께 삭제
         const customerPurchases = purchases.filter(p => p.customerId === customerId);
         const customerGifts = gifts.filter(g => g.customerId === customerId);
@@ -1363,19 +1596,64 @@ function deleteCustomer(customerId) {
         });
         
         // 고객 정보 삭제
-        const index = customers.findIndex(c => c.id === customerId);
-        if (index !== -1) {
-            customers.splice(index, 1);
-            
-            // 데이터 저장
-            saveDataToStorage();
-            
-            // 고객 목록 새로고침
-            loadCustomerList();
-            
-            // 알림 표시
-            alert('고객 정보가 삭제되었습니다.');
+        const customerIndex = customers.findIndex(c => c.id === customerId);
+        if (customerIndex !== -1) {
+            customers.splice(customerIndex, 1);
         }
+        
+        // 영구 삭제 시도 및 확인
+        const saveSuccess = await saveDataToStorage();
+        
+        if (!saveSuccess) {
+            // 삭제 실패 시 데이터 복원
+            console.log('삭제 실패, 데이터 복원 중...');
+            
+            customers.push(backupData.customer);
+            purchases.push(...backupData.purchases);
+            gifts.push(...backupData.gifts);
+            visits.push(...backupData.visits);
+            
+            alert('⚠️ 고객 정보 삭제에 실패했습니다.\n\n인터넷 연결을 확인하고 다시 시도해주세요.\n데이터 손실 방지를 위해 삭제가 취소되었습니다.');
+            
+            // 고객 목록 새로고침 (복원된 데이터로)
+            loadCustomerList();
+            return;
+        }
+        
+        // 삭제 성공 확인
+        console.log(`고객 "${customer.name}" 및 관련 데이터 영구삭제 완료 (ID: ${customerId})`);
+        console.log(`삭제된 데이터: 구매 ${backupData.purchases.length}건, 선물 ${backupData.gifts.length}건, 방문 ${backupData.visits.length}건`);
+        
+        // 고객 목록 새로고침
+        loadCustomerList();
+        loadRankingCounts();
+        
+        // 성공 알림
+        alert(`✅ "${customer.name}" 고객의 정보가 영구삭제되었습니다.\n\n삭제된 데이터:\n- 구매 이력: ${backupData.purchases.length}건\n- 선물 이력: ${backupData.gifts.length}건\n- 방문 이력: ${backupData.visits.length}건`);
+        
+    } catch (error) {
+        console.error('고객 삭제 중 오류:', error);
+        
+        // 오류 시 데이터 복원
+        customers.length = 0;
+        purchases.length = 0;
+        gifts.length = 0;
+        visits.length = 0;
+        
+        // 로컬스토리지에서 데이터 복원
+        const localCustomers = JSON.parse(localStorage.getItem('customers') || '[]');
+        const localPurchases = JSON.parse(localStorage.getItem('purchases') || '[]');
+        const localGifts = JSON.parse(localStorage.getItem('gifts') || '[]');
+        const localVisits = JSON.parse(localStorage.getItem('visits') || '[]');
+        
+        customers.push(...localCustomers);
+        purchases.push(...localPurchases);
+        gifts.push(...localGifts);
+        visits.push(...localVisits);
+        
+        loadCustomerList();
+        
+        alert('❌ 고객 삭제 중 오류가 발생했습니다.\n데이터가 복원되었습니다.');
     }
 }
 

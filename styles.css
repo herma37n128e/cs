@@ -472,15 +472,42 @@ header h2 {
         padding: 0.75rem;
     }
     
-    /* 모바일에서 하단 버튼이 있을 때 패딩 추가 */
+    /* 모바일에서 고객 목록 페이지 하단 여백 추가 (하단 버튼이 가리지 않도록) */
+    #customer-list {
+        padding-bottom: 120px; /* 하단 고정 버튼 높이 + 여유 공간 */
+    }
+    
+    /* 다른 페이지들에도 여유 공간 추가 */
+    .page {
+        padding-bottom: 30px;
+    }
+    
+    /* 모바일에서 테이블 컨테이너에 추가 여백 */
+    #customer-list .table-responsive {
+        margin-bottom: 40px;
+    }
+    
+    /* 모바일에서 하단 버튼이 있을 때 패딩 추가 (전역적용) */
     body.has-mobile-buttons {
         padding-bottom: 80px;
+    }
+    
+    /* 고객 목록 카드에 여유 공간 추가 */
+    #customer-list .card:last-child {
+        margin-bottom: 40px;
+    }
+    
+    /* 마지막 고객 항목에 여유 공간 추가 */
+    .last-customer-item {
+        padding-bottom: 25px !important;
     }
     
     .table-responsive {
         font-size: 0.9rem;
         border-radius: 8px;
         overflow: hidden;
+        /* 테이블 하단 여백 추가 */
+        margin-bottom: 30px;
     }
     
     /* 입력 그룹 개선 */
@@ -535,6 +562,27 @@ header h2 {
     .col-sm-10, .col-sm-11, .col-sm-12 {
         padding-left: 10px;
         padding-right: 10px;
+    }
+    
+    /* 소형 모바일 화면에서 고객 목록 여백 더 증가 */
+    #customer-list {
+        padding-bottom: 140px !important; /* 더 큰 여백으로 확실히 보장 */
+    }
+    
+    /* 고객 목록 테이블 하단 여백 추가 */
+    #customer-list-body tr:last-child td {
+        padding-bottom: 20px;
+    }
+    
+    /* 하단 고정 버튼 높이 조정 */
+    .mobile-fixed-bottom {
+        padding: 18px 15px; /* 패딩 약간 증가 */
+        min-height: 80px; /* 최소 높이 보장 */
+    }
+    
+    .mobile-fixed-bottom .btn {
+        padding: 12px 0.75rem; /* 버튼 패딩 증가 */
+        font-size: 1.05rem;
     }
 }
 

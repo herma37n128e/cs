@@ -38,9 +38,12 @@
     </script>
     
     <script>
-        // Firebase 데이터 관리 함수들
+        // Firebase 데이터 관리 함수들 (영구저장 보장)
         window.FirebaseData = {
             isInitialized: false,
+            saveQueue: [], // 저장 대기열
+            retryCount: 0,
+            maxRetries: 5,
             
             // Firebase 초기화 대기
             async waitForInit() {
@@ -59,26 +62,43 @@
                 });
             },
             
-            // Firebase에서 데이터 가져오기
-            async loadFromFirebase() {
+            // Firebase에서 데이터 가져오기 (재시도 로직 포함)
+            async loadFromFirebase(retryCount = 0) {
                 await this.waitForInit();
                 
                 try {
+                    console.log('Firebase에서 데이터 로드 시도...', retryCount + 1);
                     const snapshot = await window.firebaseGet(window.firebaseRef(window.firebaseDB, 'customerData'));
                     if (snapshot.exists()) {
                         const data = snapshot.val();
-                        console.log('Firebase에서 데이터 로드:', data);
+                        console.log('Firebase에서 데이터 로드 성공:', {
+                            customers: data.customers?.length || 0,
+                            purchases: data.purchases?.length || 0,
+                            gifts: data.gifts?.length || 0,
+                            visits: data.visits?.length || 0
+                        });
                         return data;
+                    } else {
+                        console.log('Firebase에 저장된 데이터가 없음');
+                        return null;
                     }
-                    return null;
                 } catch (error) {
                     console.error('Firebase 데이터 로드 오류:', error);
+                    
+                    // 재시도 로직
+                    if (retryCount < this.maxRetries) {
+                        console.log(`Firebase 로드 재시도 (${retryCount + 1}/${this.maxRetries})`);
+                        await new Promise(resolve => setTimeout(resolve, 2000 * (retryCount + 1)));
+                        return this.loadFromFirebase(retryCount + 1);
+                    }
+                    
+                    this.showSaveStatus('⚠ 데이터 로드 실패', 'error');
                     return null;
                 }
             },
             
-            // Firebase에 데이터 저장
-            async saveToFirebase(data) {
+            // Firebase에 데이터 저장 (영구저장 보장)
+            async saveToFirebase(data, retryCount = 0) {
                 await this.waitForInit();
                 
                 try {
@@ -88,22 +108,153 @@
                         gifts: data.gifts || [],
                         visits: data.visits || [],
                         rankChanges: data.rankChanges || [],
-                        lastUpdated: Date.now()
+                        lastUpdated: Date.now(),
+                        version: '1.0',
+                        savedAt: new Date().toISOString()
                     };
                     
+                    console.log('Firebase에 데이터 저장 시도...', {
+                        customers: saveData.customers.length,
+                        purchases: saveData.purchases.length,
+                        attempt: retryCount + 1
+                    });
+                    
                     await window.firebaseSet(window.firebaseRef(window.firebaseDB, 'customerData'), saveData);
-                    console.log('Firebase에 데이터 저장 완료');
-                    this.showSaveStatus('✓ 저장 완료', 'success');
+                    
+                    // 저장 후 검증
+                    const verification = await this.verifyDataSaved(saveData);
+                    if (!verification.success) {
+                        throw new Error('데이터 저장 검증 실패: ' + verification.error);
+                    }
+                    
+                    console.log('Firebase에 데이터 저장 및 검증 완료');
+                    this.showSaveStatus('✓ 영구저장 완료', 'success');
+                    this.retryCount = 0; // 성공 시 재시도 카운트 리셋
+                    
+                    // 저장 대기열에서 제거
+                    this.saveQueue = this.saveQueue.filter(item => item.timestamp !== saveData.lastUpdated);
+                    
                     return true;
                 } catch (error) {
                     console.error('Firebase 데이터 저장 오류:', error);
-                    this.showSaveStatus('⚠ 저장 실패', 'error');
+                    
+                    // 재시도 로직
+                    if (retryCount < this.maxRetries) {
+                        console.log(`Firebase 저장 재시도 (${retryCount + 1}/${this.maxRetries})`);
+                        this.showSaveStatus(`🔄 저장 재시도 중 (${retryCount + 1}/${this.maxRetries})`, 'info');
+                        
+                        // 대기열에 추가
+                        this.saveQueue.push({
+                            data: data,
+                            timestamp: Date.now(),
+                            retryCount: retryCount + 1
+                        });
+                        
+                        await new Promise(resolve => setTimeout(resolve, 3000 * (retryCount + 1)));
+                        return this.saveToFirebase(data, retryCount + 1);
+                    }
+                    
+                    // 최대 재시도 횟수 초과 시
+                    this.showSaveStatus('❌ 저장 실패 - 관리자 문의', 'error', 10000);
+                    console.error('Firebase 저장 최종 실패:', error);
+                    
+                    // 사용자에게 알림
+                    setTimeout(() => {
+                        alert(`⚠️ 데이터 저장에 실패했습니다.\n\n오류: ${error.message}\n\n인터넷 연결을 확인하고 페이지를 새로고침해주세요.\n데이터가 손실될 수 있습니다.`);
+                    }, 1000);
+                    
                     return false;
                 }
             },
             
+            // 저장된 데이터 검증
+            async verifyDataSaved(savedData) {
+                try {
+                    const snapshot = await window.firebaseGet(window.firebaseRef(window.firebaseDB, 'customerData'));
+                    if (!snapshot.exists()) {
+                        return { success: false, error: '저장된 데이터를 찾을 수 없음' };
+                    }
+                    
+                    const retrievedData = snapshot.val();
+                    
+                    // 기본 검증
+                    if (retrievedData.lastUpdated !== savedData.lastUpdated) {
+                        return { success: false, error: '타임스탬프 불일치' };
+                    }
+                    
+                    if (retrievedData.customers?.length !== savedData.customers?.length) {
+                        return { success: false, error: '고객 수 불일치' };
+                    }
+                    
+                    return { success: true };
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            },
+            
+            // 대기열 처리 (실패한 저장 재시도)
+            async processQueue() {
+                if (this.saveQueue.length === 0) return;
+                
+                console.log(`저장 대기열 처리: ${this.saveQueue.length}개 항목`);
+                
+                const queueCopy = [...this.saveQueue];
+                this.saveQueue = [];
+                
+                for (const item of queueCopy) {
+                    if (item.retryCount < this.maxRetries) {
+                        console.log('대기열에서 저장 재시도:', item.retryCount);
+                        await this.saveToFirebase(item.data, item.retryCount);
+                    }
+                }
+            },
+            
+            // 강제 동기화 (데이터 무결성 보장)
+            async forceSyncWithFirebase() {
+                try {
+                    this.showSaveStatus('🔄 데이터 동기화 중...', 'info');
+                    
+                    // Firebase에서 최신 데이터 가져오기
+                    const firebaseData = await this.loadFromFirebase();
+                    
+                    if (firebaseData) {
+                        // 로컬 데이터 업데이트
+                        if (window.customers) window.customers.length = 0;
+                        if (window.purchases) window.purchases.length = 0;
+                        if (window.gifts) window.gifts.length = 0;
+                        if (window.visits) window.visits.length = 0;
+                        if (window.rankChanges) window.rankChanges.length = 0;
+                        
+                        if (firebaseData.customers) window.customers.push(...firebaseData.customers);
+                        if (firebaseData.purchases) window.purchases.push(...firebaseData.purchases);
+                        if (firebaseData.gifts) window.gifts.push(...firebaseData.gifts);
+                        if (firebaseData.visits) window.visits.push(...firebaseData.visits);
+                        if (firebaseData.rankChanges) window.rankChanges.push(...firebaseData.rankChanges);
+                        
+                        // 로컬스토리지 업데이트
+                        localStorage.setItem('customers', JSON.stringify(window.customers || []));
+                        localStorage.setItem('purchases', JSON.stringify(window.purchases || []));
+                        localStorage.setItem('gifts', JSON.stringify(window.gifts || []));
+                        localStorage.setItem('visits', JSON.stringify(window.visits || []));
+                        localStorage.setItem('rankChanges', JSON.stringify(window.rankChanges || []));
+                        localStorage.setItem('lastUpdated', firebaseData.lastUpdated?.toString() || Date.now().toString());
+                        
+                        // UI 새로고침
+                        if (typeof loadCustomerList === 'function') loadCustomerList();
+                        if (typeof loadBirthdayAlerts === 'function') loadBirthdayAlerts();
+                        if (typeof loadRankingCounts === 'function') loadRankingCounts();
+                        
+                        this.showSaveStatus('✅ 동기화 완료', 'success');
+                        console.log('Firebase 동기화 완료');
+                    }
+                } catch (error) {
+                    console.error('동기화 오류:', error);
+                    this.showSaveStatus('❌ 동기화 실패', 'error');
+                }
+            },
+            
             // 저장 상태 표시
-            showSaveStatus(message, type = 'info', duration = 2000) {
+            showSaveStatus(message, type = 'info', duration = 3000) {
                 const statusDiv = document.getElementById('save-status') || this.createSaveStatusDiv();
                 statusDiv.className = `save-status ${type}`;
                 statusDiv.textContent = message;
@@ -114,12 +265,14 @@
                     window.updateSyncStatus(type === 'info' ? 'syncing' : type);
                 }
                 
-                setTimeout(() => {
-                    statusDiv.style.display = 'none';
-                    if (window.updateSyncStatus && type !== 'error') {
-                        window.updateSyncStatus();
-                    }
-                }, duration);
+                if (duration > 0) {
+                    setTimeout(() => {
+                        statusDiv.style.display = 'none';
+                        if (window.updateSyncStatus && type !== 'error') {
+                            window.updateSyncStatus();
+                        }
+                    }, duration);
+                }
             },
             
             // 저장 상태 div 생성
@@ -130,17 +283,55 @@
                     position: fixed;
                     top: 20px;
                     right: 20px;
-                    padding: 10px 15px;
-                    border-radius: 5px;
+                    padding: 12px 18px;
+                    border-radius: 8px;
                     color: white;
                     font-size: 14px;
+                    font-weight: 500;
                     z-index: 9999;
                     display: none;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                    max-width: 300px;
+                    word-wrap: break-word;
                 `;
                 document.body.appendChild(statusDiv);
                 return statusDiv;
             }
         };
+        
+        // 주기적 대기열 처리 및 연결 상태 확인
+        setInterval(() => {
+            if (window.FirebaseData && navigator.onLine) {
+                window.FirebaseData.processQueue();
+            }
+        }, 30000); // 30초마다
+        
+        // 페이지 포커스 시 동기화 확인
+        window.addEventListener('focus', () => {
+            if (window.FirebaseData && navigator.onLine) {
+                setTimeout(() => {
+                    window.FirebaseData.forceSyncWithFirebase();
+                }, 1000);
+            }
+        });
+        
+        // 네트워크 상태 변경 감지
+        window.addEventListener('online', () => {
+            console.log('네트워크 연결됨 - 동기화 시작');
+            if (window.FirebaseData) {
+                setTimeout(() => {
+                    window.FirebaseData.forceSyncWithFirebase();
+                    window.FirebaseData.processQueue();
+                }, 2000);
+            }
+        });
+        
+        window.addEventListener('offline', () => {
+            console.log('네트워크 연결 끊김 - 로컬 저장으로 전환');
+            if (window.FirebaseData) {
+                window.FirebaseData.showSaveStatus('📱 오프라인 모드', 'info', 5000);
+            }
+        });
         
         // CSS 스타일 추가
         const style = document.createElement('style');
@@ -216,7 +407,12 @@
         // CloudSync 호환성을 위한 더미 객체
         window.CloudSync = {
             startAutoSync: () => console.log('CloudSync 호환성 모드'),
-            forceSyncToCloud: () => console.log('Firebase 저장 방식 사용 중')
+            forceSyncToCloud: () => {
+                if (window.FirebaseData) {
+                    return window.FirebaseData.forceSyncWithFirebase();
+                }
+                return Promise.resolve(false);
+            }
         };
         window.CLOUD_SYNC = { enabled: true };
     </script>
