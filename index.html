@@ -246,13 +246,8 @@
                         if (firebaseData.visits) window.visits.push(...firebaseData.visits);
                         if (firebaseData.rankChanges) window.rankChanges.push(...firebaseData.rankChanges);
                         
-                        // 로컬스토리지 업데이트
-                        localStorage.setItem('customers', JSON.stringify(window.customers || []));
-                        localStorage.setItem('purchases', JSON.stringify(window.purchases || []));
-                        localStorage.setItem('gifts', JSON.stringify(window.gifts || []));
-                        localStorage.setItem('visits', JSON.stringify(window.visits || []));
-                        localStorage.setItem('rankChanges', JSON.stringify(window.rankChanges || []));
-                        localStorage.setItem('lastUpdated', firebaseData.lastUpdated?.toString() || Date.now().toString());
+                        // 서버 전용 모드: 로컬스토리지 사용하지 않음
+                        console.log('✅ 서버(Firebase) 데이터 로드 완료 - 로컬스토리지 미사용');
                         
                         // UI 새로고침
                         if (typeof loadCustomerList === 'function') loadCustomerList();

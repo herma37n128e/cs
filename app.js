@@ -8,117 +8,91 @@ const ADMIN_USERS = [
 let rankChanges = []; // 등급 변경 이력
 
 // Firebase에서 데이터 로드 (로그인 시에는 불러오기만 수행)
+// Firebase 서버 전용 로드 함수
 async function loadDataFromStorage(isLoginLoad = false) {
     try {
-        console.log('데이터 로드 시작...');
+        console.log('🔥 서버(Firebase)에서 데이터 로드 시작...');
         
-        // 1단계: 로컬스토리지에서 빠른 로딩
-        const localCustomers = JSON.parse(localStorage.getItem('customers') || '[]');
-        const localPurchases = JSON.parse(localStorage.getItem('purchases') || '[]');
-        const localGifts = JSON.parse(localStorage.getItem('gifts') || '[]');
-        const localVisits = JSON.parse(localStorage.getItem('visits') || '[]');
-        const localRankChanges = JSON.parse(localStorage.getItem('rankChanges') || '[]');
-        const localLastUpdated = parseInt(localStorage.getItem('lastUpdated') || '0');
-        
-        // 로컬 데이터를 먼저 화면에 표시 (사용자 경험 향상)
+        // 빈 배열로 초기화
         customers.length = 0;
         purchases.length = 0;
         gifts.length = 0;
         visits.length = 0;
         rankChanges.length = 0;
         
-        customers.push(...localCustomers);
-        purchases.push(...localPurchases);
-        gifts.push(...localGifts);
-        visits.push(...localVisits);
-        rankChanges.push(...localRankChanges);
-        
-        console.log('로컬 데이터 로드 완료:', {
-            customers: customers.length,
-            purchases: purchases.length,
-            gifts: gifts.length,
-            visits: visits.length
-        });
-        
-        // 2단계: Firebase에서 최신 데이터 확인 및 갱신
+        // Firebase에서만 데이터 로드 (서버 전용)
         if (window.FirebaseData) {
             try {
                 const firebaseData = await window.FirebaseData.loadFromFirebase();
                 
                 if (firebaseData) {
-                    const firebaseLastUpdated = firebaseData.lastUpdated || 0;
+                    console.log('✅ Firebase 서버 데이터 발견, 로드 중...');
                     
-                    // Firebase 데이터가 더 최신인 경우 로드
-                    if (firebaseLastUpdated > localLastUpdated) {
-                        console.log('Firebase에 더 최신 데이터 발견, 로드 중...');
-                        
-                        customers.length = 0;
-                        purchases.length = 0;
-                        gifts.length = 0;
-                        visits.length = 0;
-                        rankChanges.length = 0;
-                        
-                        customers.push(...(firebaseData.customers || []));
-                        purchases.push(...(firebaseData.purchases || []));
-                        gifts.push(...(firebaseData.gifts || []));
-                        visits.push(...(firebaseData.visits || []));
-                        rankChanges.push(...(firebaseData.rankChanges || []));
-                        
-                        // 로컬스토리지도 업데이트
-    localStorage.setItem('customers', JSON.stringify(customers));
-    localStorage.setItem('purchases', JSON.stringify(purchases));
-    localStorage.setItem('gifts', JSON.stringify(gifts));
-    localStorage.setItem('visits', JSON.stringify(visits));
-                        localStorage.setItem('rankChanges', JSON.stringify(rankChanges));
-                        localStorage.setItem('lastUpdated', firebaseLastUpdated.toString());
-                        
-                        if (window.FirebaseData && !isLoginLoad) {
-                            window.FirebaseData.showSaveStatus('🔄 최신 데이터로 로드됨', 'success');
-                        }
-                        
-                        console.log('Firebase 데이터 로드 완료:', {
-                            customers: customers.length,
-                            purchases: purchases.length,
-                            lastUpdated: new Date(firebaseLastUpdated).toLocaleString()
-                        });
-                    } else {
-                        console.log('로컬 데이터가 최신 상태입니다.');
-                        if (window.FirebaseData && !isLoginLoad) {
-                            window.FirebaseData.showSaveStatus('✓ 데이터 최신 상태', 'success', 2000);
-                        }
+                    customers.push(...(firebaseData.customers || []));
+                    purchases.push(...(firebaseData.purchases || []));
+                    gifts.push(...(firebaseData.gifts || []));
+                    visits.push(...(firebaseData.visits || []));
+                    rankChanges.push(...(firebaseData.rankChanges || []));
+                    
+                    if (window.FirebaseData && !isLoginLoad) {
+                        window.FirebaseData.showSaveStatus('✅ 서버 데이터 로드 완료', 'success', 2000);
                     }
+                    
+                    console.log('✅ Firebase 서버 데이터 로드 완료:', {
+                        customers: customers.length,
+                        purchases: purchases.length,
+                        gifts: gifts.length,
+                        visits: visits.length,
+                        lastUpdated: new Date(firebaseData.lastUpdated || 0).toLocaleString()
+                    });
+                    
                 } else {
-                    console.log('Firebase 데이터 없음, 로컬 데이터 사용');
-                    // 로그인 직후에는 저장하지 않고 불러오기만 수행
-                    console.log('로그인 직후이므로 데이터 불러오기만 실행');
+                    console.log('⚠️ Firebase 서버에 데이터가 없음 - 빈 데이터로 시작');
+                    if (window.FirebaseData && !isLoginLoad) {
+                        window.FirebaseData.showSaveStatus('ℹ️ 새로운 데이터베이스', 'info', 2000);
+                    }
                 }
             } catch (firebaseError) {
-                console.warn('Firebase 로드 실패, 로컬 데이터 사용:', firebaseError);
+                console.error('❌ Firebase 서버 로드 실패:', firebaseError);
                 if (window.FirebaseData && !isLoginLoad) {
-                    window.FirebaseData.showSaveStatus('⚠ 오프라인 모드', 'info', 3000);
+                    window.FirebaseData.showSaveStatus('❌ 서버 연결 실패', 'error', 3000);
                 }
+                throw firebaseError; // 에러를 다시 던져서 catch 블록에서 처리
             }
+        } else {
+            console.error('❌ Firebase 초기화되지 않음');
+            if (window.FirebaseData && !isLoginLoad) {
+                window.FirebaseData.showSaveStatus('❌ Firebase 연결 안됨', 'error', 3000);
+            }
+            throw new Error('Firebase가 초기화되지 않았습니다.');
+        }
+        
+        // 데이터 로드 완료 후 UI 새로고침 (로그인 로드가 아닌 경우)
+        if (!isLoginLoad) {
+            setTimeout(() => {
+                refreshAllUI();
+                console.log('🔄 서버 데이터 로드 후 UI 자동 새로고침 완료');
+            }, 100);
         }
         
         return true;
     } catch (error) {
-        console.error('데이터 로드 오류:', error);
+        console.error('❌ 서버 데이터 로드 오류:', error);
         
-        // 초기화 실패 시 빈 배열로 초기화
+        // 오류 시 빈 배열로 초기화
         customers.length = 0;
         purchases.length = 0;
         gifts.length = 0;
         visits.length = 0;
         rankChanges.length = 0;
         
-        customers.push([]);
-        purchases.push([]);
-        gifts.push([]);
-        visits.push([]);
-        rankChanges.push([]);
-        
         if (window.FirebaseData && !isLoginLoad) {
-            window.FirebaseData.showSaveStatus('❌ 데이터 로드 실패', 'error');
+            window.FirebaseData.showSaveStatus('❌ 서버 데이터 로드 실패', 'error', 5000);
+        }
+        
+        // 서버 연결 실패 시 사용자에게 안내
+        if (!isLoginLoad) {
+            alert('⚠️ 서버에서 데이터를 불러올 수 없습니다!\n\n인터넷 연결을 확인하고 페이지를 새로고침해주세요.');
         }
         
         return false;
@@ -126,19 +100,12 @@ async function loadDataFromStorage(isLoginLoad = false) {
 }
 
 // Firebase에 데이터 저장 및 UI 새로고침
+// Firebase 서버 전용 저장 함수
 async function saveDataToStorage(shouldRefreshUI = true) {
     try {
-        // 로컬스토리지에 즉시 저장 (빠른 응답)
-        localStorage.setItem('customers', JSON.stringify(customers));
-        localStorage.setItem('purchases', JSON.stringify(purchases));
-        localStorage.setItem('gifts', JSON.stringify(gifts));
-        localStorage.setItem('visits', JSON.stringify(visits));
-        localStorage.setItem('rankChanges', JSON.stringify(rankChanges));
-        localStorage.setItem('lastUpdated', Date.now().toString());
+        console.log('🔥 서버(Firebase) 저장 시작...');
         
-        console.log('로컬스토리지 저장 완료, Firebase 저장 시작...');
-        
-        // Firebase에 영구저장 (재시도 로직 포함)
+        // Firebase에만 저장 (서버 전용)
         if (window.FirebaseData) {
             const saveData = {
                 customers: customers || [],
@@ -152,59 +119,43 @@ async function saveDataToStorage(shouldRefreshUI = true) {
             const success = await window.FirebaseData.saveToFirebase(saveData);
             
             if (!success) {
-                console.warn('Firebase 저장 실패, 로컬 데이터는 유지됨');
-                // 로컬스토리지에는 저장되었으므로 데이터 손실은 없음
+                console.error('❌ Firebase 서버 저장 실패');
                 
-                // UI 새로고침 (로컬 데이터로라도)
-                if (shouldRefreshUI) {
-                    refreshAllUI();
+                if (window.FirebaseData) {
+                    window.FirebaseData.showSaveStatus('❌ 서버 저장 실패', 'error', 5000);
                 }
+                
+                // 저장 실패 시 UI는 새로고침하지 않음 (데이터 불일치 방지)
+                alert('⚠️ 서버 저장에 실패했습니다!\n\n인터넷 연결을 확인하고 다시 시도해주세요.');
                 return false;
             }
             
-            console.log('데이터 영구저장 완료 (로컬 + Firebase)');
+            console.log('✅ 서버(Firebase) 저장 완료');
             
-            // 저장 성공 시 UI 새로고침
+            // 저장 성공 시에만 UI 새로고침
             if (shouldRefreshUI) {
                 refreshAllUI();
             }
             
             return true;
         } else {
-            console.warn('Firebase 초기화 전, 로컬스토리지만 저장됨');
+            console.error('❌ Firebase 초기화되지 않음 - 저장 불가');
             
-            // UI 새로고침 (로컬 데이터로라도)
-            if (shouldRefreshUI) {
-                refreshAllUI();
+            if (window.FirebaseData) {
+                window.FirebaseData.showSaveStatus('❌ Firebase 연결 실패', 'error', 5000);
             }
+            
+            alert('⚠️ 서버 연결이 되지 않습니다!\n\n페이지를 새로고침 후 다시 시도해주세요.');
             return false;
         }
     } catch (error) {
-        console.error('데이터 저장 오류:', error);
+        console.error('❌ 서버 저장 오류:', error);
         
-        // 중요한 오류 시 사용자에게 알림
         if (window.FirebaseData) {
-            window.FirebaseData.showSaveStatus('❌ 데이터 저장 실패', 'error', 5000);
+            window.FirebaseData.showSaveStatus('❌ 서버 저장 오류', 'error', 5000);
         }
         
-        // 최소한 로컬스토리지라도 저장 시도
-        try {
-            localStorage.setItem('customers', JSON.stringify(customers));
-            localStorage.setItem('purchases', JSON.stringify(purchases));
-            localStorage.setItem('gifts', JSON.stringify(gifts));
-            localStorage.setItem('visits', JSON.stringify(visits));
-            localStorage.setItem('rankChanges', JSON.stringify(rankChanges));
-            console.log('로컬스토리지 백업 저장 완료');
-            
-            // UI 새로고침 (로컬 데이터로라도)
-            if (shouldRefreshUI) {
-                refreshAllUI();
-            }
-        } catch (localError) {
-            console.error('로컬스토리지 저장도 실패:', localError);
-            alert('⚠️ 데이터 저장에 실패했습니다!\n브라우저 저장소를 확인해주세요.');
-        }
-        
+        alert('⚠️ 서버 저장 중 오류가 발생했습니다!\n\n' + error.message);
         return false;
     }
 }
@@ -304,11 +255,17 @@ function checkLoginStatus() {
                     retryCount++;
                     console.log(`🔥 Firebase 초기화 대기 중... (${retryCount}/${maxRetries})`);
                     
-                    if (window.FirebaseData && window.FirebaseData.isInitialized) {
-                        clearInterval(waitForFirebase);
-                        console.log('🔥 Firebase 초기화 완료 - 서버 데이터 로드 시작');
-                        // 서버 데이터 강제 로드 (메시지 표시)
-                        window.FirebaseData.forceSyncWithFirebase(true);
+                                    if (window.FirebaseData && window.FirebaseData.isInitialized) {
+                    clearInterval(waitForFirebase);
+                    console.log('🔥 Firebase 초기화 완료 - 서버 데이터 강제 새로고침 시작');
+                    // 서버 데이터 강제 로드 (상태 확인 시)
+                    window.FirebaseData.forceSyncWithFirebase(true)
+                        .then(() => {
+                            console.log('✅ 로그인 상태 확인 후 서버 데이터 새로고침 완료');
+                        })
+                        .catch(error => {
+                            console.warn('로그인 상태 확인 후 서버 데이터 로드 실패:', error);
+                        });
                     } else if (retryCount >= maxRetries) {
                         clearInterval(waitForFirebase);
                         console.log('⚠️ Firebase 초기화 시간 초과 - 로컬 데이터 사용');
@@ -422,8 +379,9 @@ function handleLogin(e) {
             loginModal.hide();
         }
         
-        // 배경 즉시 복원
-        setTimeout(() => {
+        // 배경 즉시 복원 (강화된 스크롤 복원)
+        const restoreScrolling = () => {
+            // body 스타일 완전 초기화
             document.body.style.overflow = '';
             document.body.style.position = '';
             document.body.style.width = '';
@@ -432,7 +390,7 @@ function handleLogin(e) {
             document.body.style.top = '';
             document.body.style.left = '';
             
-            // HTML 요소 스타일 초기화
+            // HTML 요소 스타일 완전 초기화
             document.documentElement.style.overflow = '';
             document.documentElement.style.position = '';
             document.documentElement.style.width = '';
@@ -450,7 +408,38 @@ function handleLogin(e) {
             if (overlay) {
                 overlay.remove();
             }
-        }, 100); // 0.1초 후 배경 정리
+            
+            // 모바일 환경에서 스크롤 강제 복원
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                             window.innerWidth <= 768;
+            
+            if (isMobile) {
+                // 모바일에서 스크롤 완전 복원
+                document.body.style.cssText = '';
+                document.documentElement.style.cssText = '';
+                
+                // 추가 확인 및 복원
+                setTimeout(() => {
+                    if (document.body.style.overflow === 'hidden') {
+                        document.body.style.overflow = '';
+                        console.log('📱 모바일 스크롤 추가 복원 완료');
+                    }
+                    if (document.documentElement.style.overflow === 'hidden') {
+                        document.documentElement.style.overflow = '';
+                        console.log('📱 모바일 HTML 스크롤 추가 복원 완료');
+                    }
+                }, 200);
+            }
+            
+            console.log('✅ 로그인 후 스크롤 복원 완료');
+        };
+        
+        // 즉시 복원
+        restoreScrolling();
+        
+        // 추가 보험으로 한번 더 복원
+        setTimeout(restoreScrolling, 100);
+        setTimeout(restoreScrolling, 500);
         
         // 로그인 성공 후 즉시 데이터 로드 (새로고침 대신)
         console.log('🔄 로그인 성공 - 서버 데이터 자동 로드 시작');
@@ -525,11 +514,28 @@ function initializeMainSystem() {
     const sidebarToggle = document.getElementById('sidebar-toggle');
     const sidebarClose = document.getElementById('sidebar-close');
 
-    // 사이드바 닫기 함수를 전역으로 정의
+    // 사이드바 닫기 함수를 전역으로 정의 (강화된 스크롤 복원)
     window.closeSidebar = function() {
         sidebar.classList.remove('show');
         sidebarOverlay.classList.remove('show');
-        document.body.style.overflow = ''; // 스크롤 복원
+        
+        // 스크롤 완전 복원 (모바일 환경 대응)
+        document.body.style.overflow = '';
+        
+        // 모바일에서 추가 확인 및 복원
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                         window.innerWidth <= 768;
+        
+        if (isMobile) {
+            setTimeout(() => {
+                if (document.body.style.overflow === 'hidden') {
+                    document.body.style.overflow = '';
+                    console.log('📱 사이드바 닫기 후 모바일 스크롤 추가 복원');
+                }
+            }, 100);
+        }
+        
+        console.log('✅ 사이드바 닫기 및 스크롤 복원 완료');
     };
 
     // 사이드바 열기

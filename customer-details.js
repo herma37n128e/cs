@@ -1,45 +1,91 @@
-// 로컬 스토리지에서 데이터 로드
+// 서버(Firebase) 전용 데이터 관리
 let customers = [];
 let purchases = [];
 let gifts = [];
 let visits = [];
 
-function loadDataFromStorage() {
-    const storedCustomers = localStorage.getItem('customers');
-    const storedPurchases = localStorage.getItem('purchases');
-    const storedGifts = localStorage.getItem('gifts');
-    const storedVisits = localStorage.getItem('visits');
+// 전화번호 포맷팅 함수 (xxx-xxxx-xxxx 형식)
+function formatPhoneNumber(phone) {
+    if (!phone) return '-';
     
-    if (storedCustomers) customers = JSON.parse(storedCustomers);
-    if (storedPurchases) purchases = JSON.parse(storedPurchases);
-    if (storedGifts) gifts = JSON.parse(storedGifts);
-    if (storedVisits) visits = JSON.parse(storedVisits);
+    // 숫자만 추출
+    const cleaned = phone.replace(/\D/g, '');
+    
+    // 11자리 휴대폰 번호 (010-xxxx-xxxx)
+    if (cleaned.length === 11) {
+        return cleaned.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+    }
+    // 10자리 번호 (010-xxx-xxxx 또는 02-xxx-xxxx)
+    else if (cleaned.length === 10) {
+        if (cleaned.startsWith('02')) {
+            return cleaned.replace(/(\d{2})(\d{4})(\d{4})/, '$1-$2-$3');
+        } else {
+            return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+        }
+    }
+    // 8자리 번호 (02-xxx-xxxx)
+    else if (cleaned.length === 8) {
+        return cleaned.replace(/(\d{4})(\d{4})/, '02-$1-$2');
+    }
+    // 기타 형식은 원본 반환
+    else {
+        return phone;
+    }
+}
+
+// 서버 전용 모드: 메인 창에서 데이터 가져오기
+function loadDataFromStorage() {
+    console.log('🔥 고객상세페이지: 서버 전용 모드 - 메인 창에서 데이터 동기화');
+    
+    try {
+        // 메인 창(opener)에서 데이터 가져오기
+        if (window.opener && !window.opener.closed) {
+            customers = window.opener.customers || [];
+            purchases = window.opener.purchases || [];
+            gifts = window.opener.gifts || [];
+            visits = window.opener.visits || [];
+            
+            console.log('✅ 메인 창에서 데이터 동기화 완료:', {
+                customers: customers.length,
+                purchases: purchases.length,
+                gifts: gifts.length,
+                visits: visits.length
+            });
+        } else {
+            console.warn('⚠️ 메인 창을 찾을 수 없음 - 빈 데이터로 시작');
+            customers = [];
+            purchases = [];
+            gifts = [];
+            visits = [];
+        }
+    } catch (error) {
+        console.error('❌ 메인 창 데이터 동기화 실패:', error);
+        customers = [];
+        purchases = [];
+        gifts = [];
+        visits = [];
+    }
 }
 
 // 로컬 스토리지에 데이터 저장
-// 데이터 저장 함수 (Firebase 영구저장)
+// Firebase 서버 전용 저장 함수
 async function saveDataToStorage() {
     try {
-        // 로컬스토리지에 즉시 저장
-        localStorage.setItem('customers', JSON.stringify(customers));
-        localStorage.setItem('purchases', JSON.stringify(purchases));
-        localStorage.setItem('gifts', JSON.stringify(gifts));
-        localStorage.setItem('visits', JSON.stringify(visits));
-        localStorage.setItem('lastUpdated', Date.now().toString());
+        console.log('🔥 고객상세페이지에서 서버 저장 시작...');
         
-        // Firebase에 영구저장
+        // Firebase 서버에만 저장 (로컬스토리지 사용 안함)
         if (window.FirebaseData && window.opener && window.opener.FirebaseData) {
             const saveData = {
                 customers: customers || [],
                 purchases: purchases || [],
                 gifts: gifts || [],
                 visits: visits || [],
-                rankChanges: JSON.parse(localStorage.getItem('rankChanges') || '[]')
+                rankChanges: window.opener.rankChanges || []
             };
             
             const success = await window.opener.FirebaseData.saveToFirebase(saveData);
             if (success) {
-                console.log('고객 상세 페이지에서 Firebase 저장 성공');
+                console.log('✅ 고객 상세 페이지에서 Firebase 서버 저장 성공');
                 
                 // 메인 창 UI 새로고침
                 if (window.opener && !window.opener.closed) {
@@ -63,12 +109,20 @@ async function saveDataToStorage() {
                         console.warn('메인 창 새로고침 실패:', error);
                     }
                 }
+                return true;
+            } else {
+                console.error('❌ Firebase 서버 저장 실패');
+                alert('⚠️ 서버 저장에 실패했습니다!\n\n인터넷 연결을 확인하고 다시 시도해주세요.');
+                return false;
             }
+        } else {
+            console.error('❌ Firebase 연결 실패 - 저장 불가');
+            alert('⚠️ 서버 연결이 되지 않습니다!\n\n메인 페이지를 새로고침 후 다시 시도해주세요.');
+            return false;
         }
-        
-        return true;
     } catch (error) {
-        console.error('데이터 저장 오류:', error);
+        console.error('❌ 서버 저장 오류:', error);
+        alert('⚠️ 서버 저장 중 오류가 발생했습니다!\n\n' + error.message);
         return false;
     }
 }
@@ -396,7 +450,7 @@ function loadCustomerDetails(customerId) {
             <div class="col-md-6">
                 <p><strong>이름:</strong> ${customer.name}</p>
                 <p><strong>성별:</strong> ${genderText}</p>
-                <p><strong>전화번호:</strong> ${customer.phone}</p>
+                <p><strong>전화번호:</strong> ${formatPhoneNumber(customer.phone)}</p>
                 <p><strong>생년월일:</strong> ${formatDate(customer.birthdate)}</p>
                 <p><strong>주소:</strong> ${customer.address || '-'}</p>
             </div>
@@ -675,7 +729,7 @@ async function generatePurchasePDF(customerId) {
                 <h3 style="color: #333; margin-bottom: 15px; font-size: 16px;">고객 정보</h3>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <div><strong>고객명:</strong> ${customer.name}</div>
-                    <div><strong>연락처:</strong> ${customer.phone}</div>
+                    <div><strong>연락처:</strong> ${formatPhoneNumber(customer.phone)}</div>
                     <div><strong>등급:</strong> ${rankText}</div>
                     <div><strong>총 구매액:</strong> ${formatCurrency(customer.totalPurchase)}</div>
                 </div>
